@@ -1,0 +1,112 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Historial de Abonos | {{ targeta.nombre_cliente }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+
+<div class="container py-5">
+    <div class="header-gradient shadow">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="fw-bold mb-1">Historial de Abonos</h2>
+                <p class="mb-0 opacity-75">Cliente: <strong>{{ targeta.nombre_cliente }}</strong></p>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <span class="badge bg-success px-3 py-2 fs-6 shadow-sm">ID: {{ targeta.numero_identificacion }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card info-card mb-4 mx-2 mx-md-0">
+        <div class="card-body p-4">
+            <div class="row text-center text-md-start mb-4">
+                <div class="col-6 col-md-4 mb-3">
+                    <div class="stat-label">Monto Prestado</div>
+                    <div class="stat-value text-dark">${{ targeta.monto_total }}</div>
+                </div>
+                <div class="col-6 col-md-4 mb-3">
+                    <div class="stat-label text-success">Total Abonado</div>
+                    <div class="stat-value text-success">${{ total_abonado }}</div>
+                </div>
+                <div class="col-12 col-md-4 mb-3">
+                    <div class="stat-label text-danger">Saldo Restante</div>
+                    <div class="stat-value text-danger">${{ targeta.saldo_restante }}</div>
+                </div>
+            </div>
+
+            <div class="px-2">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="small fw-bold text-muted">Progreso de pago</span>
+                    <span class="small fw-bold text-primary">{{ targeta.porcentaje_pagado }}%</span>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white py-3">
+            <h6 class="m-0 fw-bold text-dark">📜 Listado de Transacciones</h6>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-custom align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Fecha y Hora</th>
+                        <th>Monto</th>
+                        <th>Registrado por</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in abonos %}
+                    <tr>
+                        <td class="ps-4 text-secondary">
+                            <span class="d-block fw-bold text-dark">{{ a.fecha|date:"d M, Y" }}</span>
+                            <small>{{ a.fecha|date:"H:i" }}</small>
+                        </td>
+                        <td>
+                            <span class="fw-bold text-success">+ ${{ a.monto }}</span>
+                        </td>
+                        <td>
+                            {% if a.registrado_por %}
+                                <span class="badge-user small">👤 {{ a.registrado_por.username }}</span>
+                            {% else %}
+                                <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center py-5 text-muted">
+                            <div class="fs-1 mb-2">💸</div>
+                            <p>No se han registrado abonos todavía.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mt-4 text-center text-md-start">
+        {% if request.user.perfil.rol == 'SUPERVISOR' %}
+            <a href="{% url 'dashboard_supervisor' %}?ruta={{ targeta.ruta.id }}" class="btn btn-secondary btn-back shadow-sm">
+                ← Volver al Panel
+            </a>
+        {% else %}
+            <a href="{% url 'dashboard_trabajador' %}?ruta={{ targeta.ruta.id }}" class="btn btn-secondary btn-back shadow-sm">
+                ← Volver al Panel
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+</body>
+</html>

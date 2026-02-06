@@ -1,0 +1,80 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Cajas - {{ ruta.nombre }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+</head>
+<body>
+
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark">📚 Historial de Cierres</h2>
+            <p class="text-muted">Ruta: <span class="badge bg-primary fs-6">{{ ruta.nombre }}</span></p>
+        </div>
+        <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="btn btn-outline-secondary shadow-sm">
+            ← Volver al Panel
+        </a>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Fecha</th>
+                            <th>Base Inicial</th>
+                            <th>Ingresos (Abonos)</th>
+                            <th>Egresos (Gastos)</th>
+                            <th>Saldo Final</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for registro in historial %}
+                        <tr>
+                            <td class="ps-4">
+                                <span class="fw-bold text-secondary">{{ registro.fecha|date:"d M Y" }}</span>
+                            </td>
+                            <td class="text-monto">${{ registro.saldo_inicial }}</td>
+                            <td class="text-monto text-success">+ ${{ registro.ingresos }}</td>
+                            <td class="text-monto text-danger">- ${{ registro.egresos }}</td>
+                            <td class="text-monto fw-bold fs-5">
+                                ${{ registro.saldo_final }}
+                            </td>
+                            <td class="text-center">
+                                <a href="{% url 'reporte_diario' ruta.id registro.fecha|date:'Y-m-d' %}" 
+                                   class="btn btn-sm btn-dark px-3">
+                                    👁️ Ver Detalle
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <div class="mb-2 fs-1">📭</div>
+                                <p>No hay cierres registrados para esta ruta todavía.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4 p-3 bg-light rounded-3 border">
+        <small class="text-muted">
+            <strong>Nota:</strong> Los cierres se generan automáticamente al finalizar el día. 
+            El <strong>Saldo Final</strong> es el dinero neto que el cobrador debe entregar al cierre de su jornada.
+        </small>
+    </div>
+</div>
+
+</body>
+</html>

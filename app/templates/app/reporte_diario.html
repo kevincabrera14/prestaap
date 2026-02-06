@@ -1,0 +1,113 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte Diario - {{ ruta.nombre }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body class="bg-custom">
+
+<div class="container mt-4">
+    {% if no_hay_caja %}
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <div class="card shadow-sm border-0 p-5 mt-5">
+                <h1 class="display-1">📅</h1>
+                <h3 class="fw-bold">Reporte no disponible</h3>
+                <p class="text-muted">No existe una caja cerrada para la ruta <strong>{{ ruta.nombre }}</strong> en la fecha {{ fecha|date:"d/m/Y" }}.</p>
+                <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="btn btn-primary no-print">Volver al Panel</a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    
+    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+        <h2 class="h4 mb-0 fw-bold">📊 Reporte Diario: {{ ruta.nombre }}</h2>
+        <div class="btn-group">
+            <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="btn btn-outline-secondary btn-sm">Volver</a>
+            <button onclick="window.print()" class="btn btn-dark btn-sm">Imprimir</button>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4 text-center">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm bg-primary text-white p-3 h-100">
+                <small>Saldo Inicial (Base)</small>
+                <h4 class="mb-0 fw-bold">${{ caja.saldo_inicial }}</h4>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm bg-success text-white p-3 h-100">
+                <small>Ingresos (Abonos)</small>
+                <h4 class="mb-0 fw-bold">+ ${{ total_ingresos }}</h4>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm bg-danger text-white p-3 h-100">
+                <small>Egresos (Gastos)</small>
+                <h4 class="mb-0 fw-bold">- ${{ total_egresos }}</h4>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm bg-dark text-white p-3 h-100">
+                <small>Saldo Final</small>
+                <h4 class="mb-0 fw-bold">${{ saldo_final }}</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white fw-bold text-success">💰 Detalle de Ingresos</div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr><th>Cliente</th><th class="text-end">Monto</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for abono in abonos %}
+                            <tr>
+                                <td>{{ abono.targeta.nombre_cliente }}<br><small class="text-muted">{{ abono.fecha|time:"H:i" }}</small></td>
+                                <td class="text-end text-success fw-bold">${{ abono.monto }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="2" class="text-center py-3">Sin ingresos</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white fw-bold text-danger">💸 Detalle de Egresos</div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr><th>Descripción</th><th class="text-end">Monto</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for egreso in egresos %}
+                            <tr>
+                                <td>{{ egreso.descripcion }}<br><small class="text-muted">{{ egreso.fecha|time:"H:i" }}</small></td>
+                                <td class="text-end text-danger fw-bold">-${{ egreso.monto }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="2" class="text-center py-3">Sin egresos</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+</body>
+</html>

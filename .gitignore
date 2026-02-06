@@ -1,0 +1,20 @@
+# Django
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+media/
+__pycache__/
+*.pyc
+
+# Entornos virtuales
+venv/
+env/
+.env
+
+# VS Code / IDEs
+.vscode/
+.idea/
+.DS_Store
+
+# Railway / Logs
+*.log

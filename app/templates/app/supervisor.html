@@ -1,0 +1,156 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>PrestApp | Panel Supervisor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+
+<body>
+
+    <nav class="navbar navbar-dark custom-nav px-3 sticky-top mb-4">
+        <div class="container-fluid">
+            <span class="navbar-brand fw-bold">PrestApp <span class="fw-light opacity-75">| {{ request.user.username }}</span></span>
+            <a href="{% url 'logout' %}" class="btn btn-outline-light btn-sm opacity-75">Salir</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        
+        <div class="mb-4">
+            <h6 class="fw-bold mb-3 text-secondary text-uppercase" style="font-size: 0.7rem;">Rutas Disponibles</h6>
+            <div class="row g-2 ruta-btn-group">
+                {% for r in rutas %}
+                <div class="col-6 col-md-3">
+                    <a href="?ruta={{ r.id }}" class="btn w-100 {% if ruta_sel and r.id == ruta_sel.id %}btn-primary shadow{% else %}btn-white border{% endif %}">
+                        📍 {{ r.nombre }}
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if ruta_sel %}
+        
+        <div class="row g-2 mb-4">
+            <div class="col-12 col-md-4">
+                <a href="{% url 'crear_targeta' %}?ruta={{ ruta_sel.id }}" class="btn btn-success w-100 shadow-sm fw-bold">
+                    ➕ Nueva Targeta
+                </a>
+            </div>
+            <div class="col-6 col-md-4">
+                {% now "Y-m-d" as hoy %}
+                <a href="{% url 'reporte_diario' ruta_sel.id hoy %}" class="btn btn-dark w-100 shadow-sm">
+                    📊 Reporte Diario
+                </a>
+            </div>
+            <div class="col-6 col-md-4">
+                <a href="{% url 'historial_cajas' ruta_sel.id %}" class="btn btn-outline-dark w-100 shadow-sm">
+                    💰 Historial Cajas
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-2 mb-4">
+            <div class="col-6 col-md-3">
+                <div class="resumen-card text-center border-bottom border-primary border-4">
+                    <h4>{{ resumen.total_clientes }}</h4>
+                    <small>Clientes</small>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="resumen-card text-center border-bottom border-danger border-4">
+                    <h4 class="text-danger">{{ resumen.en_mora }}</h4>
+                    <small>En Mora</small>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="resumen-card text-center border-bottom border-success border-4">
+                    <h4>${{ resumen.base }}</h4>
+                    <small>Base</small>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="resumen-card text-center border-bottom border-warning border-4">
+                    <h4>${{ resumen.dinero_en_ruta }}</h4>
+                    <small>En Ruta</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <form method="GET">
+                <input type="hidden" name="ruta" value="{{ ruta_sel.id }}">
+                <input type="text" name="q" class="form-control search-bar" placeholder="🔍 Buscar cliente..."
+                    value="{{ request.GET.q|default:'' }}">
+            </form>
+        </div>
+
+        <div class="row g-3">
+            {% for t in targetas %}
+            <div class="col-12 col-sm-6 col-lg-4">
+                <div class="card card-targeta-v2 shadow-sm">
+                    <div class="status-strip {% if t.estado == 'MORA' %}bg-mora{% else %}bg-al-dia{% endif %}"></div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <div class="client-name text-truncate" style="max-width: 150px;">{{ t.nombre_cliente }}</div>
+                                <small class="text-muted">ID: {{ t.numero_identificacion }}</small>
+                            </div>
+                            <span class="badge {% if t.estado == 'MORA' %}bg-danger{% else %}bg-success{% endif %} rounded-pill" style="font-size: 0.6rem;">
+                                {{ t.get_estado_display }}
+                            </span>
+                        </div>
+                        
+                        <hr class="my-2 opacity-25">
+
+                        <div class="row g-0">
+                            <div class="col-6">
+                                <div class="info-label">📞 Teléfono</div>
+                                <div class="info-value small">{{ t.telefono }}</div>
+                            </div>
+                            <div class="col-6 text-end">
+                                <div class="info-label">💰 Saldo</div>
+                                <div class="info-value text-primary">${{ t.saldo_restante }}</div>
+                            </div>
+                        </div>
+
+                        <div class="action-grid">
+                            <a href="{% url 'crear_abono' t.id %}" class="btn btn-success btn-action">💵 Abonar</a>
+                            <a href="{% url 'historial_abonos' t.id %}" class="btn btn-outline-secondary btn-action">🕒 Historial</a>
+                            <a href="{% url 'editar_targeta' t.id %}" class="btn btn-warning btn-action">📝 Editar</a>
+                            <a href="{% url 'eliminar_targeta' t.id %}" class="btn btn-outline-danger btn-action" 
+                               onclick="return confirm('¿Eliminar?')">🗑️ Eliminar</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5"><p class="text-muted">No hay clientes.</p></div>
+            {% endfor %}
+        </div>
+
+        {% else %}
+        <div class="row justify-content-center mt-5">
+            <div class="col-md-6 text-center">
+                <div class="p-5 bg-white rounded-4 shadow-sm">
+                    <h1 class="display-4">📍</h1>
+                    <h4 class="fw-bold">Selecciona una Ruta</h4>
+                    <p class="text-muted">Elige una ruta arriba para ver los movimientos.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+    
+    
+
+    <div class="py-5"></div> 
+</body>
+</html>
