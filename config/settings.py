@@ -6,14 +6,12 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# En Railway, esto tomará el valor de la variable de entorno que configures.
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-3k!#_wmp%!$!ob$i3elq(@*fio=#tgl%4t%@vl0gd3)zn3jwq3')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# Si estamos en Railway, DEBUG será False automáticamente.
 DEBUG = os.environ.get('RAILWAY_ENVIRONMENT') is None
 
-# Permitimos todos los hosts en Railway para evitar errores de dominio
+# Permitimos todos los hosts en Railway
 ALLOWED_HOSTS = ['*']
 
 # Application definition
@@ -23,7 +21,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'whitenoise.runserver_nostatic', # Agregado para manejar estáticos
+    'whitenoise.runserver_nostatic', # Manejo de estáticos en desarrollo
     'django.contrib.staticfiles',
     'django.contrib.humanize',
     'app',
@@ -31,7 +29,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # Agregado para servir estáticos en producción
+    'whitenoise.middleware.WhiteNoiseMiddleware', # DEBE IR AQUÍ (debajo de SecurityMiddleware)
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -60,7 +58,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
-# Si detecta la variable DATABASE_URL (Railway la da), usa Postgres. Si no, usa SQLite.
 DATABASES = {
     'default': dj_database_url.config(
         default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
@@ -77,18 +74,28 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Internationalization
-LANGUAGE_CODE = 'es-co' # Cambiado a español (opcional)
+LANGUAGE_CODE = 'es-co'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
+# --- CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS ---
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'app' / 'static']
-STATIC_ROOT = BASE_DIR / 'staticfiles' # Carpeta donde se recolectarán los archivos para producción
 
-# Optimización de WhiteNoise (Compresión y caché)
+# Carpeta donde están tus archivos actuales
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'app', 'static'),
+]
+
+# Carpeta donde se guardarán para producción (la que creamos con .gitkeep)
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Almacenamiento con WhiteNoise (Compresión y caché)
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Forzar a WhiteNoise a buscar archivos incluso si no se han recolectado
+WHITENOISE_USE_FINDERS = True
+# --------------------------------------------
 
 # Login / Logout
 LOGIN_URL = 'inicio'

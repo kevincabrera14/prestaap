@@ -1,7 +1,6 @@
 # Django
 db.sqlite3
 db.sqlite3-journal
-staticfiles/
 media/
 __pycache__/
 *.pyc
