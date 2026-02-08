@@ -107,3 +107,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CSRF Trusted Origins para Railway
 CSRF_TRUSTED_ORIGINS = ['https://*.railway.app']
+
