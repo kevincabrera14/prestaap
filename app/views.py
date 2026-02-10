@@ -473,25 +473,23 @@ def retiro_justificado(request, ruta_id):
     })
 
 
-
 @login_required
 def historial_cajas(request, ruta_id):
     ruta = get_object_or_404(Ruta, id=ruta_id)
-    # Traemos las cajas que ya se cerraron (días pasados)
+    
+    # Esto asegura que si el cron no ha corrido, se intenten cerrar las viejas al entrar
+    from django.core.management import call_command
+    try:
+        call_command('cerrar_cajas')
+    except:
+        pass
+
     historial = CajaRuta.objects.filter(ruta=ruta, cerrada=True).order_by('-fecha')
     
     return render(request, "app/historial_cajas.html", {
         "ruta": ruta,
         "historial": historial
     })
-
-def detalle_targeta(request, targeta_id):
-    targeta = get_object_or_404(Targeta, id=targeta_id)
-
-    return render(request, 'app/detalle_targeta.html', {
-        'targeta': targeta
-    })
-
 
 # =====================================================
 # 🔒 CIERRE AUTOMÁTICO DE CAJAS ANTERIORES
