@@ -473,6 +473,7 @@ def retiro_justificado(request, ruta_id):
     })
 
 
+
 @login_required
 def historial_cajas(request, ruta_id):
     ruta = get_object_or_404(Ruta, id=ruta_id)
@@ -747,3 +748,4 @@ def crear_cuotas(targeta):
             numero=i,
             monto=monto_cuota
         )
+
