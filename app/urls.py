@@ -33,5 +33,5 @@ urlpatterns = [
    
     path('reporte-diario/<int:ruta_id>/<str:fecha>/',views.reporte_diario,name='reporte_diario'),
     
-   
+
 ]

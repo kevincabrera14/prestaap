@@ -1,8 +1,11 @@
 from django.core.management.base import BaseCommand
-from django.utils.timezone import localdate, datetime, time, make_aware
+from django.utils.timezone import now
+import datetime # Si necesitas usar 'time', usa el de python estándar
+from django.utils.timezone import localdate, datetime, make_aware
 from app.models import Ruta, CajaRuta, Abono, MovimientoRuta
 from decimal import Decimal
 from django.db.models import Sum
+from datetime import datetime
 
 class Command(BaseCommand):
     help = 'Procesa y cierra todas las cajas pendientes del pasado y abre la de hoy'
