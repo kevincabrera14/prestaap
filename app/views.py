@@ -743,18 +743,42 @@ def agregar_abono(request):
         "targeta_id": targeta_id
     })
 
-
-
 def crear_cuotas(targeta):
+    """
+    Genera cuotas con fecha de vencimiento. 
+    1. Si es tarde (8 PM+), inicia un día después.
+    2. Si un vencimiento cae DOMINGO, se pasa al LUNES.
+    """
     monto_total = targeta.monto_total
     plazo = targeta.plazo_dias
-
     monto_cuota = (monto_total / Decimal(plazo)).quantize(Decimal('0.01'))
+    
+    HORA_CORTE = 20  # 8:00 PM
+    ahora = timezone.localtime(timezone.now())
+    # Definimos desde cuándo empezamos a contar los días del plazo
+    dia_referencia = localdate()
 
+    if ahora.hour >= HORA_CORTE:
+        dia_referencia = dia_referencia + datetime.timedelta(days=1)
+
+    # Creamos las cuotas una por una
     for i in range(1, plazo + 1):
+        # Calculamos la fecha tentativa (sumando i días al día de referencia)
+        vencimiento = dia_referencia + datetime.timedelta(days=i)
+        
+        # --- LÓGICA EXCLUIR DOMINGOS ---
+        # .weekday() devuelve 0 para Lunes, 6 para Domingo
+        if vencimiento.weekday() == 6: 
+            vencimiento = vencimiento + datetime.timedelta(days=1)
+        # -------------------------------
+        
         Cuota.objects.create(
             targeta=targeta,
             numero=i,
-            monto=monto_cuota
+            monto=monto_cuota,
+            fecha_vencimiento=vencimiento,
+            estado='PENDIENTE'
         )
+    
+    targeta.actualizar_estado()
 

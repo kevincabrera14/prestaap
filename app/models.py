@@ -1,12 +1,8 @@
-
-# models 
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models import Sum
-from django.contrib.auth.models import User
 from decimal import Decimal
-from django.conf import settings
-
+from django.utils.timezone import localdate
 
 # -------------------------
 # PERFIL DE USUARIO (ROL)
@@ -52,9 +48,6 @@ class Ruta(models.Model):
 
     activa = models.BooleanField(default=True)
 
-    # ===============================
-    #  CÁLCULOS
-    # ===============================
     @property
     def dinero_en_ruta(self):
         return self.targetas.aggregate(
@@ -68,11 +61,6 @@ class Ruta(models.Model):
 # -------------------------
 # TARGETA (PRÉSTAMO)
 # -------------------------
-from decimal import Decimal
-from django.db import models
-from django.db.models import Sum
-from django.contrib.auth.models import User
-
 class Targeta(models.Model):
     ESTADO_CHOICES = (
         ('PAGO', 'Al día'),
@@ -95,8 +83,8 @@ class Targeta(models.Model):
     observaciones = models.TextField(blank=True)
 
     # -------- INFO PRÉSTAMO --------
-    monto_base = models.DecimalField(max_digits=10, decimal_places=2)  # lo que recibe
-    tasa_interes = models.PositiveIntegerField()  # %
+    monto_base = models.DecimalField(max_digits=10, decimal_places=2)
+    tasa_interes = models.PositiveIntegerField()
     plazo_dias = models.PositiveIntegerField()
     fecha_creacion = models.DateField(auto_now_add=True)
 
@@ -113,14 +101,11 @@ class Targeta(models.Model):
     )
 
     # ===============================
-    #  CÁLCULOS
+    #  MÉTODOS Y CÁLCULOS
     # ===============================
 
     @property
     def monto_total(self):
-        """
-        Monto base + interés
-        """
         interes = (self.monto_base * Decimal(self.tasa_interes)) / Decimal(100)
         return self.monto_base + interes
 
@@ -136,10 +121,24 @@ class Targeta(models.Model):
         return self.monto_total - self.total_abonado
 
     def actualizar_estado(self):
+        """Actualiza si la tarjeta está al día o en mora."""
+        hoy = localdate()
+
+        # 1. Si ya pagó todo
         if self.saldo_restante <= Decimal('0.00'):
             self.estado = 'PAGO'
-        else:
+        
+        # 2. Si es domingo, mantenemos el estado actual (no penalizamos)
+        elif hoy.weekday() == 6:
+            pass
+
+        # 3. Revisar si hay cuotas pendientes cuya fecha de vencimiento ya pasó
+        elif self.cuotas.filter(estado='PENDIENTE', fecha_vencimiento__lt=hoy).exists():
             self.estado = 'MORA'
+        
+        else:
+            self.estado = 'PAGO'
+            
         self.save(update_fields=['estado'])
 
     def __str__(self):
@@ -160,7 +159,7 @@ class Cuota(models.Model):
         on_delete=models.CASCADE,
         related_name='cuotas'
     )
-
+    fecha_vencimiento = models.DateField(null=True, blank=True)
     numero = models.PositiveIntegerField()
     monto = models.DecimalField(max_digits=10, decimal_places=2)
     estado = models.CharField(
@@ -205,7 +204,13 @@ class Abono(models.Model):
         null=True
     )
 
+    def __str__(self):
+        return f"Abono {self.id} - {self.targeta.nombre_cliente}"
 
+
+# -------------------------
+# CAJA Y MOVIMIENTOS
+# -------------------------
 class CajaRuta(models.Model):
     ruta = models.ForeignKey(Ruta, on_delete=models.CASCADE)
     fecha = models.DateField()
@@ -230,7 +235,6 @@ class CajaRuta(models.Model):
         return f"Caja {self.ruta} - {self.fecha}"
 
 
-
 class MovimientoRuta(models.Model):
     TIPO_CHOICES = (
         ('INGRESO', 'Ingreso'),
@@ -244,6 +248,4 @@ class MovimientoRuta(models.Model):
     descripcion = models.TextField(blank=True)
 
     def __str__(self):
-        return f"{self.fecha} - {self.tipo} - {self.monto}"
-
-
+        return f"{self.fecha.date()} - {self.tipo} - {self.monto}"
