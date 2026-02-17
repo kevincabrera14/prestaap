@@ -646,16 +646,18 @@ def reporte_diario(request, ruta_id, fecha):
     if request.user != ruta.supervisor:
         return redirect("dashboard")
 
-    # 1. Convertir fecha y crear rango (Inicio y fin del día)
+    # 1. Convertir fecha y crear rango (Uso de datetime.datetime para evitar Error 500)
     try:
-        fecha_reporte = datetime.strptime(fecha, "%Y-%m-%d").date()
+        # Usamos la clase datetime dentro del módulo datetime
+        fecha_reporte = datetime.datetime.strptime(fecha, "%Y-%m-%d").date()
     except (ValueError, TypeError):
         return redirect("dashboard_supervisor")
 
     # Definimos el inicio y fin del día para el filtro
-    inicio_dia = timezone.make_aware(datetime.combine(fecha_reporte, time.min))
-    fin_dia = timezone.make_aware(datetime.combine(fecha_reporte, time.max))
-    hoy = date.today()
+    # CORRECCIÓN: Acceso correcto a .datetime.combine y .time.min/max
+    inicio_dia = timezone.make_aware(datetime.datetime.combine(fecha_reporte, datetime.time.min))
+    fin_dia = timezone.make_aware(datetime.datetime.combine(fecha_reporte, datetime.time.max))
+    hoy = timezone.localdate() # Más preciso para Railway que date.today()
 
     # 2. Obtener o crear Caja
     caja, created = CajaRuta.objects.get_or_create(
@@ -664,7 +666,7 @@ def reporte_diario(request, ruta_id, fecha):
         defaults={'saldo_inicial': ruta.base, 'cerrada': False}
     )
 
-    # 3. Consultar Abonos y Egresos usando RANGO (Evita el OperationalError)
+    # 3. Consultar Abonos y Egresos usando RANGO
     abonos = Abono.objects.filter(
         targeta__ruta=ruta,
         fecha__range=(inicio_dia, fin_dia)
@@ -680,11 +682,12 @@ def reporte_diario(request, ruta_id, fecha):
     total_ingresos = abonos.aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
     total_egresos = egresos.aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
 
-    # 5. Guardado automático (Lógica de historial)
+    # 5. Guardado automático
     caja.ingresos = total_ingresos
     caja.egresos = total_egresos
     caja.saldo_final = caja.saldo_inicial + total_ingresos - total_egresos
     
+    # Si la fecha es anterior a hoy, la marcamos como cerrada
     if fecha_reporte < hoy:
         caja.cerrada = True
     
@@ -701,7 +704,6 @@ def reporte_diario(request, ruta_id, fecha):
         "saldo_inicial": caja.saldo_inicial,
         "saldo_final": caja.saldo_final,
     })
-
 @login_required
 def agregar_abono(request):
     targetas = Targeta.objects.all()
