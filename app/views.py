@@ -2,20 +2,22 @@
 # =====================================================
 # import
 # =====================================================
-from django.utils.timezone import localtime, make_aware, get_current_timezone, localdate
+# =====================================================
+# import - CORREGIDO
+# =====================================================
+from django.utils.timezone import localtime, make_aware, get_current_timezone, localdate, now
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from .permissions import supervisor_required
-from .models import Ruta, Targeta, Abono, MovimientoRuta,CajaRuta,Cuota
+from .models import Ruta, Targeta, Abono, MovimientoRuta, CajaRuta, Cuota
 from django.contrib import messages
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from decimal import Decimal
-from datetime import *
-from datetime import datetime, date, time
-from django.utils import timezone
-from django.db.models import Q
 
+# IMPORTANTE: Importar datetime estándar de Python
+import datetime 
+# Ahora puedes usar datetime.datetime, datetime.date y datetime.time
 
 # =====================================================
 # AUTH
@@ -475,6 +477,8 @@ def retiro_justificado(request, ruta_id):
 
 
 
+from django.db import models # Asegúrate de tener esta importación al inicio del archivo
+
 @login_required
 def historial_cajas(request, ruta_id):
     ruta = get_object_or_404(Ruta, id=ruta_id)
@@ -484,15 +488,15 @@ def historial_cajas(request, ruta_id):
     try:
         call_command('cerrar_cajas')
     except Exception as e:
+        # Esto imprimirá el error en los logs de Railway si algo falla
         print(f"DEBUG: Error al ejecutar cerrar_cajas: {e}")
 
-    # CAMBIO IMPORTANTE: 
-    # Mostramos todas las cajas que tengan ingresos o egresos, 
-    # aunque no estén marcadas como cerradas, para no dejar la tabla vacía.
+    # Corregido: Usamos Q directamente si ya lo importaste arriba (from django.db.models import Q)
+    # o models.Q si importaste models.
     historial = CajaRuta.objects.filter(
         ruta=ruta
     ).filter(
-        models.Q(cerrada=True) | models.Q(ingresos__gt=0) | models.Q(egresos__gt=0)
+        Q(cerrada=True) | Q(ingresos__gt=0) | Q(egresos__gt=0)
     ).order_by('-fecha')
     
     return render(request, "app/historial_cajas.html", {
@@ -501,7 +505,7 @@ def historial_cajas(request, ruta_id):
     })
 
 # =====================================================
-# 🔒 CIERRE AUTOMÁTICO DE CAJAS ANTERIORES
+# 🔒 CIERRE AUTOMÁTICO DE CAJAS ANTRIORES
 # =====================================================
 def cerrar_cajas_anteriores(ruta):
     hoy = localdate()

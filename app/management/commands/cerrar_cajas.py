@@ -1,13 +1,9 @@
 from django.core.management.base import BaseCommand
 from django.utils.timezone import now, localdate, make_aware
-# ELIMINADO: from django.utils.timezone import datetime (Esto causaba el error)
-
 from app.models import Ruta, CajaRuta, Abono, MovimientoRuta
 from decimal import Decimal
 from django.db.models import Sum
-
-# IMPORTANTE: Usar el datetime de Python
-import datetime
+import datetime # Importación estándar de Python
 
 class Command(BaseCommand):
     help = 'Procesa y cierra todas las cajas pendientes del pasado y abre la de hoy'
@@ -17,13 +13,14 @@ class Command(BaseCommand):
         rutas = Ruta.objects.all()
         
         for ruta in rutas:
-            # 1. CERRAR TODO LO PENDIENTE (Ayer y días anteriores olvidados)
+            # 1. CERRAR TODO LO PENDIENTE
             cajas_pendientes = CajaRuta.objects.filter(ruta=ruta, fecha__lt=hoy, cerrada=False)
             
             for caja in cajas_pendientes:
-                # Rango de tiempo exacto para el día de ESA caja
-                inicio = make_aware(datetime.combine(caja.fecha, time.min))
-                fin = make_aware(datetime.combine(caja.fecha, time.max))
+                # --- CAMBIO AQUÍ: Usar datetime.datetime.combine y datetime.time ---
+                inicio = make_aware(datetime.datetime.combine(caja.fecha, datetime.time.min))
+                fin = make_aware(datetime.datetime.combine(caja.fecha, datetime.time.max))
+                # -----------------------------------------------------------------
                 
                 ingresos = Abono.objects.filter(
                     targeta__ruta=ruta, 
@@ -42,7 +39,6 @@ class Command(BaseCommand):
                 caja.cerrada = True
                 caja.save()
                 
-                # Actualizar la base real de la ruta para el siguiente día
                 ruta.base = caja.saldo_final
                 ruta.save()
                 self.stdout.write(self.style.SUCCESS(f"✅ Cerrada caja pendiente: {ruta.nombre} - {caja.fecha}"))
