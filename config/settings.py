@@ -72,10 +72,10 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
-
 # Internationalization
 LANGUAGE_CODE = 'es-co'
-TIME_ZONE = 'UTC'
+# Cambiamos UTC por tu zona horaria real para que el cierre sea a medianoche local
+TIME_ZONE = 'America/Bogota' 
 USE_I18N = True
 USE_TZ = True
 

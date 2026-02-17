@@ -1,30 +1,24 @@
 from django.core.management.base import BaseCommand
-from django.utils.timezone import localdate, timedelta, datetime, time, make_aware
+from django.utils.timezone import localdate, datetime, time, make_aware
 from app.models import Ruta, CajaRuta, Abono, MovimientoRuta
 from decimal import Decimal
 from django.db.models import Sum
 
 class Command(BaseCommand):
-    help = 'Cierra la caja del día anterior y abre la del nuevo día para todas las rutas'
+    help = 'Procesa y cierra todas las cajas pendientes del pasado y abre la de hoy'
 
     def handle(self, *args, **options):
         hoy = localdate()
-        ayer = hoy - timedelta(days=1)
-        
         rutas = Ruta.objects.all()
         
         for ruta in rutas:
-            # 1. PROCESAR Y CERRAR CAJA DE AYER
-            caja_ayer, created = CajaRuta.objects.get_or_create(
-                ruta=ruta,
-                fecha=ayer,
-                defaults={'saldo_inicial': ruta.base}
-            )
+            # 1. CERRAR TODO LO PENDIENTE (Ayer y días anteriores olvidados)
+            cajas_pendientes = CajaRuta.objects.filter(ruta=ruta, fecha__lt=hoy, cerrada=False)
             
-            if not caja_ayer.cerrada:
-                # Calcular montos exactos de ayer
-                inicio = make_aware(datetime.combine(ayer, time.min))
-                fin = make_aware(datetime.combine(ayer, time.max))
+            for caja in cajas_pendientes:
+                # Rango de tiempo exacto para el día de ESA caja
+                inicio = make_aware(datetime.combine(caja.fecha, time.min))
+                fin = make_aware(datetime.combine(caja.fecha, time.max))
                 
                 ingresos = Abono.objects.filter(
                     targeta__ruta=ruta, 
@@ -37,24 +31,24 @@ class Command(BaseCommand):
                     fecha__range=(inicio, fin)
                 ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
                 
-                caja_ayer.ingresos = ingresos
-                caja_ayer.egresos = egresos
-                caja_ayer.saldo_final = caja_ayer.saldo_inicial + ingresos - egresos
-                caja_ayer.cerrada = True
-                caja_ayer.save()
+                caja.ingresos = ingresos
+                caja.egresos = egresos
+                caja.saldo_final = caja.saldo_inicial + ingresos - egresos
+                caja.cerrada = True
+                caja.save()
                 
-                # Actualizar la base real de la ruta con el cierre
-                ruta.base = caja_ayer.saldo_final
+                # Actualizar la base real de la ruta para el siguiente día
+                ruta.base = caja.saldo_final
                 ruta.save()
-                self.stdout.write(f"Caja cerrada para {ruta.nombre} - Fecha: {ayer}")
+                self.stdout.write(self.style.SUCCESS(f"✅ Cerrada caja pendiente: {ruta.nombre} - {caja.fecha}"))
 
-            # 2. REABRIR / CREAR CAJA DE HOY INSTANTÁNEAMENTE
-            caja_hoy, created_hoy = CajaRuta.objects.get_or_create(
+            # 2. ASEGURAR QUE LA CAJA DE HOY EXISTA
+            caja_hoy, created = CajaRuta.objects.get_or_create(
                 ruta=ruta,
                 fecha=hoy,
                 defaults={'saldo_inicial': ruta.base, 'cerrada': False}
             )
-            if created_hoy:
-                self.stdout.write(f"Nueva caja abierta para {ruta.nombre} - Fecha: {hoy}")
+            if created:
+                self.stdout.write(f"ℹ️ Caja de hoy iniciada para {ruta.nombre}")
 
-        self.stdout.write(self.style.SUCCESS('Proceso de cierre y apertura completado.'))
+        self.stdout.write(self.style.SUCCESS('--- Proceso finalizado ---'))

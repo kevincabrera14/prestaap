@@ -14,6 +14,7 @@ from decimal import Decimal
 from datetime import *
 from datetime import datetime, date, time
 from django.utils import timezone
+from django.db.models import Q
 
 
 # =====================================================
@@ -478,14 +479,21 @@ def retiro_justificado(request, ruta_id):
 def historial_cajas(request, ruta_id):
     ruta = get_object_or_404(Ruta, id=ruta_id)
     
-    # Esto asegura que si el cron no ha corrido, se intenten cerrar las viejas al entrar
+    # Intentamos ejecutar el cierre automático de días pasados
     from django.core.management import call_command
     try:
         call_command('cerrar_cajas')
-    except:
-        pass
+    except Exception as e:
+        print(f"DEBUG: Error al ejecutar cerrar_cajas: {e}")
 
-    historial = CajaRuta.objects.filter(ruta=ruta, cerrada=True).order_by('-fecha')
+    # CAMBIO IMPORTANTE: 
+    # Mostramos todas las cajas que tengan ingresos o egresos, 
+    # aunque no estén marcadas como cerradas, para no dejar la tabla vacía.
+    historial = CajaRuta.objects.filter(
+        ruta=ruta
+    ).filter(
+        models.Q(cerrada=True) | models.Q(ingresos__gt=0) | models.Q(egresos__gt=0)
+    ).order_by('-fecha')
     
     return render(request, "app/historial_cajas.html", {
         "ruta": ruta,
