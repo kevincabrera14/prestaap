@@ -2,9 +2,7 @@
 # =====================================================
 # import
 # =====================================================
-# =====================================================
-# import - CORREGIDO
-# =====================================================
+
 from django.utils.timezone import localtime, make_aware, get_current_timezone, localdate, now
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
@@ -14,10 +12,11 @@ from .models import Ruta, Targeta, Abono, MovimientoRuta, CajaRuta, Cuota
 from django.contrib import messages
 from django.db.models import Sum, Q
 from decimal import Decimal
+import datetime
+from django.utils import timezone
+from django.utils.timezone import localtime, localdate, make_aware
 
-# IMPORTANTE: Importar datetime estándar de Python
-import datetime 
-# Ahora puedes usar datetime.datetime, datetime.date y datetime.time
+
 
 # =====================================================
 # AUTH
@@ -646,27 +645,25 @@ def reporte_diario(request, ruta_id, fecha):
     if request.user != ruta.supervisor:
         return redirect("dashboard")
 
-    # 1. Convertir fecha y crear rango (Uso de datetime.datetime para evitar Error 500)
+    # 1. Convertir fecha usando el módulo explícito
     try:
-        # Usamos la clase datetime dentro del módulo datetime
         fecha_reporte = datetime.datetime.strptime(fecha, "%Y-%m-%d").date()
     except (ValueError, TypeError):
         return redirect("dashboard_supervisor")
 
-    # Definimos el inicio y fin del día para el filtro
-    # CORRECCIÓN: Acceso correcto a .datetime.combine y .time.min/max
-    inicio_dia = timezone.make_aware(datetime.datetime.combine(fecha_reporte, datetime.time.min))
-    fin_dia = timezone.make_aware(datetime.datetime.combine(fecha_reporte, datetime.time.max))
-    hoy = timezone.localdate() # Más preciso para Railway que date.today()
+    # 2. Rangos de tiempo (Corregido para evitar el 500)
+    inicio_dia = make_aware(datetime.datetime.combine(fecha_reporte, datetime.time.min))
+    fin_dia = make_aware(datetime.datetime.combine(fecha_reporte, datetime.time.max))
+    hoy = localdate()
 
-    # 2. Obtener o crear Caja
+    # 3. Obtener o crear Caja
     caja, created = CajaRuta.objects.get_or_create(
         ruta=ruta, 
         fecha=fecha_reporte,
         defaults={'saldo_inicial': ruta.base, 'cerrada': False}
     )
 
-    # 3. Consultar Abonos y Egresos usando RANGO
+    # 4. Consultar Datos
     abonos = Abono.objects.filter(
         targeta__ruta=ruta,
         fecha__range=(inicio_dia, fin_dia)
@@ -678,19 +675,17 @@ def reporte_diario(request, ruta_id, fecha):
         fecha__range=(inicio_dia, fin_dia)
     ).order_by("fecha")
 
-    # 4. Cálculos
+    # 5. Cálculos con Decimal
     total_ingresos = abonos.aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
     total_egresos = egresos.aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
 
-    # 5. Guardado automático
+    # 6. Actualización de Caja
     caja.ingresos = total_ingresos
     caja.egresos = total_egresos
     caja.saldo_final = caja.saldo_inicial + total_ingresos - total_egresos
     
-    # Si la fecha es anterior a hoy, la marcamos como cerrada
     if fecha_reporte < hoy:
         caja.cerrada = True
-    
     caja.save()
 
     return render(request, "app/reporte_diario.html", {
