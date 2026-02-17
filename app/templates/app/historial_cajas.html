@@ -47,12 +47,7 @@
                             <td class="text-monto fw-bold fs-5">
                                 ${{ registro.saldo_final }}
                             </td>
-                            <td class="text-center">
-                                <a href="{% url 'reporte_diario' ruta.id registro.fecha|date:'Y-m-d' %}" 
-                                   class="btn btn-sm btn-dark px-3">
-                                    👁️ Ver Detalle
-                                </a>
-                            </td>
+ 
                         </tr>
                         {% empty %}
                         <tr>
