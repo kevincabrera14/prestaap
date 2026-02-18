@@ -82,9 +82,12 @@ def dashboard_admin(request):
 # SUPERVISOR
 # =====================================================
 
-
+@login_required
+@supervisor_required
 def dashboard_supervisor(request):
-    rutas = Ruta.objects.all()
+    # Solo mostramos las rutas que pertenecen al supervisor actual
+    rutas = Ruta.objects.filter(supervisor=request.user)
+    
     ruta_sel = None
     targetas = []
 
@@ -99,7 +102,8 @@ def dashboard_supervisor(request):
     q = request.GET.get("q")
 
     if ruta_id:
-        ruta_sel = get_object_or_404(Ruta, id=ruta_id)
+        # Validamos que la ruta seleccionada también pertenezca al supervisor
+        ruta_sel = get_object_or_404(Ruta, id=ruta_id, supervisor=request.user)
 
         targetas = Targeta.objects.filter(ruta=ruta_sel)
 
@@ -130,7 +134,6 @@ def dashboard_supervisor(request):
     }
 
     return render(request, "app/supervisor.html", context)
-
     
 # =====================================================
 # ruta
