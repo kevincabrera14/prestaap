@@ -798,9 +798,15 @@ from django.contrib.auth.decorators import user_passes_test
 from django.db.models import F
 from .models import Cuota
 
-@user_passes_test(lambda u: u.is_superuser)
 def reparar_cuotas_view(request):
-    # Buscamos todas las cuotas donde el saldo_cuota sea 0 y lo igualamos al monto original
-    editados = Cuota.objects.filter(saldo_cuota=0).update(saldo_cuota=F('monto'))
+    # Verificación manual de superusuario para evitar errores de decoradores
+    if not request.user.is_superuser:
+        return HttpResponse("Acceso denegado. Debes ser superadmin.", status=403)
     
-    return HttpResponse(f"<h1>Reparación Exitosa</h1><p>Se actualizaron {editados} cuotas en la base de datos de Railway.</p><a href='/dashboard/'>Volver al inicio</a>")
+    try:
+        # Actualizamos directamente en la base de datos
+        editados = Cuota.objects.filter(saldo_cuota=0).update(saldo_cuota=F('monto'))
+        return HttpResponse(f"<h1>Reparación Exitosa</h1><p>Se actualizaron {editados} cuotas.</p>")
+    except Exception as e:
+        # Esto nos dirá exactamente qué falla si vuelve a salir error 500
+        return HttpResponse(f"Error técnico: {str(e)}", status=500)
