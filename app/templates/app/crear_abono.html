@@ -3,7 +3,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>PrestApp | Pagar Cuota</title>
+    <title>PrestApp | Registrar Abono</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -16,39 +16,56 @@
         <div class="col-12 col-md-6 col-lg-5">
             
             <div class="card payment-card">
-                <div class="payment-header">
-                    <div class="client-avatar">
+                <div class="payment-header text-center p-4" style="background: #198754; color: white; border-radius: 15px 15px 0 0;">
+                    <div class="client-avatar mx-auto mb-2" style="width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold;">
                         {{ targeta.nombre_cliente|slice:":1"|upper }}
                     </div>
                     <h4 class="mb-1 fw-bold">{{ targeta.nombre_cliente }}</h4>
-                    <p class="mb-0 opacity-75 small text-uppercase">Registrar Pago de Cuota</p>
+                    <p class="mb-0 opacity-75 small text-uppercase">Gestión de Abonos Parciales</p>
                 </div>
 
                 <div class="card-body p-4 p-md-5">
                     <form method="post">
                         {% csrf_token %}
 
-                        <div class="mb-4 text-center">
-                            <label class="form-label d-block mb-3">Cuotas Pendientes</label>
-                            <select name="cuota" class="form-select text-center" required size="1">
+                        <div class="mb-4">
+                            <label class="form-label d-block mb-2 fw-bold">1. Seleccionar Cuota</label>
+                            <select name="cuota" id="cuota-select" class="form-select text-center" required>
                                 <option value="" disabled selected>— Seleccione la cuota —</option>
                                 {% for c in cuotas %}
-                                    <option value="{{ c.id }}">
-                                        Cuota #{{ c.numero }} por ${{ c.monto }}
+                                    <option value="{{ c.id }}" data-saldo="{{ c.saldo_cuota }}">
+                                        Cuota #{{ c.numero }} (Faltan: ${{ c.saldo_cuota }})
                                     </option>
                                 {% endfor %}
                             </select>
-                            <div class="mt-2 small text-muted">
-                                Solo se muestran las cuotas con estado "Pendiente"
+                            <div class="mt-2 small text-muted text-center">
+                                Solo se muestran cuotas con saldo pendiente.
                             </div>
                         </div>
 
+                        <div class="mb-4">
+                            <label class="form-label d-block mb-2 fw-bold">2. Monto a recibir</label>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-light text-success fw-bold">$</span>
+                                <input type="number" 
+                                       step="0.01" 
+                                       name="monto_abono" 
+                                       id="monto_abono" 
+                                       class="form-control text-center fw-bold" 
+                                       placeholder="0.00" 
+                                       required>
+                            </div>
+                            <p class="mt-2 small text-center text-secondary" id="help-text">
+                                Ingrese el dinero entregado por el cliente.
+                            </p>
+                        </div>
+
                         <div class="d-grid gap-3">
-                            <button type="submit" class="btn btn-success btn-pay">
-                                💵 Confirmar Pago
+                            <button type="submit" class="btn btn-success btn-lg py-3 fw-bold shadow-sm">
+                                💵 Confirmar Registro
                             </button>
-                            <a href="{% url 'historial_abonos' targeta.id %}" class="btn-cancel text-center">
-                                Cancelar y volver
+                            <a href="{% url 'historial_abonos' targeta.id %}" class="btn btn-outline-secondary border-0">
+                                Volver al historial
                             </a>
                         </div>
                     </form>
@@ -57,16 +74,53 @@
 
             <div class="text-center mt-4 px-3">
                 <small class="text-muted">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-shield-lock-fill me-1" viewBox="0 0 16 16">
-                        <path fill-rule="evenodd" d="M8 0c-.69 0-1.843.265-2.928.56-1.11.3-2.229.655-2.887.87a1.54 1.54 0 0 0-1.044 1.262c-.596 4.477.787 7.795 2.465 9.99a11.8 11.8 0 0 0 2.517 2.453c.386.273.744.482 1.048.625.28.132.581.24.829.24s.548-.108.829-.24a7 7 0 0 0 1.048-.625 11.8 11.8 0 0 0 2.517-2.453c1.678-2.195 2.961-5.513 2.465-9.99a1.54 1.54 0 0 0-1.044-1.263 63 63 0 0 0-2.887-.87C9.843.266 8.69 0 8 0m0 5a1.5 1.5 0 0 1 .5 2.915l.385 1.99a.5.5 0 0 1-.491.595h-.788a.5.5 0 0 1-.49-.595l.384-1.99A1.5 1.5 0 0 1 8 5"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-info-circle-fill me-1" viewBox="0 0 16 16">
+                        <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2"/>
                     </svg>
-                    Esta acción descontará el saldo de la tarjeta y se reflejará en el reporte diario.
+                    Si el abono es menor al saldo de la cuota, esta permanecerá abierta hasta completarse.
                 </small>
             </div>
 
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const cuotaSelect = document.getElementById('cuota-select');
+        const montoInput = document.getElementById('monto_abono');
+        const helpText = document.getElementById('help-text');
+
+        cuotaSelect.addEventListener('change', function() {
+            // Obtenemos el saldo que falta de la opción seleccionada
+            const selectedOption = this.options[this.selectedIndex];
+            const saldoPendiente = selectedOption.getAttribute('data-saldo');
+            
+            // Sugerimos el cobro total por defecto
+            montoInput.value = saldoPendiente;
+            
+            // Actualizamos texto de ayuda
+            helpText.innerHTML = `Saldo total de esta cuota: <strong>$${saldoPendiente}</strong>. <br>Puedes registrar un abono parcial.`;
+            
+            // Ponemos el foco en el monto por si quiere borrar y escribir menos
+            montoInput.select();
+        });
+
+        // Validación simple para no permitir abonos superiores a la cuota (Opcional)
+        montoInput.addEventListener('input', function() {
+            const selectedOption = cuotaSelect.options[cuotaSelect.selectedIndex];
+            if (selectedOption.value) {
+                const max = parseFloat(selectedOption.getAttribute('data-saldo'));
+                const actual = parseFloat(this.value);
+                if (actual > max) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            }
+        });
+    });
+</script>
 
 </body>
 </html>

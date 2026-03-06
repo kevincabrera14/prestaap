@@ -154,30 +154,29 @@ class Cuota(models.Model):
         ('PAGADA', 'Pagada'),
     )
 
-    targeta = models.ForeignKey(
-        Targeta,
-        on_delete=models.CASCADE,
-        related_name='cuotas'
-    )
+    targeta = models.ForeignKey(Targeta, on_delete=models.CASCADE, related_name='cuotas')
     fecha_vencimiento = models.DateField(null=True, blank=True)
     numero = models.PositiveIntegerField()
-    monto = models.DecimalField(max_digits=10, decimal_places=2)
-    estado = models.CharField(
-        max_length=10,
-        choices=ESTADO_CHOICES,
-        default='PENDIENTE'
-    )
+    monto = models.DecimalField(max_digits=10, decimal_places=2) # Monto original
+    
+    # NUEVO: Para saber cuánto falta de esta cuota específica
+    saldo_cuota = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
 
+    estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='PENDIENTE')
     fecha_pago = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['numero']
         unique_together = ('targeta', 'numero')
 
+    def save(self, *args, **kwargs):
+        # Al crear la cuota por primera vez, el saldo es igual al monto
+        if not self.pk:
+            self.saldo_cuota = self.monto
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"Cuota {self.numero} - {self.targeta.nombre_cliente}"
-
-
+        return f"Cuota {self.numero} - {self.targeta.nombre_cliente} (Faltan: {self.saldo_cuota})"
 # -------------------------
 # ABONOS
 # -------------------------

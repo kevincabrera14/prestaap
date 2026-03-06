@@ -368,61 +368,65 @@ from django.utils.timezone import now
 def crear_abono(request, targeta_id):
     targeta = get_object_or_404(Targeta, id=targeta_id)
     ruta = targeta.ruta
-    hoy = localdate()
-
-    cuotas = targeta.cuotas.filter(estado='PENDIENTE')
+    cuotas = targeta.cuotas.filter(estado='PENDIENTE').order_by('numero')
 
     if request.method == "POST":
         cuota_id = request.POST.get("cuota")
+        # El monto que el usuario escribe en el nuevo input
+        monto_abono = Decimal(request.POST.get("monto_abono", 0)) 
+        
         cuota = get_object_or_404(Cuota, id=cuota_id, estado='PENDIENTE')
 
-        # 1️⃣ Marcar cuota
-        cuota.estado = 'PAGADA'
-        cuota.fecha_pago = now()
-        cuota.save()
+        if monto_abono > 0:
+            # 1️⃣ Actualizar saldo de la cuota
+            cuota.saldo_cuota -= monto_abono
+            
+            # Si el saldo llega a 0 (o menos por error), se marca como pagada
+            if cuota.saldo_cuota <= 0:
+                cuota.estado = 'PAGADA'
+                cuota.saldo_cuota = 0
+                cuota.fecha_pago = now()
+            cuota.save()
 
-        # 2️⃣ Abono
-        Abono.objects.create(
-            targeta=targeta,
-            cuota=cuota,
-            monto=cuota.monto,
-            registrado_por=request.user
-        )
+            # 2️⃣ Registrar el Abono (historial)
+            Abono.objects.create(
+                targeta=targeta,
+                cuota=cuota,
+                monto=monto_abono,
+                registrado_por=request.user
+            )
 
-        # 3️⃣ Base
-        ruta.base += cuota.monto
-        ruta.save(update_fields=['base'])
+            # 3️⃣ Actualizar Base de la Ruta
+            ruta.base += monto_abono
+            ruta.save(update_fields=['base'])
 
-        # 4️⃣ Movimiento
-        MovimientoRuta.objects.create(
-            ruta=ruta,
-            tipo='INGRESO',
-            monto=cuota.monto,
-            descripcion=f"Pago cuota {cuota.numero} - {targeta.nombre_cliente}"
-        )
+            # 4️⃣ Registrar Movimiento
+            MovimientoRuta.objects.create(
+                ruta=ruta,
+                tipo='INGRESO',
+                monto=monto_abono,
+                descripcion=f"Abono a cuota {cuota.numero} - {targeta.nombre_cliente}"
+            )
 
-        targeta.actualizar_estado()
-        messages.success(request, "Cuota pagada correctamente")
+            targeta.actualizar_estado()
+            messages.success(request, f"Abono de ${monto_abono} registrado correctamente")
 
-        # =====================================================
-        # REDIRECCIÓN CORREGIDA SEGÚN TU URLCONF
-        # =====================================================
-        try:
-            rol = request.user.perfil.rol
-        except:
-            rol = 'TRABAJADOR' 
+            # Redirección según rol
+            try:
+                rol = request.user.perfil.rol
+            except:
+                rol = 'TRABAJADOR' 
 
-        if rol == 'SUPERVISOR' or request.user.is_staff:
-            return redirect(f"/dashboard/supervisor/?ruta={ruta.id}")
-        else:
-            return redirect(f"/dashboard/trabajador/?ruta={ruta.id}")
+            if rol == 'SUPERVISOR' or request.user.is_staff:
+                return redirect(f"/dashboard/supervisor/?ruta={ruta.id}")
+            else:
+                return redirect(f"/dashboard/trabajador/?ruta={ruta.id}")
 
     return render(request, "app/crear_abono.html", {
         "targeta": targeta,
         "cuotas": cuotas
     })
-
-
+    
 @login_required
 def historial_abonos(request, targeta_id):
     targeta = get_object_or_404(Targeta, id=targeta_id)
