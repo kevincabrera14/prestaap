@@ -749,7 +749,6 @@ def agregar_abono(request):
         "cuotas": cuotas,
         "targeta_id": targeta_id
     })
-
 def crear_cuotas(targeta):
     """
     Genera cuotas con fecha de vencimiento. 
@@ -774,7 +773,6 @@ def crear_cuotas(targeta):
         vencimiento = dia_referencia + datetime.timedelta(days=i)
         
         # --- LÓGICA EXCLUIR DOMINGOS ---
-        # .weekday() devuelve 0 para Lunes, 6 para Domingo
         if vencimiento.weekday() == 6: 
             vencimiento = vencimiento + datetime.timedelta(days=1)
         # -------------------------------
@@ -783,12 +781,12 @@ def crear_cuotas(targeta):
             targeta=targeta,
             numero=i,
             monto=monto_cuota,
+            saldo_cuota=monto_cuota,  # <--- IMPORTANTE: Se añade el saldo inicial aquí
             fecha_vencimiento=vencimiento,
             estado='PENDIENTE'
         )
     
     targeta.actualizar_estado()
-
 
 
 
