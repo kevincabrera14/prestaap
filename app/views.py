@@ -792,17 +792,26 @@ def crear_cuotas(targeta):
     targeta.actualizar_estado()
 
 
-
-
-def reparar_cuotas_view(request):
-    # Verificación manual de superusuario para evitar errores de decoradores
-    if not request.user.is_superuser:
-        return HttpResponse("Acceso denegado. Debes ser superadmin.", status=403)
+@login_required
+def registrar_gasto(request, ruta_id):
+    ruta = get_object_or_404(Ruta, id=ruta_id)
     
-    try:
-        # Actualizamos directamente en la base de datos
-        editados = Cuota.objects.filter(saldo_cuota=0).update(saldo_cuota=F('monto'))
-        return HttpResponse(f"<h1>Reparación Exitosa</h1><p>Se actualizaron {editados} cuotas.</p>")
-    except Exception as e:
-        # Esto nos dirá exactamente qué falla si vuelve a salir error 500
-        return HttpResponse(f"Error técnico: {str(e)}", status=500)
+    if request.method == 'POST':
+        # Capturamos los datos directamente del HTML
+        monto = request.POST.get('monto')
+        descripcion = request.POST.get('descripcion')
+        
+        if monto:
+            # Creamos el registro en MovimientoRuta
+            MovimientoRuta.objects.create(
+                ruta=ruta,
+                tipo='EGRESO',
+                monto=monto,
+                descripcion=descripcion
+            )
+            messages.success(request, f"Gasto de ${monto} registrado correctamente.")
+            return redirect(f"/dashboard-supervisor/?ruta={ruta.id}")
+        else:
+            messages.error(request, "El monto es obligatorio.")
+
+    return render(request, 'app/registrar_gasto.html', {'ruta': ruta})
