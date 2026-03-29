@@ -34,5 +34,4 @@ urlpatterns = [
     path('reporte-diario/<int:ruta_id>/<str:fecha>/',views.reporte_diario,name='reporte_diario'),
     
 
-    path('reparar-base-datos-sistema/', views.reparar_cuotas_view, name='reparar_cuotas'),
 ]
