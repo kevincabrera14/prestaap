@@ -3,7 +3,7 @@ from django.utils.timezone import now, localdate, make_aware
 from app.models import Ruta, CajaRuta, Abono, MovimientoRuta
 from decimal import Decimal
 from django.db.models import Sum
-import datetime # Importación estándar de Python
+import datetime
 
 class Command(BaseCommand):
     help = 'Procesa y cierra todas las cajas pendientes del pasado y abre la de hoy'
@@ -13,14 +13,16 @@ class Command(BaseCommand):
         rutas = Ruta.objects.all()
         
         for ruta in rutas:
-            # 1. CERRAR TODO LO PENDIENTE
-            cajas_pendientes = CajaRuta.objects.filter(ruta=ruta, fecha__lt=hoy, cerrada=False)
+            # 1. CERRAR TODO LO PENDIENTE (Ordenado por fecha para no saltar saldos)
+            cajas_pendientes = CajaRuta.objects.filter(
+                ruta=ruta, 
+                fecha__lt=hoy, 
+                cerrada=False
+            ).order_by('fecha')
             
             for caja in cajas_pendientes:
-                # --- CAMBIO AQUÍ: Usar datetime.datetime.combine y datetime.time ---
                 inicio = make_aware(datetime.datetime.combine(caja.fecha, datetime.time.min))
                 fin = make_aware(datetime.datetime.combine(caja.fecha, datetime.time.max))
-                # -----------------------------------------------------------------
                 
                 ingresos = Abono.objects.filter(
                     targeta__ruta=ruta, 
@@ -39,17 +41,30 @@ class Command(BaseCommand):
                 caja.cerrada = True
                 caja.save()
                 
-                ruta.base = caja.saldo_final
-                ruta.save()
-                self.stdout.write(self.style.SUCCESS(f"✅ Cerrada caja pendiente: {ruta.nombre} - {caja.fecha}"))
+                # 🔥 CORRECCIÓN CRÍTICA:
+                # Solo actualizamos la base de la ruta si es el cierre que conecta con hoy.
+                # Si cerramos una caja de hace 3 días, no tocamos la base actual, 
+                # solo lo hacemos si es el cierre necesario para abrir la caja de hoy.
+                if not CajaRuta.objects.filter(ruta=ruta, fecha=hoy).exists():
+                    ruta.base = caja.saldo_final
+                    ruta.save(update_fields=['base'])
+                
+                self.stdout.write(self.style.SUCCESS(f"✅ Cerrada caja: {ruta.nombre} - {caja.fecha}"))
 
             # 2. ASEGURAR QUE LA CAJA DE HOY EXISTA
+            # Si la caja de hoy no existe, se crea con la base actual (que acabamos de actualizar arriba)
             caja_hoy, created = CajaRuta.objects.get_or_create(
                 ruta=ruta,
                 fecha=hoy,
-                defaults={'saldo_inicial': ruta.base, 'cerrada': False}
+                defaults={
+                    'saldo_inicial': ruta.base, 
+                    'cerrada': False,
+                    'ingresos': 0,
+                    'egresos': 0
+                }
             )
+            
             if created:
-                self.stdout.write(f"ℹ️ Caja de hoy iniciada para {ruta.nombre}")
+                self.stdout.write(f"ℹ️ Caja de hoy iniciada para {ruta.nombre} con base ${ruta.base}")
 
         self.stdout.write(self.style.SUCCESS('--- Proceso finalizado ---'))

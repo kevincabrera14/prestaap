@@ -10,12 +10,15 @@ from django.contrib.auth.decorators import login_required
 from .permissions import supervisor_required
 from .models import Ruta, Targeta, Abono, MovimientoRuta, CajaRuta, Cuota
 from django.contrib import messages
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, F
 from decimal import Decimal
 import datetime
 from django.utils import timezone
 from django.utils.timezone import localtime, localdate, make_aware
 
+from django.http import HttpResponse
+from django.contrib.auth.decorators import user_passes_test
+from .models import Cuota
 
 
 # =====================================================
@@ -543,6 +546,8 @@ def cerrar_cajas_anteriores(ruta):
 # =====================================================
 # 📊 MOVIMIENTOS DE RUTA (CAJA DEL DÍA)
 # =====================================================
+from datetime import timedelta # Asegúrate de tener esta importación arriba
+
 @login_required
 def movimientos_ruta(request, ruta_id):
     ruta = get_object_or_404(Ruta, id=ruta_id)
@@ -556,29 +561,29 @@ def movimientos_ruta(request, ruta_id):
     # ===============================
     # 🔒 CERRAR CAJAS ANTERIORES
     # ===============================
+    # Llamamos a la lógica de cierre para que si hay días pendientes, se procesen.
     try:
-        cerrar_cajas_anteriores(ruta)
-    except Exception:
-        pass  # evita que una caja vieja rompa todo
+        from django.core.management import call_command
+        call_command('cerrar_cajas') 
+    except Exception as e:
+        print(f"Error en cierre automático: {e}")
+
+    # Refrescamos el objeto ruta por si el comando cambió la base
+    ruta.refresh_from_db()
 
     # ===============================
     # 📦 CAJA DEL DÍA
     # ===============================
-    ultima_caja = CajaRuta.objects.filter(
-        ruta=ruta,
-        cerrada=True
-    ).exclude(saldo_final__isnull=True).order_by("-fecha").first()
-
-    saldo_inicial = ultima_caja.saldo_final if ultima_caja else ruta.base
-
-    caja, _ = CajaRuta.objects.get_or_create(
+    # Buscamos si ya existe la caja de hoy. 
+    # Si no existe, se crea usando la base actual de la ruta.
+    caja, created = CajaRuta.objects.get_or_create(
         ruta=ruta,
         fecha=hoy,
-        defaults={"saldo_inicial": saldo_inicial}
+        defaults={"saldo_inicial": ruta.base}
     )
 
     # ===============================
-    # 📥 INGRESOS (SIN fecha__date)
+    # 📥 INGRESOS (Abonos de hoy)
     # ===============================
     abonos = Abono.objects.filter(
         targeta__ruta=ruta,
@@ -586,12 +591,10 @@ def movimientos_ruta(request, ruta_id):
         fecha__lt=hoy + timedelta(days=1)
     )
 
-    ingresos_hoy = abonos.aggregate(
-        total=Sum("monto")
-    )["total"] or Decimal("0.00")
+    ingresos_hoy = abonos.aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
 
     # ===============================
-    # 📤 EGRESOS (SIN fecha__date)
+    # 📤 EGRESOS (Gastos/Retiros de hoy)
     # ===============================
     egresos = MovimientoRuta.objects.filter(
         ruta=ruta,
@@ -600,9 +603,7 @@ def movimientos_ruta(request, ruta_id):
         fecha__lt=hoy + timedelta(days=1)
     )
 
-    egresos_hoy = egresos.aggregate(
-        total=Sum("monto")
-    )["total"] or Decimal("0.00")
+    egresos_hoy = egresos.aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
 
     # ===============================
     # 💾 ACTUALIZAR CAJA
@@ -611,10 +612,11 @@ def movimientos_ruta(request, ruta_id):
     caja.egresos = egresos_hoy
     caja.save()
 
+    # El saldo actual es lo que había al empezar + lo que entró - lo que salió
     saldo_hoy = caja.saldo_inicial + ingresos_hoy - egresos_hoy
 
     # ===============================
-    # 🧾 MOVIMIENTOS
+    # 🧾 LISTADO DE MOVIMIENTOS
     # ===============================
     movimientos = []
 
@@ -634,6 +636,7 @@ def movimientos_ruta(request, ruta_id):
             "descripcion": e.descripcion
         })
 
+    # Ordenar por hora (más reciente primero)
     movimientos.sort(key=lambda x: x["fecha"], reverse=True)
 
     return render(request, "app/movimientos_ruta.html", {
@@ -790,11 +793,6 @@ def crear_cuotas(targeta):
 
 
 
-
-from django.http import HttpResponse
-from django.contrib.auth.decorators import user_passes_test
-from django.db.models import F
-from .models import Cuota
 
 def reparar_cuotas_view(request):
     # Verificación manual de superusuario para evitar errores de decoradores
