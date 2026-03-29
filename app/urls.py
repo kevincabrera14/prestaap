@@ -33,5 +33,10 @@ urlpatterns = [
    
     path('reporte-diario/<int:ruta_id>/<str:fecha>/',views.reporte_diario,name='reporte_diario'),
     
+    path('ruta/<int:ruta_id>/cajas/', views.historial_cajas, name='historial_cajas'),
+    
+    # AGREGA ESTA LÍNEA AQUÍ:
+    path('ruta/<int:ruta_id>/gasto/', views.registrar_gasto, name='registrar_gasto'),
 
+    path('reporte-diario/<int:ruta_id>/<str:fecha>/', views.reporte_diario, name='reporte_diario'),
 ]

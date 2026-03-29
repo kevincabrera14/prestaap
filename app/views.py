@@ -797,21 +797,21 @@ def registrar_gasto(request, ruta_id):
     ruta = get_object_or_404(Ruta, id=ruta_id)
     
     if request.method == 'POST':
-        # Capturamos los datos directamente del HTML
         monto = request.POST.get('monto')
         descripcion = request.POST.get('descripcion')
         
         if monto:
-            # Creamos el registro en MovimientoRuta
+            # Creamos el registro de tipo EGRESO
             MovimientoRuta.objects.create(
                 ruta=ruta,
                 tipo='EGRESO',
                 monto=monto,
                 descripcion=descripcion
             )
-            messages.success(request, f"Gasto de ${monto} registrado correctamente.")
-            return redirect(f"/dashboard-supervisor/?ruta={ruta.id}")
+            messages.success(request, f"Gasto de ${monto} registrado con éxito.")
+            # Redirigimos al dashboard del supervisor con la ruta activa
+            return redirect(f"{reverse('dashboard_supervisor')}?ruta={ruta.id}")
         else:
-            messages.error(request, "El monto es obligatorio.")
+            messages.error(request, "Debe ingresar un monto.")
 
     return render(request, 'app/registrar_gasto.html', {'ruta': ruta})
