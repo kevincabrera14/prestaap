@@ -792,6 +792,8 @@ def crear_cuotas(targeta):
     
     targeta.actualizar_estado()
 
+from decimal import Decimal # Importante para manejar dinero con exactitud
+from django.db import transaction # Para asegurar que si falla algo, no se reste dinero a medias
 
 @login_required
 def registrar_gasto(request, ruta_id):
@@ -803,33 +805,37 @@ def registrar_gasto(request, ruta_id):
         
         try:
             if monto_str:
-                monto = float(monto_str)
+                # Convertimos a Decimal para que sea compatible con el modelo
+                monto = Decimal(monto_str)
                 
-                # 1. Verificamos si hay suficiente base para cubrir el gasto (Opcional pero recomendado)
-                if ruta.base < monto:
-                    messages.error(request, f"Fondos insuficientes. La base actual es ${ruta.base}")
+                if monto <= 0:
+                    messages.error(request, "El monto debe ser mayor a cero.")
                     return render(request, 'app/registrar_gasto.html', {'ruta': ruta})
 
-                # 2. RESTAMOS EL GASTO DE LA BASE DE LA RUTA
-                ruta.base -= monto
-                ruta.save() # Guardamos el nuevo valor de la base
+                # Verificamos si la base aguanta el gasto
+                if ruta.base < monto:
+                    messages.error(request, f"⚠️ Fondos insuficientes. La base actual es ${ruta.base}")
+                    return render(request, 'app/registrar_gasto.html', {'ruta': ruta})
 
-                # 3. Creamos el registro en MovimientoRuta para que aparezca en el historial
-                MovimientoRuta.objects.create(
-                    ruta=ruta,
-                    tipo='EGRESO',
-                    monto=monto,
-                    descripcion=f"GASTO: {descripcion}"
-                )
+                # Usamos una transacción para que se guarde el movimiento Y se reste la base al mismo tiempo
+                with transaction.atomic():
+                    # 1. RESTAMOS DE LA BASE
+                    ruta.base -= monto
+                    ruta.save()
 
-                messages.success(request, f"✅ Gasto de ${monto} descontado de la base correctamente.")
+                    # 2. CREAMOS EL MOVIMIENTO (Para auditoría y Reporte Diario)
+                    MovimientoRuta.objects.create(
+                        ruta=ruta,
+                        tipo='EGRESO',
+                        monto=monto,
+                        descripcion=f"GASTO: {descripcion}"
+                    )
+
+                messages.success(request, f"✅ Gasto de ${monto} descontado de la base.")
                 return redirect(f'/dashboard/supervisor/?ruta={ruta.id}')
             else:
                 messages.error(request, "El monto es obligatorio.")
-        except ValueError:
-            messages.error(request, "El monto ingresado no es válido.")
         except Exception as e:
-            print(f"Error grave en gasto: {e}")
-            messages.error(request, f"Error: {e}")
+            messages.error(request, f"Error al procesar el gasto: {e}")
             
     return render(request, 'app/registrar_gasto.html', {'ruta': ruta})
