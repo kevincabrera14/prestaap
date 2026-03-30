@@ -372,48 +372,67 @@ from django.utils.timezone import now
 def crear_abono(request, targeta_id):
     targeta = get_object_or_404(Targeta, id=targeta_id)
     ruta = targeta.ruta
-    cuotas = targeta.cuotas.filter(estado='PENDIENTE').order_by('numero')
+    # Obtenemos todas las cuotas pendientes en orden
+    cuotas_pendientes = targeta.cuotas.filter(estado='PENDIENTE').order_by('numero')
 
     if request.method == "POST":
-        cuota_id = request.POST.get("cuota")
-        # El monto que el usuario escribe en el nuevo input
-        monto_abono = Decimal(request.POST.get("monto_abono", 0)) 
-        
-        cuota = get_object_or_404(Cuota, id=cuota_id, estado='PENDIENTE')
+        try:
+            monto_recibido = Decimal(request.POST.get("monto_abono", 0))
+        except (ValueError, TypeError):
+            monto_recibido = Decimal(0)
 
-        if monto_abono > 0:
-            # 1️⃣ Actualizar saldo de la cuota
-            cuota.saldo_cuota -= monto_abono
+        # --- VALIDACIÓN DE TOPE TOTAL ---
+        saldo_total_prestamo = targeta.saldo_restante
+        if monto_recibido > saldo_total_prestamo:
+            messages.error(request, f"¡Error! El monto (${monto_recibido}) excede el saldo total pendiente de la tarjeta (${saldo_total_prestamo}).")
+            return redirect(request.path)
+
+        if monto_recibido > 0:
+            monto_original = monto_recibido # Reservamos el total para movimientos de caja
             
-            # Si el saldo llega a 0 (o menos por error), se marca como pagada
-            if cuota.saldo_cuota <= 0:
-                cuota.estado = 'PAGADA'
-                cuota.saldo_cuota = 0
-                cuota.fecha_pago = now()
-            cuota.save()
+            # --- LÓGICA DE PAGO EN CASCADA ---
+            for cuota in cuotas_pendientes:
+                if monto_recibido <= 0:
+                    break # Ya repartimos todo el dinero
+                
+                # Determinamos cuánto aplicar a esta cuota específica
+                # Usamos el saldo de la cuota o lo que quede del dinero recibido
+                pago_a_cuota = min(cuota.saldo_cuota, monto_recibido)
+                
+                # 1️⃣ Actualizar saldo de la cuota
+                cuota.saldo_cuota -= pago_a_cuota
+                
+                if cuota.saldo_cuota <= 0:
+                    cuota.estado = 'PAGADA'
+                    cuota.saldo_cuota = 0
+                    cuota.fecha_pago = now()
+                cuota.save()
 
-            # 2️⃣ Registrar el Abono (historial)
-            Abono.objects.create(
-                targeta=targeta,
-                cuota=cuota,
-                monto=monto_abono,
-                registrado_por=request.user
-            )
+                # 2️⃣ Registrar el Abono en el historial (vinculado a esta cuota)
+                Abono.objects.create(
+                    targeta=targeta,
+                    cuota=cuota,
+                    monto=pago_a_cuota,
+                    registrado_por=request.user
+                )
 
-            # 3️⃣ Actualizar Base de la Ruta
-            ruta.base += monto_abono
+                # Restamos lo aplicado del monto total recibido para la siguiente iteración
+                monto_recibido -= pago_a_cuota
+
+            # 3️⃣ Actualizar Base de la Ruta (con el total ingresado)
+            ruta.base += monto_original
             ruta.save(update_fields=['base'])
 
-            # 4️⃣ Registrar Movimiento
+            # 4️⃣ Registrar Movimiento de Caja
             MovimientoRuta.objects.create(
                 ruta=ruta,
                 tipo='INGRESO',
-                monto=monto_abono,
-                descripcion=f"Abono a cuota {cuota.numero} - {targeta.nombre_cliente}"
+                monto=monto_original,
+                descripcion=f"Abono procesado - Cliente: {targeta.nombre_cliente}"
             )
 
             targeta.actualizar_estado()
-            messages.success(request, f"Abono de ${monto_abono} registrado correctamente")
+            messages.success(request, f"Se registró el abono de ${monto_original} correctamente.")
 
             # Redirección según rol
             try:
@@ -428,9 +447,8 @@ def crear_abono(request, targeta_id):
 
     return render(request, "app/crear_abono.html", {
         "targeta": targeta,
-        "cuotas": cuotas
+        "cuotas": cuotas_pendientes
     })
-    
 @login_required
 def historial_abonos(request, targeta_id):
     targeta = get_object_or_404(Targeta, id=targeta_id)

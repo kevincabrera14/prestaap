@@ -30,7 +30,7 @@
 
                         <div class="mb-4">
                             <label class="form-label d-block mb-2 fw-bold">1. Seleccionar Cuota</label>
-                            <select name="cuota" id="cuota-select" class="form-select text-center" required>
+                            <select name="cuota" id="cuota-select" class="form-select text-center" >
                                 <option value="" disabled selected>— Seleccione la cuota —</option>
                                 {% for c in cuotas %}
                                     <option value="{{ c.id }}" data-saldo="{{ c.saldo_cuota }}">
@@ -53,7 +53,7 @@
                                        id="monto_abono" 
                                        class="form-control text-center fw-bold" 
                                        placeholder="0.00" 
-                                       required>
+                                       >
                             </div>
                             <p class="mt-2 small text-center text-secondary" id="help-text">
                                 Ingrese el dinero entregado por el cliente.
@@ -87,36 +87,22 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const cuotaSelect = document.getElementById('cuota-select');
         const montoInput = document.getElementById('monto_abono');
         const helpText = document.getElementById('help-text');
+        
+        // Obtenemos el saldo total de la tarjeta desde el contexto (usando Django tag)
+        const saldoTotalPrestamo = parseFloat("{{ targeta.saldo_restante }}");
 
-        cuotaSelect.addEventListener('change', function() {
-            // Obtenemos el saldo que falta de la opción seleccionada
-            const selectedOption = this.options[this.selectedIndex];
-            const saldoPendiente = selectedOption.getAttribute('data-saldo');
-            
-            // Sugerimos el cobro total por defecto
-            montoInput.value = saldoPendiente;
-            
-            // Actualizamos texto de ayuda
-            helpText.innerHTML = `Saldo total de esta cuota: <strong>$${saldoPendiente}</strong>. <br>Puedes registrar un abono parcial.`;
-            
-            // Ponemos el foco en el monto por si quiere borrar y escribir menos
-            montoInput.select();
-        });
-
-        // Validación simple para no permitir abonos superiores a la cuota (Opcional)
+        // Al escribir, validamos que no se pase del total de la deuda
         montoInput.addEventListener('input', function() {
-            const selectedOption = cuotaSelect.options[cuotaSelect.selectedIndex];
-            if (selectedOption.value) {
-                const max = parseFloat(selectedOption.getAttribute('data-saldo'));
-                const actual = parseFloat(this.value);
-                if (actual > max) {
-                    this.classList.add('is-invalid');
-                } else {
-                    this.classList.remove('is-invalid');
-                }
+            const actual = parseFloat(this.value);
+            
+            if (actual > saldoTotalPrestamo) {
+                this.classList.add('is-invalid');
+                helpText.innerHTML = `<span class="text-danger fw-bold">¡Error! El monto supera el total de la deuda ($${saldoTotalPrestamo}).</span>`;
+            } else {
+                this.classList.remove('is-invalid');
+                helpText.innerHTML = `Monto a aplicar al préstamo. Saldo total pendiente: <strong>$${saldoTotalPrestamo}</strong>.`;
             }
         });
     });
