@@ -795,32 +795,41 @@ def crear_cuotas(targeta):
 
 @login_required
 def registrar_gasto(request, ruta_id):
-    # 1. Verificamos que la ruta existe
     ruta = get_object_or_404(Ruta, id=ruta_id)
     
     if request.method == 'POST':
-        monto = request.POST.get('monto')
+        monto_str = request.POST.get('monto')
         descripcion = request.POST.get('descripcion')
         
         try:
-            if monto:
-                # 2. Creamos el registro
-                # IMPORTANTE: Verifica que los nombres 'ruta', 'tipo', 'monto' 
-                # existan en tu modelo MovimientoRuta
+            if monto_str:
+                monto = float(monto_str)
+                
+                # 1. Verificamos si hay suficiente base para cubrir el gasto (Opcional pero recomendado)
+                if ruta.base < monto:
+                    messages.error(request, f"Fondos insuficientes. La base actual es ${ruta.base}")
+                    return render(request, 'app/registrar_gasto.html', {'ruta': ruta})
+
+                # 2. RESTAMOS EL GASTO DE LA BASE DE LA RUTA
+                ruta.base -= monto
+                ruta.save() # Guardamos el nuevo valor de la base
+
+                # 3. Creamos el registro en MovimientoRuta para que aparezca en el historial
                 MovimientoRuta.objects.create(
                     ruta=ruta,
                     tipo='EGRESO',
                     monto=monto,
-                    descripcion=descripcion
+                    descripcion=f"GASTO: {descripcion}"
                 )
-                messages.success(request, f"✅ Gasto de ${monto} registrado.")
-                # Redirección manual segura
+
+                messages.success(request, f"✅ Gasto de ${monto} descontado de la base correctamente.")
                 return redirect(f'/dashboard/supervisor/?ruta={ruta.id}')
             else:
                 messages.error(request, "El monto es obligatorio.")
+        except ValueError:
+            messages.error(request, "El monto ingresado no es válido.")
         except Exception as e:
-            # Esto imprimirá el error real en tu consola/terminal
-            print(f"Error al crear gasto: {e}")
-            messages.error(request, f"Error interno: {e}")
+            print(f"Error grave en gasto: {e}")
+            messages.error(request, f"Error: {e}")
             
     return render(request, 'app/registrar_gasto.html', {'ruta': ruta})
