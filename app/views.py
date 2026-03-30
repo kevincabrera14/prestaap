@@ -20,6 +20,7 @@ from django.http import HttpResponse
 from django.contrib.auth.decorators import user_passes_test
 from .models import Cuota
 
+from django.urls import reverse
 
 # =====================================================
 # AUTH
@@ -794,24 +795,32 @@ def crear_cuotas(targeta):
 
 @login_required
 def registrar_gasto(request, ruta_id):
+    # 1. Verificamos que la ruta existe
     ruta = get_object_or_404(Ruta, id=ruta_id)
     
     if request.method == 'POST':
         monto = request.POST.get('monto')
         descripcion = request.POST.get('descripcion')
         
-        if monto:
-            # Creamos el registro de tipo EGRESO
-            MovimientoRuta.objects.create(
-                ruta=ruta,
-                tipo='EGRESO',
-                monto=monto,
-                descripcion=descripcion
-            )
-            messages.success(request, f"Gasto de ${monto} registrado con éxito.")
-            # Redirigimos al dashboard del supervisor con la ruta activa
-            return redirect(f"{reverse('dashboard_supervisor')}?ruta={ruta.id}")
-        else:
-            messages.error(request, "Debe ingresar un monto.")
-
+        try:
+            if monto:
+                # 2. Creamos el registro
+                # IMPORTANTE: Verifica que los nombres 'ruta', 'tipo', 'monto' 
+                # existan en tu modelo MovimientoRuta
+                MovimientoRuta.objects.create(
+                    ruta=ruta,
+                    tipo='EGRESO',
+                    monto=monto,
+                    descripcion=descripcion
+                )
+                messages.success(request, f"✅ Gasto de ${monto} registrado.")
+                # Redirección manual segura
+                return redirect(f'/dashboard/supervisor/?ruta={ruta.id}')
+            else:
+                messages.error(request, "El monto es obligatorio.")
+        except Exception as e:
+            # Esto imprimirá el error real en tu consola/terminal
+            print(f"Error al crear gasto: {e}")
+            messages.error(request, f"Error interno: {e}")
+            
     return render(request, 'app/registrar_gasto.html', {'ruta': ruta})
