@@ -15,8 +15,7 @@
 
     <nav class="navbar navbar-dark custom-nav px-3 sticky-top mb-4">
         <div class="container-fluid">
-            <span class="navbar-brand fw-bold">PrestApp <span class="fw-light opacity-75">| {{ request.user.username
-                    }}</span></span>
+            <span class="navbar-brand fw-bold">PrestApp <span class="fw-light opacity-75">| {{ request.user.username}}</span></span>
             <a href="{% url 'logout' %}" class="btn btn-outline-light btn-sm opacity-75">Salir</a>
         </div>
     </nav>
