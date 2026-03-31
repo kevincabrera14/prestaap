@@ -371,7 +371,7 @@ def lista_abonos(request, targeta_id):
 
 @login_required
 def crear_abono(request, targeta_id=None):
-    # 1. IDENTIFICACIÓN DE LA TARJETA (Flexible)
+    # 1. Identificación de la tarjeta
     if not targeta_id:
         targeta_id = request.POST.get("targeta") or request.GET.get("targeta")
     
@@ -382,24 +382,33 @@ def crear_abono(request, targeta_id=None):
         cuotas_pendientes = targeta.cuotas.filter(estado='PENDIENTE').order_by('numero')
 
     if request.method == "POST" and targeta:
-        # 2. CAPTURA DE DATOS (Ninguno es obligatorio por DB, se validan aquí)
         cuota_id = request.POST.get("cuota")
-        monto_input = request.POST.get("monto_abono") or request.POST.get("monto")
+        monto_input = request.POST.get("monto_abono")
 
+        # --- BLOQUE DE DETECCIÓN AUTOMÁTICA ---
+        # Convertimos el input a Decimal si existe
         try:
-            monto_recibido = Decimal(monto_input) if monto_input else Decimal(0)
+            monto_recibido = Decimal(monto_input) if monto_input and Decimal(monto_input) > 0 else Decimal(0)
         except (ValueError, TypeError, Decimal.InvalidOperation):
             monto_recibido = Decimal(0)
 
-        # VALIDACIÓN: Al menos debe haber un monto para procesar
-        if monto_recibido <= 0:
-            messages.error(request, "Debe ingresar un monto válido para registrar el abono.")
-            return redirect(request.path + (f"?targeta={targeta.id}" if "targeta" not in request.path else ""))
-
-        # 3. LÓGICA DE SELECCIÓN AUTOMÁTICA
-        # Si eligió cuota, filtramos desde esa. Si no, usamos todas las pendientes.
-        if cuota_id and cuota_id != "":
+        # Si el monto es 0 pero seleccionó una cuota, tomamos el valor de esa cuota
+        cuota_inicio = None
+        if monto_recibido <= 0 and cuota_id:
             cuota_inicio = get_object_or_404(Cuota, id=cuota_id)
+            monto_recibido = cuota_inicio.saldo_cuota
+        # ---------------------------------------
+
+        # Validación final: Si después de intentar detectar el monto sigue en 0
+        if monto_recibido <= 0:
+            messages.error(request, "Debe seleccionar una cuota o ingresar un monto.")
+            return redirect(request.path)
+
+        # 2. DETERMINAR QUÉ CUOTAS PROCESAR
+        if cuota_id:
+            if not cuota_inicio: # Por si ya se cargó arriba
+                cuota_inicio = get_object_or_404(Cuota, id=cuota_id)
+            
             cuotas_a_procesar = targeta.cuotas.filter(
                 estado='PENDIENTE', 
                 numero__gte=cuota_inicio.numero
@@ -407,7 +416,7 @@ def crear_abono(request, targeta_id=None):
         else:
             cuotas_a_procesar = cuotas_pendientes
 
-        # 4. PROCESAMIENTO EN CASCADA
+        # 3. PROCESAMIENTO EN CASCADA (Igual al anterior, pero más robusto)
         monto_original = monto_recibido
         ruta = targeta.ruta
         
@@ -415,7 +424,7 @@ def crear_abono(request, targeta_id=None):
             if monto_recibido <= 0: break
             
             saldo_actual = cuota.saldo_cuota if cuota.saldo_cuota is not None else Decimal('0.00')
-            if saldo_actual <= 0: continue # Saltar si por error hay una cuota sin saldo pero pendiente
+            if saldo_actual <= 0: continue
             
             pago_a_cuota = min(saldo_actual, monto_recibido)
             
@@ -434,33 +443,26 @@ def crear_abono(request, targeta_id=None):
             )
             monto_recibido -= pago_a_cuota
 
-        # 5. ACTUALIZACIÓN DE CAJA Y ESTADOS
+        # 4. ACTUALIZACIÓN DE CAJA Y REDIRECCIÓN
         ruta.base += monto_original
         ruta.save(update_fields=['base'])
 
         MovimientoRuta.objects.create(
-            ruta=ruta,
-            tipo='INGRESO',
-            monto=monto_original,
-            descripcion=f"Abono parcial/total - Cliente: {targeta.nombre_cliente}"
+            ruta=ruta, tipo='INGRESO', monto=monto_original,
+            descripcion=f"Abono - Cliente: {targeta.nombre_cliente}"
         )
 
         targeta.actualizar_estado()
-        messages.success(request, f"Se procesaron ${monto_original} correctamente.")
+        messages.success(request, f"Se registró un pago de ${monto_original} correctamente.")
 
-        # REDIRECCIÓN SEGÚN ROL (Mantenemos tu lógica de Supervisor/Trabajador)
-        user_rol = 'TRABAJADOR'
-        if hasattr(request.user, 'perfil'):
-            user_rol = request.user.perfil.rol
-            
+        # Redirección por Rol
+        user_rol = request.user.perfil.rol if hasattr(request.user, 'perfil') else 'TRABAJADOR'
         if user_rol == 'SUPERVISOR' or request.user.is_staff:
             return redirect(f"/dashboard/supervisor/?ruta={ruta.id}")
         return redirect(f"/dashboard/trabajador/?ruta={ruta.id}")
 
-    # GET: Carga de página inicial
     return render(request, "app/crear_abono.html", {
         "targeta": targeta,
-        "targetas": Targeta.objects.all(),
         "cuotas": cuotas_pendientes,
     })
 @login_required
