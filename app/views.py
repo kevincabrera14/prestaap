@@ -368,47 +368,63 @@ def lista_abonos(request, targeta_id):
 
 
 from django.utils.timezone import now
+from django.utils.timezone import now
+from decimal import Decimal
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib.auth.decorators import login_required
+
 @login_required
 def crear_abono(request, targeta_id):
     targeta = get_object_or_404(Targeta, id=targeta_id)
     ruta = targeta.ruta
-    # Obtenemos todas las cuotas pendientes en orden
+    # Siempre obtenemos las cuotas para que el formulario las muestre al cargar (GET)
     cuotas_pendientes = targeta.cuotas.filter(estado='PENDIENTE').order_by('numero')
 
     if request.method == "POST":
+        cuota_id = request.POST.get("cuota")
         try:
             monto_recibido = Decimal(request.POST.get("monto_abono", 0))
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, Decimal.InvalidOperation):
             monto_recibido = Decimal(0)
 
-        # --- VALIDACIÓN DE TOPE TOTAL ---
+        # 1️⃣ VALIDACIÓN DE TOPE TOTAL
         saldo_total_prestamo = targeta.saldo_restante
         if monto_recibido > saldo_total_prestamo:
             messages.error(request, f"¡Error! El monto (${monto_recibido}) excede el saldo total pendiente de la tarjeta (${saldo_total_prestamo}).")
             return redirect(request.path)
 
         if monto_recibido > 0:
-            monto_original = monto_recibido # Reservamos el total para movimientos de caja
+            monto_original = monto_recibido 
             
-            # --- LÓGICA DE PAGO EN CASCADA ---
-            for cuota in cuotas_pendientes:
+            # 2️⃣ DETERMINAR ORDEN DE PAGO
+            # Si el usuario seleccionó una cuota específica, empezamos desde esa en adelante
+            if cuota_id:
+                cuota_inicio = get_object_or_404(Cuota, id=cuota_id)
+                cuotas_a_procesar = targeta.cuotas.filter(
+                    estado='PENDIENTE', 
+                    numero__gte=cuota_inicio.numero
+                ).order_by('numero')
+            else:
+                # Si no seleccionó nada, usamos la lista general (desde la más antigua)
+                cuotas_a_procesar = cuotas_pendientes
+
+            # 3️⃣ LÓGICA DE PAGO EN CASCADA
+            for cuota in cuotas_a_procesar:
                 if monto_recibido <= 0:
-                    break # Ya repartimos todo el dinero
+                    break
                 
-                # Determinamos cuánto aplicar a esta cuota específica
-                # Usamos el saldo de la cuota o lo que quede del dinero recibido
                 pago_a_cuota = min(cuota.saldo_cuota, monto_recibido)
                 
-                # 1️⃣ Actualizar saldo de la cuota
+                # Actualizar cuota
                 cuota.saldo_cuota -= pago_a_cuota
-                
                 if cuota.saldo_cuota <= 0:
                     cuota.estado = 'PAGADA'
                     cuota.saldo_cuota = 0
                     cuota.fecha_pago = now()
                 cuota.save()
 
-                # 2️⃣ Registrar el Abono en el historial (vinculado a esta cuota)
+                # Registrar historial de abono
                 Abono.objects.create(
                     targeta=targeta,
                     cuota=cuota,
@@ -416,14 +432,12 @@ def crear_abono(request, targeta_id):
                     registrado_por=request.user
                 )
 
-                # Restamos lo aplicado del monto total recibido para la siguiente iteración
                 monto_recibido -= pago_a_cuota
 
-            # 3️⃣ Actualizar Base de la Ruta (con el total ingresado)
+            # 4️⃣ MOVIMIENTOS DE CAJA
             ruta.base += monto_original
             ruta.save(update_fields=['base'])
 
-            # 4️⃣ Registrar Movimiento de Caja
             MovimientoRuta.objects.create(
                 ruta=ruta,
                 tipo='INGRESO',
@@ -434,7 +448,7 @@ def crear_abono(request, targeta_id):
             targeta.actualizar_estado()
             messages.success(request, f"Se registró el abono de ${monto_original} correctamente.")
 
-            # Redirección según rol
+            # Redirección por Rol
             try:
                 rol = request.user.perfil.rol
             except:
@@ -445,10 +459,12 @@ def crear_abono(request, targeta_id):
             else:
                 return redirect(f"/dashboard/trabajador/?ruta={ruta.id}")
 
+    # Este return fuera del IF es vital para evitar el Error 500 al cargar la página
     return render(request, "app/crear_abono.html", {
         "targeta": targeta,
         "cuotas": cuotas_pendientes
     })
+
 @login_required
 def historial_abonos(request, targeta_id):
     targeta = get_object_or_404(Targeta, id=targeta_id)
