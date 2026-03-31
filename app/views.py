@@ -831,3 +831,60 @@ def registrar_gasto(request, ruta_id):
             messages.error(request, f"Error al procesar el gasto: {e}")
             
     return render(request, 'app/registrar_gasto.html', {'ruta': ruta})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@login_required
+def eliminar_abono(request, abono_id):
+    abono = get_object_or_404(Abono, id=abono_id)
+    targeta = abono.targeta
+    ruta = targeta.ruta
+
+    # Seguridad: Solo Supervisor de esta ruta o Staff
+    if request.user != ruta.supervisor and not request.user.is_staff:
+        messages.error(request, "No tienes permiso para eliminar abonos.")
+        return redirect('historial_abonos', targeta_id=targeta.id)
+
+    with transaction.atomic():
+        # 1. Devolver el saldo a la cuota
+        if abono.cuota:
+            cuota = abono.cuota
+            cuota.saldo_cuota += abono.monto
+            cuota.estado = 'PENDIENTE'
+            cuota.fecha_pago = None
+            cuota.save()
+
+        # 2. Restar de la base de la ruta
+        ruta.base -= abono.monto
+        ruta.save()
+
+        # 3. Crear un movimiento de salida para dejar rastro (Auditoría)
+        MovimientoRuta.objects.create(
+            ruta=ruta,
+            tipo='EGRESO',
+            monto=abono.monto,
+            descripcion=f"ANULACIÓN ABONO - Cliente: {targeta.nombre_cliente} (Abono ID: {abono.id})"
+        )
+
+        # 4. Eliminar el abono
+        abono.delete()
+        
+        # 5. Actualizar estado de la tarjeta (por si vuelve a mora)
+        targeta.actualizar_estado()
+
+    messages.success(request, f"Abono eliminado. Se han devuelto ${abono.monto} a la deuda.")
+    return redirect('historial_abonos', targeta_id=targeta.id)
