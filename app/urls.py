@@ -39,4 +39,8 @@ urlpatterns = [
     path('ruta/<int:ruta_id>/gasto/', views.registrar_gasto, name='registrar_gasto'),
 
     path('reporte-diario/<int:ruta_id>/<str:fecha>/', views.reporte_diario, name='reporte_diario'),
+
+
+    path('targetas/abonar/', views.crear_abono, name='crear_abono'),
+    path('targetas/<int:targeta_id>/abonar/', views.crear_abono, name='crear_abono_especifico'),
 ]

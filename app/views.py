@@ -367,62 +367,65 @@ def lista_abonos(request, targeta_id):
     })
 
 
-from django.utils.timezone import now
-from django.utils.timezone import now
-from decimal import Decimal
-from django.contrib import messages
-from django.shortcuts import get_object_or_404, redirect, render
-from django.contrib.auth.decorators import login_required
-@login_required
-def crear_abono(request, targeta_id):
-    targeta = get_object_or_404(Targeta, id=targeta_id)
-    ruta = targeta.ruta
-    # Obtenemos las cuotas pendientes
-    cuotas_pendientes = targeta.cuotas.filter(estado='PENDIENTE').order_by('numero')
 
-    if request.method == "POST":
-        # CAMBIO CLAVE: Si cuota_id es una cadena vacía, lo tratamos como None
+
+@login_required
+def crear_abono(request, targeta_id=None):
+    # 1. SOPORTE PARA SELECCIÓN MANUAL O POR URL
+    # Si no viene targeta_id en la URL, intentamos sacarlo del POST o GET
+    if not targeta_id:
+        targeta_id = request.POST.get("targeta") or request.GET.get("targeta")
+    
+    targetas_lista = Targeta.objects.all() # Para el buscador general
+    targeta = None
+    cuotas_pendientes = []
+
+    if targeta_id:
+        targeta = get_object_or_404(Targeta, id=targeta_id)
+        ruta = targeta.ruta
+        cuotas_pendientes = targeta.cuotas.filter(estado='PENDIENTE').order_by('numero')
+
+    # --- PROCESO DE REGISTRO (POST) ---
+    if request.method == "POST" and targeta:
         cuota_id = request.POST.get("cuota")
-        if cuota_id == "":
-            cuota_id = None
+        if cuota_id == "": cuota_id = None
 
         try:
-            monto_recibido = Decimal(request.POST.get("monto_abono", 0))
+            monto_recibido = Decimal(request.POST.get("monto_abono") or request.POST.get("monto") or 0)
         except (ValueError, TypeError, Decimal.InvalidOperation):
             monto_recibido = Decimal(0)
 
-        # 1️⃣ VALIDACIÓN DE SEGURIDAD
+        # VALIDACIONES DE SEGURIDAD
         if monto_recibido <= 0:
             messages.error(request, "El monto debe ser mayor a cero.")
-            return redirect(request.path)
+            return redirect(request.path + (f"?targeta={targeta.id}" if "?" not in request.path else ""))
 
-        saldo_total_prestamo = targeta.saldo_restante
-        if monto_recibido > saldo_total_prestamo:
-            messages.error(request, f"¡Error! El monto (${monto_recibido}) excede el saldo total pendiente.")
+        saldo_total = targeta.saldo_restante
+        if monto_recibido > saldo_total:
+            messages.error(request, f"¡Error! El monto (${monto_recibido}) excede el saldo pendiente (${saldo_total}).")
             return redirect(request.path)
 
         monto_original = monto_recibido 
         
-        # 2️⃣ DETERMINAR ORDEN DE PAGO
+        # DETERMINAR CUOTAS A AFECTAR
         if cuota_id:
-            # Si seleccionó una cuota específica, validamos que exista
             cuota_inicio = get_object_or_404(Cuota, id=cuota_id)
             cuotas_a_procesar = targeta.cuotas.filter(
                 estado='PENDIENTE', 
                 numero__gte=cuota_inicio.numero
             ).order_by('numero')
         else:
-            # Si no seleccionó, usamos todas las pendientes en orden
             cuotas_a_procesar = cuotas_pendientes
 
-        # 3️⃣ LÓGICA DE PAGO EN CASCADA
+        # PAGO EN CASCADA
         for cuota in cuotas_a_procesar:
-            if monto_recibido <= 0:
-                break
+            if monto_recibido <= 0: break
             
-            pago_a_cuota = min(cuota.saldo_cuota, monto_recibido)
+            # Protección contra Nulos en base de datos
+            saldo_actual_cuota = cuota.saldo_cuota if cuota.saldo_cuota is not None else Decimal('0.00')
+            pago_a_cuota = min(saldo_actual_cuota, monto_recibido)
             
-            cuota.saldo_cuota -= pago_a_cuota
+            cuota.saldo_cuota = saldo_actual_cuota - pago_a_cuota
             if cuota.saldo_cuota <= 0:
                 cuota.estado = 'PAGADA'
                 cuota.saldo_cuota = 0
@@ -437,7 +440,7 @@ def crear_abono(request, targeta_id):
             )
             monto_recibido -= pago_a_cuota
 
-        # 4️⃣ MOVIMIENTOS DE CAJA Y ESTADO
+        # MOVIMIENTOS FINANCIEROS
         ruta.base += monto_original
         ruta.save(update_fields=['base'])
 
@@ -445,15 +448,14 @@ def crear_abono(request, targeta_id):
             ruta=ruta,
             tipo='INGRESO',
             monto=monto_original,
-            descripcion=f"Abono procesado - Cliente: {targeta.nombre_cliente}"
+            descripcion=f"Abono - Cliente: {targeta.nombre_cliente}"
         )
 
         targeta.actualizar_estado()
-        messages.success(request, f"Se registró el abono de ${monto_original} correctamente.")
+        messages.success(request, f"Abono de ${monto_original} registrado correctamente.")
 
-        # 5️⃣ REDIRECCIÓN SEGURA SEGÚN ROL
+        # REDIRECCIÓN POR ROL
         try:
-            # Intentamos obtener el rol del perfil
             user_rol = request.user.perfil.rol if hasattr(request.user, 'perfil') else 'TRABAJADOR'
         except:
             user_rol = 'TRABAJADOR'
@@ -463,10 +465,12 @@ def crear_abono(request, targeta_id):
         else:
             return redirect(f"/dashboard/trabajador/?ruta={ruta.id}")
 
-    # Este es el GET (cuando solo cargas la página)
+    # --- RESPUESTA VISUAL (GET) ---
     return render(request, "app/crear_abono.html", {
         "targeta": targeta,
-        "cuotas": cuotas_pendientes
+        "targetas": targetas_lista,
+        "cuotas": cuotas_pendientes,
+        "targeta_id": targeta_id
     })
 
 @login_required
@@ -748,49 +752,7 @@ def reporte_diario(request, ruta_id, fecha):
         "saldo_inicial": caja.saldo_inicial,
         "saldo_final": caja.saldo_final,
     })
-@login_required
-def agregar_abono(request):
-    targetas = Targeta.objects.all()
-    cuotas = []
 
-    targeta_id = request.GET.get("targeta")
-
-    if targeta_id:
-        cuotas = Cuota.objects.filter(
-            targeta_id=targeta_id,
-            estado='PENDIENTE'
-        )
-
-    if request.method == "POST":
-        targeta_id = request.POST.get("targeta")
-        cuota_id = request.POST.get("cuota")
-        monto = request.POST.get("monto")
-
-        targeta = get_object_or_404(Targeta, id=targeta_id)
-        cuota = get_object_or_404(Cuota, id=cuota_id)
-
-        Abono.objects.create(
-            targeta=targeta,
-            cuota=cuota,
-            monto=Decimal(monto),
-            registrado_por=request.user
-        )
-
-        # Marcar cuota como pagada
-        cuota.estado = 'PAGADA'
-        cuota.save(update_fields=['estado'])
-
-        # Actualizar estado de la targeta
-        targeta.actualizar_estado()
-
-        messages.success(request, "Abono registrado correctamente")
-        return redirect("agregar_abono")
-
-    return render(request, "app/agregar_abono.html", {
-        "targetas": targetas,
-        "cuotas": cuotas,
-        "targeta_id": targeta_id
-    })
 def crear_cuotas(targeta):
     """
     Genera cuotas con fecha de vencimiento. 
