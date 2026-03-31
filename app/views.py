@@ -373,16 +373,19 @@ from decimal import Decimal
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.decorators import login_required
-
 @login_required
 def crear_abono(request, targeta_id):
     targeta = get_object_or_404(Targeta, id=targeta_id)
     ruta = targeta.ruta
-    # Siempre obtenemos las cuotas para que el formulario las muestre al cargar (GET)
+    # Obtenemos las cuotas pendientes
     cuotas_pendientes = targeta.cuotas.filter(estado='PENDIENTE').order_by('numero')
 
     if request.method == "POST":
+        # CAMBIO CLAVE: Si cuota_id es una cadena vacía, lo tratamos como None
         cuota_id = request.POST.get("cuota")
+        if cuota_id == "":
+            cuota_id = None
+
         try:
             monto_recibido = Decimal(request.POST.get("monto_abono", 0))
         except (ValueError, TypeError, Decimal.InvalidOperation):
@@ -391,22 +394,22 @@ def crear_abono(request, targeta_id):
         # 1️⃣ VALIDACIÓN DE TOPE TOTAL
         saldo_total_prestamo = targeta.saldo_restante
         if monto_recibido > saldo_total_prestamo:
-            messages.error(request, f"¡Error! El monto (${monto_recibido}) excede el saldo total pendiente de la tarjeta (${saldo_total_prestamo}).")
+            messages.error(request, f"¡Error! El monto (${monto_recibido}) excede el saldo total pendiente.")
             return redirect(request.path)
 
         if monto_recibido > 0:
             monto_original = monto_recibido 
             
-            # 2️⃣ DETERMINAR ORDEN DE PAGO
-            # Si el usuario seleccionó una cuota específica, empezamos desde esa en adelante
+            # 2️⃣ DETERMINAR ORDEN DE PAGO (CORREGIDO)
             if cuota_id:
+                # Si seleccionó una cuota, validamos que exista y filtramos desde ahí
                 cuota_inicio = get_object_or_404(Cuota, id=cuota_id)
                 cuotas_a_procesar = targeta.cuotas.filter(
                     estado='PENDIENTE', 
                     numero__gte=cuota_inicio.numero
                 ).order_by('numero')
             else:
-                # Si no seleccionó nada, usamos la lista general (desde la más antigua)
+                # Si NO seleccionó nada (valor vacío), usamos todas las pendientes
                 cuotas_a_procesar = cuotas_pendientes
 
             # 3️⃣ LÓGICA DE PAGO EN CASCADA
@@ -416,7 +419,6 @@ def crear_abono(request, targeta_id):
                 
                 pago_a_cuota = min(cuota.saldo_cuota, monto_recibido)
                 
-                # Actualizar cuota
                 cuota.saldo_cuota -= pago_a_cuota
                 if cuota.saldo_cuota <= 0:
                     cuota.estado = 'PAGADA'
@@ -424,14 +426,12 @@ def crear_abono(request, targeta_id):
                     cuota.fecha_pago = now()
                 cuota.save()
 
-                # Registrar historial de abono
                 Abono.objects.create(
                     targeta=targeta,
                     cuota=cuota,
                     monto=pago_a_cuota,
                     registrado_por=request.user
                 )
-
                 monto_recibido -= pago_a_cuota
 
             # 4️⃣ MOVIMIENTOS DE CAJA
@@ -459,7 +459,6 @@ def crear_abono(request, targeta_id):
             else:
                 return redirect(f"/dashboard/trabajador/?ruta={ruta.id}")
 
-    # Este return fuera del IF es vital para evitar el Error 500 al cargar la página
     return render(request, "app/crear_abono.html", {
         "targeta": targeta,
         "cuotas": cuotas_pendientes
