@@ -391,74 +391,79 @@ def crear_abono(request, targeta_id):
         except (ValueError, TypeError, Decimal.InvalidOperation):
             monto_recibido = Decimal(0)
 
-        # 1️⃣ VALIDACIÓN DE TOPE TOTAL
+        # 1️⃣ VALIDACIÓN DE SEGURIDAD
+        if monto_recibido <= 0:
+            messages.error(request, "El monto debe ser mayor a cero.")
+            return redirect(request.path)
+
         saldo_total_prestamo = targeta.saldo_restante
         if monto_recibido > saldo_total_prestamo:
             messages.error(request, f"¡Error! El monto (${monto_recibido}) excede el saldo total pendiente.")
             return redirect(request.path)
 
-        if monto_recibido > 0:
-            monto_original = monto_recibido 
+        monto_original = monto_recibido 
+        
+        # 2️⃣ DETERMINAR ORDEN DE PAGO
+        if cuota_id:
+            # Si seleccionó una cuota específica, validamos que exista
+            cuota_inicio = get_object_or_404(Cuota, id=cuota_id)
+            cuotas_a_procesar = targeta.cuotas.filter(
+                estado='PENDIENTE', 
+                numero__gte=cuota_inicio.numero
+            ).order_by('numero')
+        else:
+            # Si no seleccionó, usamos todas las pendientes en orden
+            cuotas_a_procesar = cuotas_pendientes
+
+        # 3️⃣ LÓGICA DE PAGO EN CASCADA
+        for cuota in cuotas_a_procesar:
+            if monto_recibido <= 0:
+                break
             
-            # 2️⃣ DETERMINAR ORDEN DE PAGO (CORREGIDO)
-            if cuota_id:
-                # Si seleccionó una cuota, validamos que exista y filtramos desde ahí
-                cuota_inicio = get_object_or_404(Cuota, id=cuota_id)
-                cuotas_a_procesar = targeta.cuotas.filter(
-                    estado='PENDIENTE', 
-                    numero__gte=cuota_inicio.numero
-                ).order_by('numero')
-            else:
-                # Si NO seleccionó nada (valor vacío), usamos todas las pendientes
-                cuotas_a_procesar = cuotas_pendientes
+            pago_a_cuota = min(cuota.saldo_cuota, monto_recibido)
+            
+            cuota.saldo_cuota -= pago_a_cuota
+            if cuota.saldo_cuota <= 0:
+                cuota.estado = 'PAGADA'
+                cuota.saldo_cuota = 0
+                cuota.fecha_pago = now()
+            cuota.save()
 
-            # 3️⃣ LÓGICA DE PAGO EN CASCADA
-            for cuota in cuotas_a_procesar:
-                if monto_recibido <= 0:
-                    break
-                
-                pago_a_cuota = min(cuota.saldo_cuota, monto_recibido)
-                
-                cuota.saldo_cuota -= pago_a_cuota
-                if cuota.saldo_cuota <= 0:
-                    cuota.estado = 'PAGADA'
-                    cuota.saldo_cuota = 0
-                    cuota.fecha_pago = now()
-                cuota.save()
-
-                Abono.objects.create(
-                    targeta=targeta,
-                    cuota=cuota,
-                    monto=pago_a_cuota,
-                    registrado_por=request.user
-                )
-                monto_recibido -= pago_a_cuota
-
-            # 4️⃣ MOVIMIENTOS DE CAJA
-            ruta.base += monto_original
-            ruta.save(update_fields=['base'])
-
-            MovimientoRuta.objects.create(
-                ruta=ruta,
-                tipo='INGRESO',
-                monto=monto_original,
-                descripcion=f"Abono procesado - Cliente: {targeta.nombre_cliente}"
+            Abono.objects.create(
+                targeta=targeta,
+                cuota=cuota,
+                monto=pago_a_cuota,
+                registrado_por=request.user
             )
+            monto_recibido -= pago_a_cuota
 
-            targeta.actualizar_estado()
-            messages.success(request, f"Se registró el abono de ${monto_original} correctamente.")
+        # 4️⃣ MOVIMIENTOS DE CAJA Y ESTADO
+        ruta.base += monto_original
+        ruta.save(update_fields=['base'])
 
-            # Redirección por Rol
-            try:
-                rol = request.user.perfil.rol
-            except:
-                rol = 'TRABAJADOR' 
+        MovimientoRuta.objects.create(
+            ruta=ruta,
+            tipo='INGRESO',
+            monto=monto_original,
+            descripcion=f"Abono procesado - Cliente: {targeta.nombre_cliente}"
+        )
 
-            if rol == 'SUPERVISOR' or request.user.is_staff:
-                return redirect(f"/dashboard/supervisor/?ruta={ruta.id}")
-            else:
-                return redirect(f"/dashboard/trabajador/?ruta={ruta.id}")
+        targeta.actualizar_estado()
+        messages.success(request, f"Se registró el abono de ${monto_original} correctamente.")
 
+        # 5️⃣ REDIRECCIÓN SEGURA SEGÚN ROL
+        try:
+            # Intentamos obtener el rol del perfil
+            user_rol = request.user.perfil.rol if hasattr(request.user, 'perfil') else 'TRABAJADOR'
+        except:
+            user_rol = 'TRABAJADOR'
+
+        if user_rol == 'SUPERVISOR' or request.user.is_staff:
+            return redirect(f"/dashboard/supervisor/?ruta={ruta.id}")
+        else:
+            return redirect(f"/dashboard/trabajador/?ruta={ruta.id}")
+
+    # Este es el GET (cuando solo cargas la página)
     return render(request, "app/crear_abono.html", {
         "targeta": targeta,
         "cuotas": cuotas_pendientes
