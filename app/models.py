@@ -79,11 +79,13 @@ class Targeta(models.Model):
     numero_identificacion = models.CharField(max_length=30)
     nombre_cliente = models.CharField(max_length=100)
     telefono = models.CharField(max_length=20)
-    direccion_casa = models.CharField(max_length=200)
-    direccion_negocio = models.CharField(max_length=200, blank=True)
+    
+    # Direcciones opcionales para usar el GPS como fuente principal
+    direccion_casa = models.CharField(max_length=255, blank=True, null=True)
+    direccion_negocio = models.CharField(max_length=255, blank=True, null=True)
     observaciones = models.TextField(blank=True)
 
-    # NUEVO: Geolocalización para el Mapa Visual
+    # Campos de Geolocalización
     latitud = models.FloatField(null=True, blank=True)
     longitud = models.FloatField(null=True, blank=True)
 
@@ -110,6 +112,13 @@ class Targeta(models.Model):
     # ===============================
 
     @property
+    def url_google_maps(self):
+        """Genera el link directo para navegar con GPS."""
+        if self.latitud and self.longitud:
+            return f"https://www.google.com/maps?q={self.latitud},{self.longitud}"
+        return None
+
+    @property
     def monto_total(self):
         interes = (self.monto_base * Decimal(self.tasa_interes)) / Decimal(100)
         return self.monto_base + interes
@@ -130,18 +139,12 @@ class Targeta(models.Model):
         hoy = localdate()
         saldo = self.saldo_restante
 
-        # 1. Si el saldo es 0 o menos, el crédito terminó
         if saldo <= Decimal('0.00'):
             self.estado = 'PAGADA'
-        
-        # 2. Si es domingo, no penalizamos ni cambiamos el estado
         elif hoy.weekday() == 6:
             pass
-
-        # 3. Revisar si hay cuotas vencidas (estado PENDIENTE y fecha < hoy)
         elif self.cuotas.filter(estado='PENDIENTE', fecha_vencimiento__lt=hoy).exists():
             self.estado = 'MORA'
-        
         else:
             self.estado = 'PAGO'
             
@@ -152,7 +155,7 @@ class Targeta(models.Model):
 
 
 # -------------------------
-# CUOTAS
+# CUOTAS (Definida antes de Abono para evitar errores)
 # -------------------------
 class Cuota(models.Model):
     ESTADO_CHOICES = (
@@ -165,7 +168,6 @@ class Cuota(models.Model):
     numero = models.PositiveIntegerField()
     monto = models.DecimalField(max_digits=10, decimal_places=2) 
     
-    # Saldo específico de esta cuota
     saldo_cuota = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
 
     estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='PENDIENTE')
@@ -181,7 +183,7 @@ class Cuota(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"Cuota {self.numero} - {self.targeta.nombre_cliente} (Faltan: {self.saldo_cuota})"
+        return f"Cuota {self.numero} - {self.targeta.nombre_cliente}"
 
 
 # -------------------------

@@ -1027,3 +1027,21 @@ def mapa_clientes(request, ruta_id):
         'ruta': ruta,
         'clientes': clientes
     })
+
+
+def guardar_gps_cliente(request, targeta_id):
+    targeta = get_object_or_404(Targeta, id=targeta_id)
+    
+    if request.method == 'POST':
+        lat = request.POST.get('latitud')
+        lng = request.POST.get('longitud')
+        
+        # Guardamos las coordenadas numéricas
+        targeta.latitud = lat
+        targeta.longitud = lng
+        
+        # Reemplazamos la dirección de texto por el link real
+        targeta.direccion_casa = f"https://www.google.com/maps?q={lat},{lng}"
+        targeta.save()
+        
+        return JsonResponse({'status': 'success'})
