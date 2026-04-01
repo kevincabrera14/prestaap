@@ -1045,3 +1045,30 @@ def guardar_gps_cliente(request, targeta_id):
         targeta.save()
         
         return JsonResponse({'status': 'success'})
+    
+
+    from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse
+from .models import Targeta
+
+def validar_gps_cliente(request, pk):
+    # Buscamos la tarjeta por su ID (pk)
+    targeta = get_object_or_404(Targeta, pk=pk)
+    
+    if request.method == 'POST':
+        lat = request.POST.get('latitud')
+        lng = request.POST.get('longitud')
+        
+        if lat and lng:
+            # Guardamos las coordenadas en el modelo
+            targeta.latitud = float(lat)
+            targeta.longitud = float(lng)
+            
+            # También actualizamos el campo de dirección con el link de Google Maps
+            targeta.direccion_casa = f"https://www.google.com/maps?q={lat},{lng}"
+            targeta.save()
+            
+            return JsonResponse({'status': 'ok', 'message': 'Ubicación guardada correctamente'})
+            
+    # Si es un GET (cuando el cliente abre el link), mostramos la página de validación
+    return render(request, 'app/validar_gps.html', {'targeta': targeta})

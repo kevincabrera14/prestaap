@@ -49,4 +49,5 @@ urlpatterns = [
     path('targeta/renovar/<int:targeta_id>/', views.renovar_targeta, name='renovar_targeta'),
     path('finalizados/', views.clientes_finalizados, name='clientes_finalizados'),
     path('ruta/<int:ruta_id>/mapa/', views.mapa_clientes, name='mapa_clientes'),
+    path('validar/<int:pk>/', views.validar_gps_cliente, name='validar_gps_cliente'),
 ]
