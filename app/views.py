@@ -996,3 +996,23 @@ def clientes_finalizados(request):
         "rutas": rutas,
         "ruta_sel": rutas.filter(id=ruta_id).first() if ruta_id else None
     })
+
+
+
+
+
+def historial_cierres(request, ruta_id):
+    ruta = get_object_or_404(Ruta, id=ruta_id)
+    historial = ReporteDiario.objects.filter(ruta=ruta).order_by('-fecha')
+
+    # Inyectamos los movimientos de cada día dentro de cada registro del historial
+    for registro in historial:
+        registro.movimientos_del_dia = MovimientoRuta.objects.filter(
+            ruta=ruta,
+            fecha__date=registro.fecha # Filtra movimientos de ese mismo día
+        ).order_by('fecha')
+
+    return render(request, 'app/historial_cierres.html', {
+        'ruta': ruta,
+        'historial': historial
+    })

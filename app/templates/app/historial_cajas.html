@@ -4,71 +4,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historial de Cajas - {{ ruta.nombre }}</title>
+    <title>Auditoría de Caja | {{ ruta.nombre }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.9);
+            --primary-gradient: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        }
+        body { background-color: #f1f5f9; font-family: 'Inter', system-ui, sans-serif; }
+        
+        .header-gradient {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            border-radius: 0 0 2rem 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
 
+        .card-cierre {
+            border: none;
+            border-radius: 1.2rem;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            background: white;
+        }
+        .card-cierre:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08) !important;
+        }
+
+        .date-badge {
+            background: #eff6ff;
+            color: #1e40af;
+            padding: 0.5rem 1rem;
+            border-radius: 0.8rem;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .stat-box {
+            padding: 1rem;
+            border-radius: 1rem;
+            background: #f8fafc;
+            text-align: center;
+        }
+
+        .movimiento-row {
+            border-left: 3px solid #e2e8f0;
+            padding: 0.75rem 1rem;
+            margin-left: 0.5rem;
+            position: relative;
+            background: #fff;
+            transition: background 0.2s;
+        }
+        .movimiento-row:hover { background: #f8fafc; }
+        .movimiento-row::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 50%;
+            width: 9px;
+            height: 9px;
+            background: #cbd5e1;
+            border-radius: 50%;
+        }
+
+        .btn-detalle {
+            border-radius: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        .monto-final {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #1e3a8a;
+        }
+    </style>
 </head>
 <body>
 
-<div class="container py-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="fw-bold text-dark">📚 Historial de Cierres</h2>
-            <p class="text-muted">Ruta: <span class="badge bg-primary fs-6">{{ ruta.nombre }}</span></p>
-        </div>
-        <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="btn btn-outline-secondary shadow-sm">
-            ← Volver al Panel
-        </a>
-    </div>
-
-    <div class="card shadow">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th class="ps-4">Fecha</th>
-                            <th>Base Inicial</th>
-                            <th>Ingresos (Abonos)</th>
-                            <th>Egresos (Gastos)</th>
-                            <th>Saldo Final</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for registro in historial %}
-                        <tr>
-                            <td class="ps-4">
-                                <span class="fw-bold text-secondary">{{ registro.fecha|date:"d M Y" }}</span>
-                            </td>
-                            <td class="text-monto">${{ registro.saldo_inicial }}</td>
-                            <td class="text-monto text-success">+ ${{ registro.ingresos }}</td>
-                            <td class="text-monto text-danger">- ${{ registro.egresos }}</td>
-                            <td class="text-monto fw-bold fs-5">
-                                ${{ registro.saldo_final }}
-                            </td>
- 
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
-                                <div class="mb-2 fs-1">📭</div>
-                                <p>No hay cierres registrados para esta ruta todavía.</p>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+<div class="header-gradient shadow">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 fw-bold mb-1">Auditoría de Cierres</h1>
+                <p class="mb-0 opacity-75"><i class="bi bi-geo-alt-fill"></i> Ruta: {{ ruta.nombre }}</p>
             </div>
+            <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="btn btn-light rounded-pill px-4 fw-bold">
+                <i class="bi bi-arrow-left"></i> Panel
+            </a>
         </div>
-    </div>
-
-    <div class="mt-4 p-3 bg-light rounded-3 border">
-        <small class="text-muted">
-            <strong>Nota:</strong> Los cierres se generan automáticamente al finalizar el día. 
-            El <strong>Saldo Final</strong> es el dinero neto que el cobrador debe entregar al cierre de su jornada.
-        </small>
     </div>
 </div>
 
+<div class="container pb-5">
+    <div class="row g-4">
+        {% for registro in historial %}
+        <div class="col-12">
+            <div class="card card-cierre shadow-sm">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-lg-3 mb-3 mb-lg-0">
+                            <div class="date-badge mb-2">
+                                <i class="bi bi-calendar3"></i> {{ registro.fecha|date:"D, d M Y" }}
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted d-block">Saldo de Apertura</small>
+                                <span class="fw-bold text-dark fs-5">${{ registro.saldo_inicial }}</span>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6 mb-3 mb-lg-0">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <div class="stat-box">
+                                        <small class="text-success fw-bold text-uppercase" style="font-size: 0.7rem;">Ingresos</small>
+                                        <div class="text-success fw-bold fs-5">+ ${{ registro.ingresos }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stat-box">
+                                        <small class="text-danger fw-bold text-uppercase" style="font-size: 0.7rem;">Egresos</small>
+                                        <div class="text-danger fw-bold fs-5">- ${{ registro.egresos }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-3 text-lg-end">
+                            <small class="text-muted d-block">Efectivo a Entregar</small>
+                            <div class="monto-final mb-2">${{ registro.saldo_final }}</div>
+                            <button class="btn btn-primary btn-detalle w-100" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ registro.id }}">
+                                <i class="bi bi-list-check"></i> Ver Movimientos
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="collapse mt-4" id="collapse{{ registro.id }}">
+                        <div class="border-top pt-3">
+                            <h6 class="fw-bold mb-3 text-secondary text-uppercase" style="font-size: 0.8rem;">Cronología del Día</h6>
+                            <div class="list-group list-group-flush">
+                                {% for mov in registro.movimientos_del_dia %}
+                                <div class="movimiento-row d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="badge {% if mov.tipo == 'INGRESO' %}bg-success{% else %}bg-danger{% endif %} rounded-pill me-2" style="font-size: 0.6rem;">
+                                            {{ mov.tipo }}
+                                        </span>
+                                        <span class="small fw-bold text-dark">{{ mov.descripcion }}</span>
+                                        <div class="text-muted" style="font-size: 0.75rem;">
+                                            <i class="bi bi-clock"></i> {{ mov.fecha|date:"H:i" }}
+                                        </div>
+                                    </div>
+                                    <div class="fw-bold {% if mov.tipo == 'INGRESO' %}text-success{% else %}text-danger{% endif %}">
+                                        {% if mov.tipo == 'INGRESO' %}+{% else %}-{% endif %} ${{ mov.monto }}
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <p class="text-center text-muted small py-3">No hay movimientos registrados para este cierre.</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <i class="bi bi-folder-x display-1 text-muted"></i>
+            <p class="fs-5 text-muted mt-3">Aún no se han generado reportes de cierre para esta ruta.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
