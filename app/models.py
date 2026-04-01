@@ -65,6 +65,7 @@ class Targeta(models.Model):
     ESTADO_CHOICES = (
         ('PAGO', 'Al día'),
         ('MORA', 'En mora'),
+        ('PAGADA', 'Finalizada/Pagada'),
     )
 
     ruta = models.ForeignKey(
@@ -81,6 +82,10 @@ class Targeta(models.Model):
     direccion_casa = models.CharField(max_length=200)
     direccion_negocio = models.CharField(max_length=200, blank=True)
     observaciones = models.TextField(blank=True)
+
+    # NUEVO: Geolocalización para el Mapa Visual
+    latitud = models.FloatField(null=True, blank=True)
+    longitud = models.FloatField(null=True, blank=True)
 
     # -------- INFO PRÉSTAMO --------
     monto_base = models.DecimalField(max_digits=10, decimal_places=2)
@@ -121,18 +126,19 @@ class Targeta(models.Model):
         return self.monto_total - self.total_abonado
 
     def actualizar_estado(self):
-        """Actualiza si la tarjeta está al día o en mora."""
+        """Actualiza si la tarjeta está al día, en mora o pagada por completo."""
         hoy = localdate()
+        saldo = self.saldo_restante
 
-        # 1. Si ya pagó todo
-        if self.saldo_restante <= Decimal('0.00'):
-            self.estado = 'PAGO'
+        # 1. Si el saldo es 0 o menos, el crédito terminó
+        if saldo <= Decimal('0.00'):
+            self.estado = 'PAGADA'
         
-        # 2. Si es domingo, mantenemos el estado actual (no penalizamos)
+        # 2. Si es domingo, no penalizamos ni cambiamos el estado
         elif hoy.weekday() == 6:
             pass
 
-        # 3. Revisar si hay cuotas pendientes cuya fecha de vencimiento ya pasó
+        # 3. Revisar si hay cuotas vencidas (estado PENDIENTE y fecha < hoy)
         elif self.cuotas.filter(estado='PENDIENTE', fecha_vencimiento__lt=hoy).exists():
             self.estado = 'MORA'
         
@@ -157,9 +163,9 @@ class Cuota(models.Model):
     targeta = models.ForeignKey(Targeta, on_delete=models.CASCADE, related_name='cuotas')
     fecha_vencimiento = models.DateField(null=True, blank=True)
     numero = models.PositiveIntegerField()
-    monto = models.DecimalField(max_digits=10, decimal_places=2) # Monto original
+    monto = models.DecimalField(max_digits=10, decimal_places=2) 
     
-    # NUEVO: Para saber cuánto falta de esta cuota específica
+    # Saldo específico de esta cuota
     saldo_cuota = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
 
     estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='PENDIENTE')
@@ -170,13 +176,14 @@ class Cuota(models.Model):
         unique_together = ('targeta', 'numero')
 
     def save(self, *args, **kwargs):
-        # Al crear la cuota por primera vez, el saldo es igual al monto
         if not self.pk:
             self.saldo_cuota = self.monto
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Cuota {self.numero} - {self.targeta.nombre_cliente} (Faltan: {self.saldo_cuota})"
+
+
 # -------------------------
 # ABONOS
 # -------------------------

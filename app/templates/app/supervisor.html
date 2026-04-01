@@ -15,7 +15,8 @@
 
     <nav class="navbar navbar-dark custom-nav px-3 sticky-top mb-4">
         <div class="container-fluid">
-            <span class="navbar-brand fw-bold">PrestApp <span class="fw-light opacity-75">| {{request.user.username}}</span></span>
+            <span class="navbar-brand fw-bold">PrestApp <span
+                    class="fw-light opacity-75">|{{request.user.username}}</span></span>
             <a href="{% url 'logout' %}" class="btn btn-outline-light btn-sm opacity-75">Salir</a>
         </div>
     </nav>
@@ -39,34 +40,42 @@
         {% if ruta_sel %}
 
         <div class="row g-2 mb-4">
-            <div class="col-12 col-md-4">
-                <a href="{% url 'crear_targeta' %}?ruta={{ ruta_sel.id }}"
-                    class="btn btn-success w-100 shadow-sm fw-bold">
-                    ➕ Nueva Targeta
-                </a>
-            </div>
-            <div class="col-6 col-md-4">
-                <a href="{% url 'registrar_gasto' ruta_sel.id %}" class="btn btn-danger w-100 shadow-sm fw-bold">
-                    💸 Registrar Gasto
-                </a>
-            </div>
-            <div class="col-6 col-md-4">
-                {% now "Y-m-d" as hoy %}
-                <a href="{% url 'reporte_diario' ruta_sel.id hoy %}" class="btn btn-dark w-100 shadow-sm">
-                    📊 Reporte Diario
-                </a>
-            </div>
-            <div class="col-6 col-md-4">
-                <a href="{% url 'historial_cajas' ruta_sel.id %}" class="btn btn-outline-dark w-100 shadow-sm">
-                    💰 Historial Cajas
-                </a>
-            </div>
-            <div class="col-6 col-md-4">
-                <a href="{% url 'clientes_finalizados' %}" class="btn btn-outline-primary w-100 shadow-sm fw-bold">
-                    📂 Ver Finalizados
-                </a>
-            </div>
-        </div>
+    <div class="col-12 col-md-4">
+        <a href="{% url 'crear_targeta' %}?ruta={{ ruta_sel.id }}" class="btn btn-success w-100 shadow-sm fw-bold">
+            ➕ Nueva Targeta
+        </a>
+    </div>
+    <div class="col-6 col-md-4">
+        <a href="{% url 'registrar_gasto' ruta_sel.id %}" class="btn btn-danger w-100 shadow-sm fw-bold">
+            💸 Registrar Gasto
+        </a>
+    </div>
+    <div class="col-6 col-md-4">
+        {% now "Y-m-d" as hoy %}
+        <a href="{% url 'reporte_diario' ruta_sel.id hoy %}" class="btn btn-dark w-100 shadow-sm">
+            📊 Reporte Diario
+        </a>
+    </div>
+
+    <div class="col-6 col-md-4">
+        <a href="{% url 'historial_cajas' ruta_sel.id %}" class="btn btn-outline-dark w-100 shadow-sm">
+            💰 Historial Cajas
+        </a>
+    </div>
+    <div class="col-6 col-md-4">
+        <a href="{% url 'clientes_finalizados' %}" class="btn btn-outline-primary w-100 shadow-sm fw-bold">
+            📂 Ver Finalizados
+        </a>
+    </div>
+
+    {% if ruta_sel.id %}
+    <div class="col-12 col-md-4">
+        <a href="{% url 'mapa_clientes' ruta_sel.id %}" class="btn btn-warning w-100 shadow-sm fw-bold">
+            📍 Ver Mapa de Ruta
+        </a>
+    </div>
+    {% endif %}
+</div>
 
         <div class="row g-2 mb-4">
             <div class="col-6 col-md-3">

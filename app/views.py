@@ -1016,3 +1016,14 @@ def historial_cierres(request, ruta_id):
         'ruta': ruta,
         'historial': historial
     })
+
+
+def mapa_clientes(request, ruta_id):
+    ruta = get_object_or_404(Ruta, id=ruta_id)
+    # Solo traemos las tarjetas que tengan ubicación guardada
+    clientes = Targeta.objects.filter(ruta=ruta).exclude(latitud=None).exclude(longitud=None)
+    
+    return render(request, 'app/mapa_clientes.html', {
+        'ruta': ruta,
+        'clientes': clientes
+    })
