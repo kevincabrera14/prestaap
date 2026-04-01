@@ -85,6 +85,9 @@ def dashboard_admin(request):
 # =====================================================
 # SUPERVISOR
 # =====================================================
+from django.db.models import Q # Importante añadir esta importación al inicio
+
+from django.db.models import Q # Importante añadir esta importación al inicio
 
 @login_required
 @supervisor_required
@@ -109,26 +112,29 @@ def dashboard_supervisor(request):
         # Validamos que la ruta seleccionada también pertenezca al supervisor
         ruta_sel = get_object_or_404(Ruta, id=ruta_id, supervisor=request.user)
 
-        targetas = Targeta.objects.filter(ruta=ruta_sel)
+        # 1. Traemos las tarjetas que NO estén marcadas como PAGADA explícitamente
+        query = Targeta.objects.filter(ruta=ruta_sel).exclude(estado='PAGADA')
 
         if q:
-            targetas = targetas.filter(nombre_cliente__icontains=q)
+            query = query.filter(nombre_cliente__icontains=q)
+
+        # 2. FILTRO DE PYTHON: Excluimos las que tengan saldo 0 aunque no digan "PAGADA"
+        # Convertimos a lista para poder usar la propiedad .saldo_restante
+        targetas = [t for t in query if t.saldo_restante > 0]
 
         # =========================
         # RESUMEN FINANCIERO REAL
         # =========================
 
-        resumen["total_clientes"] = targetas.count()
+        resumen["total_clientes"] = len(targetas)
 
-        resumen["en_mora"] = targetas.filter(
-            estado="MORA"
-        ).count()
+        # Contamos los que están en mora dentro de nuestra lista filtrada
+        resumen["en_mora"] = len([t for t in targetas if t.estado == "MORA"])
 
         resumen["base"] = ruta_sel.base
 
-        resumen["dinero_en_ruta"] = sum(
-            t.saldo_restante for t in targetas
-        )
+        # Sumamos el saldo restante de la lista final
+        resumen["dinero_en_ruta"] = sum(t.saldo_restante for t in targetas)
 
     context = {
         "rutas": rutas,
@@ -138,7 +144,6 @@ def dashboard_supervisor(request):
     }
 
     return render(request, "app/supervisor.html", context)
-    
 # =====================================================
 # ruta
 # =====================================================
@@ -311,11 +316,33 @@ def editar_targeta(request, targeta_id):
 @login_required
 @supervisor_required
 def eliminar_targeta(request, targeta_id):
+    # Obtenemos la tarjeta validando que sea del supervisor actual
     targeta = get_object_or_404(Targeta, id=targeta_id, ruta__supervisor=request.user)
-    targeta.delete()
-    messages.success(request, "Targeta eliminada")
-    return redirect('dashboard_supervisor')
+    ruta = targeta.ruta
+    saldo_perdido = targeta.saldo_restante # Lo que el cliente aún debía
+    nombre_cliente = targeta.nombre_cliente
 
+    try:
+        with transaction.atomic():
+            # 1. Si la tarjeta tenía saldo pendiente, registramos el Egreso en la auditoría
+            # Nota: No restamos de ruta.base porque ese dinero YA salió cuando se creó la tarjeta.
+            # Solo lo marcamos como EGRESO para que aparezca en el reporte diario como "Dinero que sale de circulación".
+            if saldo_perdido > 0:
+                MovimientoRuta.objects.create(
+                    ruta=ruta,
+                    tipo='EGRESO',
+                    monto=saldo_perdido,
+                    descripcion=f"ELIMINACIÓN TARJETA (Pérdida) - Cliente: {nombre_cliente}"
+                )
+
+            # 2. Borramos la tarjeta (esto borrará sus cuotas y abonos en cascada si está configurado en models)
+            targeta.delete()
+
+        messages.success(request, f"Tarjeta de {nombre_cliente} eliminada. Se registró un egreso de ${saldo_perdido} por saldo pendiente.")
+    except Exception as e:
+        messages.error(request, f"Error al eliminar la tarjeta: {str(e)}")
+
+    return redirect(f"/dashboard/supervisor/?ruta={ruta.id}")
 
 # =====================================================
 # TRABAJADOR
@@ -386,27 +413,23 @@ def crear_abono(request, targeta_id=None):
         monto_input = request.POST.get("monto_abono")
 
         # --- BLOQUE DE DETECCIÓN AUTOMÁTICA ---
-        # Convertimos el input a Decimal si existe
         try:
             monto_recibido = Decimal(monto_input) if monto_input and Decimal(monto_input) > 0 else Decimal(0)
         except (ValueError, TypeError, Decimal.InvalidOperation):
             monto_recibido = Decimal(0)
 
-        # Si el monto es 0 pero seleccionó una cuota, tomamos el valor de esa cuota
         cuota_inicio = None
         if monto_recibido <= 0 and cuota_id:
             cuota_inicio = get_object_or_404(Cuota, id=cuota_id)
             monto_recibido = cuota_inicio.saldo_cuota
-        # ---------------------------------------
 
-        # Validación final: Si después de intentar detectar el monto sigue en 0
         if monto_recibido <= 0:
             messages.error(request, "Debe seleccionar una cuota o ingresar un monto.")
             return redirect(request.path)
 
         # 2. DETERMINAR QUÉ CUOTAS PROCESAR
         if cuota_id:
-            if not cuota_inicio: # Por si ya se cargó arriba
+            if not cuota_inicio:
                 cuota_inicio = get_object_or_404(Cuota, id=cuota_id)
             
             cuotas_a_procesar = targeta.cuotas.filter(
@@ -416,43 +439,51 @@ def crear_abono(request, targeta_id=None):
         else:
             cuotas_a_procesar = cuotas_pendientes
 
-        # 3. PROCESAMIENTO EN CASCADA (Igual al anterior, pero más robusto)
+        # 3. PROCESAMIENTO EN CASCADA
         monto_original = monto_recibido
         ruta = targeta.ruta
         
-        for cuota in cuotas_a_procesar:
-            if monto_recibido <= 0: break
-            
-            saldo_actual = cuota.saldo_cuota if cuota.saldo_cuota is not None else Decimal('0.00')
-            if saldo_actual <= 0: continue
-            
-            pago_a_cuota = min(saldo_actual, monto_recibido)
-            
-            cuota.saldo_cuota = saldo_actual - pago_a_cuota
-            if cuota.saldo_cuota <= 0:
-                cuota.estado = 'PAGADA'
-                cuota.saldo_cuota = 0
-                cuota.fecha_pago = now()
-            cuota.save()
+        with transaction.atomic(): # Asegura que todo se guarde o nada
+            for cuota in cuotas_a_procesar:
+                if monto_recibido <= 0: break
+                
+                saldo_actual = cuota.saldo_cuota if cuota.saldo_cuota is not None else Decimal('0.00')
+                if saldo_actual <= 0: continue
+                
+                pago_a_cuota = min(saldo_actual, monto_recibido)
+                
+                cuota.saldo_cuota = saldo_actual - pago_a_cuota
+                if cuota.saldo_cuota <= 0:
+                    cuota.estado = 'PAGADA'
+                    cuota.saldo_cuota = 0
+                    cuota.fecha_pago = now()
+                cuota.save()
 
-            Abono.objects.create(
-                targeta=targeta,
-                cuota=cuota,
-                monto=pago_a_cuota,
-                registrado_por=request.user
+                Abono.objects.create(
+                    targeta=targeta,
+                    cuota=cuota,
+                    monto=pago_a_cuota,
+                    registrado_por=request.user
+                )
+                monto_recibido -= pago_a_cuota
+
+            # 4. ACTUALIZACIÓN DE CAJA
+            ruta.base += monto_original
+            ruta.save(update_fields=['base'])
+
+            MovimientoRuta.objects.create(
+                ruta=ruta, tipo='INGRESO', monto=monto_original,
+                descripcion=f"Abono - Cliente: {targeta.nombre_cliente}"
             )
-            monto_recibido -= pago_a_cuota
 
-        # 4. ACTUALIZACIÓN DE CAJA Y REDIRECCIÓN
-        ruta.base += monto_original
-        ruta.save(update_fields=['base'])
+            # --- LÓGICA DE CIERRE AUTOMÁTICO (SOLUCIÓN AL PROBLEMA) ---
+            # Si después del abono el saldo es 0 o menor, marcamos como PAGADA
+            if targeta.saldo_restante <= 0:
+                targeta.estado = 'PAGADA'
+                targeta.save(update_fields=['estado'])
+            else:
+                targeta.actualizar_estado() 
 
-        MovimientoRuta.objects.create(
-            ruta=ruta, tipo='INGRESO', monto=monto_original,
-            descripcion=f"Abono - Cliente: {targeta.nombre_cliente}"
-        )
-
-        targeta.actualizar_estado()
         messages.success(request, f"Se registró un pago de ${monto_original} correctamente.")
 
         # Redirección por Rol
@@ -465,6 +496,8 @@ def crear_abono(request, targeta_id=None):
         "targeta": targeta,
         "cuotas": cuotas_pendientes,
     })
+
+
 @login_required
 def historial_abonos(request, targeta_id):
     targeta = get_object_or_404(Targeta, id=targeta_id)
@@ -888,3 +921,79 @@ def eliminar_abono(request, abono_id):
 
     messages.success(request, f"Abono eliminado. Se han devuelto ${abono.monto} a la deuda.")
     return redirect('historial_abonos', targeta_id=targeta.id)
+
+
+
+
+@login_required
+@supervisor_required
+def renovar_targeta(request, targeta_id):
+    targeta = get_object_or_404(Targeta, id=targeta_id, ruta__supervisor=request.user)
+    ruta = targeta.ruta
+
+    if request.method == "POST":
+        monto = Decimal(request.POST.get("monto_base"))
+        tasa = int(request.POST.get("tasa_interes"))
+        plazo = int(request.POST.get("plazo_dias"))
+
+        if monto > ruta.base:
+            messages.error(request, "Base insuficiente en la ruta.")
+            return redirect(request.path)
+
+        try:
+            with transaction.atomic():
+                # 1. Limpiar historial de cuotas y abonos viejos (Para que no se mezclen)
+                targeta.cuotas.all().delete()
+                targeta.abonos.all().delete()
+
+                # 2. Restaurar valores de la tarjeta
+                targeta.monto_base = monto
+                targeta.tasa_interes = tasa
+                targeta.plazo_dias = plazo
+                targeta.estado = 'AL_DIA' # Vuelve a estar activa
+                targeta.save()
+
+                # 3. Generar nuevas cuotas
+                crear_cuotas(targeta)
+
+                # 4. Descontar de la base y registrar movimiento
+                ruta.base -= monto
+                ruta.save()
+
+                MovimientoRuta.objects.create(
+                    ruta=ruta,
+                    tipo='EGRESO',
+                    monto=monto,
+                    descripcion=f"RENOVACIÓN (Restauración): {targeta.nombre_cliente}"
+                )
+
+            messages.success(request, f"Crédito restaurado para {targeta.nombre_cliente}")
+            return redirect(f"/dashboard/supervisor/?ruta={ruta.id}")
+
+        except Exception as e:
+            messages.error(request, f"Error: {e}")
+
+    return render(request, "app/renovar_targeta.html", {"targeta": targeta})
+
+
+@login_required
+@supervisor_required
+def clientes_finalizados(request):
+    rutas = Ruta.objects.filter(supervisor=request.user)
+    ruta_id = request.GET.get("ruta")
+    
+    # Buscamos tarjetas del supervisor
+    query = Targeta.objects.filter(ruta__supervisor=request.user)
+    
+    if ruta_id:
+        query = query.filter(ruta_id=ruta_id)
+
+    # FILTRO CLAVE: Traemos las que ya están marcadas PAGADA 
+    # O las que detectamos que ya no deben nada (saldo_restante == 0)
+    targetas = [t for t in query if t.estado == 'PAGADA' or t.saldo_restante <= 0]
+
+    return render(request, "app/clientes_finalizados.html", {
+        "targetas": targetas,
+        "rutas": rutas,
+        "ruta_sel": rutas.filter(id=ruta_id).first() if ruta_id else None
+    })

@@ -45,4 +45,7 @@ urlpatterns = [
     path('targetas/<int:targeta_id>/abonar/', views.crear_abono, name='crear_abono_especifico'),
 
     path('abono/eliminar/<int:abono_id>/', views.eliminar_abono, name='eliminar_abono'),
+    path('targeta/renovar/<int:targeta_id>/', views.renovar_targeta, name='renovar_targeta'),
+    path('targeta/renovar/<int:targeta_id>/', views.renovar_targeta, name='renovar_targeta'),
+    path('finalizados/', views.clientes_finalizados, name='clientes_finalizados'),
 ]
