@@ -200,65 +200,70 @@ def crear_targeta(request):
         tasa_interes = request.POST.get("tasa_interes")
         plazo_dias = request.POST.get("plazo_dias")
 
-        # Validación de campos
+        # 1. Validación de campos obligatorios
         if not all([ruta_id, monto_base, tasa_interes, plazo_dias]):
             messages.error(request, "Todos los campos obligatorios deben ser completados")
             return redirect(request.path)
 
-        ruta = get_object_or_404(Ruta, id=ruta_id)
+        ruta = get_object_or_404(Ruta, id=ruta_id, supervisor=request.user)
 
         try:
             monto = Decimal(monto_base)
             tasa = int(tasa_interes)
             plazo = int(plazo_dias)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, Decimal.InvalidOperation):
             messages.error(request, "Los valores numéricos no son válidos")
             return redirect(request.path)
 
-        # Validar si hay dinero suficiente en la caja de la ruta
+        # 2. VALIDACIÓN DE BASE (Bloqueo de negativos)
         if monto > ruta.base:
-            messages.error(request, f"Base insuficiente en la ruta. Saldo actual: ${ruta.base}")
+            messages.error(request, f"❌ Fondos insuficientes en la ruta. Saldo disponible: ${ruta.base}")
             return redirect(f"{request.path}?ruta={ruta_id}")
 
-        # Descontar de la base y registrar
-        ruta.base -= monto
-        ruta.save(update_fields=['base'])
+        try:
+            # 3. PROCESO ATÓMICO (Todo o nada)
+            with transaction.atomic():
+                # Descontar de la base primero
+                ruta.base -= monto
+                ruta.save(update_fields=['base'])
 
-        targeta = Targeta.objects.create(
-            ruta=ruta,
-            tipo_identificacion=request.POST.get("tipo_identificacion"),
-            numero_identificacion=request.POST.get("numero_identificacion"),
-            nombre_cliente=request.POST.get("nombre_cliente"),
-            telefono=request.POST.get("telefono"),
-            direccion_casa=request.POST.get("direccion_casa"),
-            direccion_negocio=request.POST.get("direccion_negocio"),
-            observaciones=request.POST.get("observaciones"),
-            monto_base=monto,
-            tasa_interes=tasa,
-            plazo_dias=plazo,
-            creada_por=request.user
-        )
+                # Crear la tarjeta
+                targeta = Targeta.objects.create(
+                    ruta=ruta,
+                    tipo_identificacion=request.POST.get("tipo_identificacion"),
+                    numero_identificacion=request.POST.get("numero_identificacion"),
+                    nombre_cliente=request.POST.get("nombre_cliente"),
+                    telefono=request.POST.get("telefono"),
+                    direccion_casa=request.POST.get("direccion_casa"),
+                    direccion_negocio=request.POST.get("direccion_negocio"),
+                    observaciones=request.POST.get("observaciones"),
+                    monto_base=monto,
+                    tasa_interes=tasa,
+                    plazo_dias=plazo,
+                    creada_por=request.user
+                )
 
-        # Generar las cuotas
-        crear_cuotas(targeta)
+                # Generar las cuotas (Si esto falla, se revierte el descuento de la base)
+                crear_cuotas(targeta)
 
-        # Registrar el movimiento de salida de dinero
-        MovimientoRuta.objects.create(
-            ruta=ruta,
-            tipo='EGRESO',
-            monto=monto,
-            descripcion=f'Préstamo otorgado a {targeta.nombre_cliente}'
-        )
+                # Registrar el movimiento de salida de dinero
+                MovimientoRuta.objects.create(
+                    ruta=ruta,
+                    tipo='EGRESO',
+                    monto=monto,
+                    descripcion=f'PRÉSTAMO: {targeta.nombre_cliente} (ID: {targeta.id})'
+                )
 
-        messages.success(request, "Tarjeta creada correctamente")
-        
-        # Redirigir al dashboard filtrando por la ruta seleccionada
-        return redirect(f"/dashboard/supervisor/?ruta={ruta.id}")
+            messages.success(request, f"✅ Tarjeta de {targeta.nombre_cliente} creada correctamente.")
+            return redirect(f"/dashboard/supervisor/?ruta={ruta.id}")
+
+        except Exception as e:
+            messages.error(request, f"Ocurrió un error inesperado: {str(e)}")
+            return redirect(request.path)
 
     return render(request, 'app/crear_targeta.html', {
         'rutas': rutas
     })
-
 
 @login_required
 @supervisor_required
@@ -817,54 +822,54 @@ def crear_cuotas(targeta):
     
     targeta.actualizar_estado()
 
-from decimal import Decimal # Importante para manejar dinero con exactitud
-from django.db import transaction # Para asegurar que si falla algo, no se reste dinero a medias
-
 @login_required
 def registrar_gasto(request, ruta_id):
-    ruta = get_object_or_404(Ruta, id=ruta_id)
+    # Aseguramos que la ruta pertenezca al supervisor que intenta registrar el gasto
+    ruta = get_object_or_404(Ruta, id=ruta_id, supervisor=request.user)
     
     if request.method == 'POST':
         monto_str = request.POST.get('monto')
         descripcion = request.POST.get('descripcion')
         
         try:
-            if monto_str:
-                # Convertimos a Decimal para que sea compatible con el modelo
-                monto = Decimal(monto_str)
-                
-                if monto <= 0:
-                    messages.error(request, "El monto debe ser mayor a cero.")
-                    return render(request, 'app/registrar_gasto.html', {'ruta': ruta})
-
-                # Verificamos si la base aguanta el gasto
-                if ruta.base < monto:
-                    messages.error(request, f"⚠️ Fondos insuficientes. La base actual es ${ruta.base}")
-                    return render(request, 'app/registrar_gasto.html', {'ruta': ruta})
-
-                # Usamos una transacción para que se guarde el movimiento Y se reste la base al mismo tiempo
-                with transaction.atomic():
-                    # 1. RESTAMOS DE LA BASE
-                    ruta.base -= monto
-                    ruta.save()
-
-                    # 2. CREAMOS EL MOVIMIENTO (Para auditoría y Reporte Diario)
-                    MovimientoRuta.objects.create(
-                        ruta=ruta,
-                        tipo='EGRESO',
-                        monto=monto,
-                        descripcion=f"GASTO: {descripcion}"
-                    )
-
-                messages.success(request, f"✅ Gasto de ${monto} descontado de la base.")
-                return redirect(f'/dashboard/supervisor/?ruta={ruta.id}')
-            else:
+            if not monto_str:
                 messages.error(request, "El monto es obligatorio.")
+                return render(request, 'app/registrar_gasto.html', {'ruta': ruta})
+
+            monto = Decimal(monto_str)
+            
+            if monto <= 0:
+                messages.error(request, "El monto debe ser mayor a cero.")
+                return render(request, 'app/registrar_gasto.html', {'ruta': ruta})
+
+            # 🛡️ BLOQUEO DE NEGATIVOS: Verificamos si la base aguanta el gasto
+            if ruta.base < monto:
+                messages.error(request, f"⚠️ Fondos insuficientes. La base actual es ${ruta.base}")
+                return render(request, 'app/registrar_gasto.html', {'ruta': ruta})
+
+            # 📦 PROCESO ATÓMICO: Si falla la creación del movimiento, no se resta el dinero
+            with transaction.atomic():
+                # 1. RESTAMOS DE LA BASE
+                ruta.base -= monto
+                ruta.save(update_fields=['base'])
+
+                # 2. CREAMOS EL MOVIMIENTO (Para auditoría y Reporte Diario)
+                MovimientoRuta.objects.create(
+                    ruta=ruta,
+                    tipo='EGRESO',
+                    monto=monto,
+                    descripcion=f"GASTO: {descripcion}"
+                )
+
+            messages.success(request, f"✅ Gasto de ${monto} registrado y descontado de la base.")
+            return redirect(f'/dashboard/supervisor/?ruta={ruta.id}')
+
+        except (ValueError, Decimal.InvalidOperation):
+            messages.error(request, "El monto ingresado no es un número válido.")
         except Exception as e:
-            messages.error(request, f"Error al procesar el gasto: {e}")
+            messages.error(request, f"Error inesperado: {str(e)}")
             
     return render(request, 'app/registrar_gasto.html', {'ruta': ruta})
-
 
 
 
@@ -887,44 +892,55 @@ def eliminar_abono(request, abono_id):
     targeta = abono.targeta
     ruta = targeta.ruta
 
-    # Seguridad: Solo Supervisor de esta ruta o Staff
+    # 1. Seguridad: Solo Supervisor de esta ruta o Staff
     if request.user != ruta.supervisor and not request.user.is_staff:
         messages.error(request, "No tienes permiso para eliminar abonos.")
         return redirect('historial_abonos', targeta_id=targeta.id)
 
-    with transaction.atomic():
-        # 1. Devolver el saldo a la cuota
-        if abono.cuota:
-            cuota = abono.cuota
-            cuota.saldo_cuota += abono.monto
-            cuota.estado = 'PENDIENTE'
-            cuota.fecha_pago = None
-            cuota.save()
-
-        # 2. Restar de la base de la ruta
-        ruta.base -= abono.monto
-        ruta.save()
-
-        # 3. Crear un movimiento de salida para dejar rastro (Auditoría)
-        MovimientoRuta.objects.create(
-            ruta=ruta,
-            tipo='EGRESO',
-            monto=abono.monto,
-            descripcion=f"ANULACIÓN ABONO - Cliente: {targeta.nombre_cliente} (Abono ID: {abono.id})"
+    # 2. VALIDACIÓN DE BASE: No permitir borrar si la base quedaría negativa
+    # Al borrar un abono, restamos ese dinero de la base (porque ya no existe ese ingreso)
+    if ruta.base < abono.monto:
+        messages.error(
+            request, 
+            f"❌ No se puede anular el abono. La base actual (${ruta.base}) es menor al monto del abono (${abono.monto}). "
+            "Debe reintegrar dinero a la base primero."
         )
+        return redirect('historial_abonos', targeta_id=targeta.id)
 
-        # 4. Eliminar el abono
-        abono.delete()
-        
-        # 5. Actualizar estado de la tarjeta (por si vuelve a mora)
-        targeta.actualizar_estado()
+    try:
+        with transaction.atomic():
+            # 3. Devolver el saldo a la cuota
+            if abono.cuota:
+                cuota = abono.cuota
+                cuota.saldo_cuota += abono.monto
+                cuota.estado = 'PENDIENTE'
+                cuota.fecha_pago = None
+                cuota.save()
 
-    messages.success(request, f"Abono eliminado. Se han devuelto ${abono.monto} a la deuda.")
+            # 4. Restar de la base de la ruta (Anular el ingreso)
+            ruta.base -= abono.monto
+            ruta.save(update_fields=['base'])
+
+            # 5. Crear un movimiento de salida para dejar rastro (Auditoría)
+            MovimientoRuta.objects.create(
+                ruta=ruta,
+                tipo='EGRESO',
+                monto=abono.monto,
+                descripcion=f"ANULACIÓN ABONO - Cliente: {targeta.nombre_cliente} (Abono ID: {abono.id})"
+            )
+
+            # 6. Eliminar el abono físico
+            abono.delete()
+            
+            # 7. Actualizar estado de la tarjeta (por si vuelve a MORA o deja de estar PAGADA)
+            targeta.actualizar_estado()
+
+        messages.success(request, f"✅ Abono anulado correctamente. Se han devuelto ${abono.monto} a la deuda del cliente.")
+    
+    except Exception as e:
+        messages.error(request, f"Error al eliminar el abono: {str(e)}")
+
     return redirect('historial_abonos', targeta_id=targeta.id)
-
-
-
-
 @login_required
 @supervisor_required
 def renovar_targeta(request, targeta_id):
