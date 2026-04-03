@@ -40,42 +40,42 @@
         {% if ruta_sel %}
 
         <div class="row g-2 mb-4">
-    <div class="col-12 col-md-4">
-        <a href="{% url 'crear_targeta' %}?ruta={{ ruta_sel.id }}" class="btn btn-success w-100 shadow-sm fw-bold">
-            ➕ Nueva Targeta
-        </a>
-    </div>
-    <div class="col-6 col-md-4">
-        <a href="{% url 'registrar_gasto' ruta_sel.id %}" class="btn btn-danger w-100 shadow-sm fw-bold">
-            💸 Registrar Gasto
-        </a>
-    </div>
-    <div class="col-6 col-md-4">
-        {% now "Y-m-d" as hoy %}
-        <a href="{% url 'reporte_diario' ruta_sel.id hoy %}" class="btn btn-dark w-100 shadow-sm">
-            📊 Reporte Diario
-        </a>
-    </div>
+            <div class="col-12 col-md-4">
+                <a href="{% url 'crear_targeta' %}?ruta={{ ruta_sel.id }}" class="btn btn-success w-100 shadow-sm fw-bold">
+                    ➕ Nueva Targeta
+                </a>
+            </div>
+            <div class="col-6 col-md-4">
+                <a href="{% url 'registrar_gasto' ruta_sel.id %}" class="btn btn-danger w-100 shadow-sm fw-bold">
+                    💸 Registrar Gasto
+                </a>
+            </div>
+            <div class="col-6 col-md-4">
+                {% now "Y-m-d" as hoy %}
+                <a href="{% url 'reporte_diario' ruta_sel.id hoy %}" class="btn btn-dark w-100 shadow-sm">
+                    📊 Reporte Diario
+                </a>
+            </div>
 
-    <div class="col-6 col-md-4">
-        <a href="{% url 'historial_cajas' ruta_sel.id %}" class="btn btn-outline-dark w-100 shadow-sm">
-            💰 Historial Cajas
-        </a>
-    </div>
-    <div class="col-6 col-md-4">
-        <a href="{% url 'clientes_finalizados' %}" class="btn btn-outline-primary w-100 shadow-sm fw-bold">
-            📂 Ver Finalizados
-        </a>
-    </div>
+            <div class="col-6 col-md-4">
+                <a href="{% url 'historial_cajas' ruta_sel.id %}" class="btn btn-outline-dark w-100 shadow-sm">
+                    💰 Historial Cajas
+                </a>
+            </div>
+            <div class="col-6 col-md-4">
+                <a href="{% url 'clientes_finalizados' %}" class="btn btn-outline-primary w-100 shadow-sm fw-bold">
+                    📂 Ver Finalizados
+                </a>
+            </div>
 
-    {% if ruta_sel.id %}
-    <div class="col-12 col-md-4">
-        <a href="{% url 'mapa_clientes' ruta_sel.id %}" class="btn btn-warning w-100 shadow-sm fw-bold">
-            📍 Ver Mapa de Ruta
-        </a>
-    </div>
-    {% endif %}
-</div>
+            {% if ruta_sel.id %}
+            <div class="col-12 col-md-4">
+                <a href="{% url 'mapa_clientes' ruta_sel.id %}" class="btn btn-warning w-100 shadow-sm fw-bold">
+                    📍 Ver Mapa de Ruta
+                </a>
+            </div>
+            {% endif %}
+        </div>
 
         <div class="row g-2 mb-4">
             <div class="col-6 col-md-3">
@@ -120,14 +120,12 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <div>
-                                <div class="client-name text-truncate" style="max-width: 150px;">{{ t.nombre_cliente }}
-                                </div>
+                                <div class="client-name text-truncate" style="max-width: 150px;">{{ t.nombre_cliente }}</div>
                                 <small class="text-muted">ID: {{ t.numero_identificacion }}</small>
                             </div>
-                            <span
-                                class="badge {% if t.estado == 'MORA' %}bg-danger{% else %}bg-success{% endif %} rounded-pill"
-                                style="font-size: 0.6rem;">
-                                {{ t.get_estado_display }}
+                            <!-- CAMBIO: badge con cuotas en lugar de estado mora/al día -->
+                            <span class="badge bg-secondary rounded-pill" style="font-size: 0.6rem;">
+                                {{ t.cuotas_pagadas }}/{{ t.total_cuotas }} cuotas
                             </span>
                         </div>
 
@@ -146,8 +144,7 @@
 
                         <div class="action-grid">
                             <a href="{% url 'crear_abono' t.id %}" class="btn btn-success btn-action">💵 Abonar</a>
-                            <a href="{% url 'historial_abonos' t.id %}" class="btn btn-outline-secondary btn-action">🕒
-                                Historial</a>
+                            <a href="{% url 'historial_abonos' t.id %}" class="btn btn-outline-secondary btn-action">🕒 Historial</a>
                             <a href="{% url 'editar_targeta' t.id %}" class="btn btn-warning btn-action">📝 Editar</a>
                             <a href="{% url 'eliminar_targeta' t.id %}" class="btn btn-outline-danger btn-action"
                                 onclick="return confirm('¿Eliminar?')">🗑️ Eliminar</a>
@@ -175,8 +172,6 @@
         {% endif %}
 
     </div>
-
-
 
     <div class="py-5"></div>
 </body>

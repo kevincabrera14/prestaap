@@ -88,7 +88,6 @@ def dashboard_admin(request):
 from django.db.models import Q # Importante añadir esta importación al inicio
 
 from django.db.models import Q # Importante añadir esta importación al inicio
-
 @login_required
 @supervisor_required
 def dashboard_supervisor(request):
@@ -119,8 +118,14 @@ def dashboard_supervisor(request):
             query = query.filter(nombre_cliente__icontains=q)
 
         # 2. FILTRO DE PYTHON: Excluimos las que tengan saldo 0 aunque no digan "PAGADA"
-        # Convertimos a lista para poder usar la propiedad .saldo_restante
-        targetas = [t for t in query if t.saldo_restante > 0]
+        targetas_raw = [t for t in query if t.saldo_restante > 0]
+
+        # 3. Anotamos cuotas pagadas y total para el badge del template
+        targetas = []
+        for t in targetas_raw:
+            t.cuotas_pagadas = t.cuotas.filter(estado='PAGADA').count()
+            t.total_cuotas = t.cuotas.count()
+            targetas.append(t)
 
         # =========================
         # RESUMEN FINANCIERO REAL
