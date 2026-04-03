@@ -961,16 +961,17 @@ def registrar_gasto(request, ruta_id):
     ruta = get_object_or_404(Ruta, id=ruta_id)
     hoy = date.today()
 
-    # --- LÓGICA PARA EL MODAL (NUEVO) ---
-    # Obtenemos los movimientos de tipo EGRESO para esta ruta en el mes actual
+    # --- LÓGICA PARA EL MODAL (CORREGIDA) ---
+    # Filtramos por tipo EGRESO Y que la descripción empiece con "GASTO:"
     gastos_mes_qs = MovimientoRuta.objects.filter(
         ruta=ruta,
         tipo='EGRESO',
+        descripcion__startswith='GASTO:', # <--- ESTO ES LA CLAVE
         fecha__month=hoy.month,
         fecha__year=hoy.year
     ).order_by('-fecha')
 
-    # Sumamos el total de esos gastos
+    # Sumamos el total de esos gastos filtrados
     total_gastos_mes = gastos_mes_qs.aggregate(Sum('monto'))['monto__sum'] or 0
 
     # --- PROCESAMIENTO DEL FORMULARIO ---

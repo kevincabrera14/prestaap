@@ -2,6 +2,7 @@
 {% load humanize %}
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>PrestApp | Registrar Gasto</title>
@@ -9,10 +10,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Iconos opcionales -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    
+
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background: #f1f3f5; color: #1a1a1a; min-height: 100vh; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f1f3f5;
+            color: #1a1a1a;
+            min-height: 100vh;
+        }
 
         .top-nav {
             background: #1a1a2e;
@@ -24,10 +35,16 @@
             top: 0;
             z-index: 50;
         }
-        .nav-brand { color: #fff; font-weight: 700; font-size: 1rem; }
+
+        .nav-brand {
+            color: #fff;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
         .nav-back {
-            color: rgba(255,255,255,0.7);
-            border: 1px solid rgba(255,255,255,0.2);
+            color: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             background: transparent;
             border-radius: 8px;
             padding: 5px 14px;
@@ -35,13 +52,17 @@
             text-decoration: none;
         }
 
-        .page { padding: 20px 16px 60px; max-width: 480px; margin: 0 auto; }
+        .page {
+            padding: 20px 16px 60px;
+            max-width: 480px;
+            margin: 0 auto;
+        }
 
         .main-card {
             background: #fff;
             border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.07);
         }
 
         .card-header {
@@ -49,25 +70,38 @@
             padding: 28px 20px 24px;
             text-align: center;
         }
+
         .header-ico {
             width: 56px;
             height: 56px;
             border-radius: 50%;
-            background: rgba(255,255,255,0.12);
-            border: 2px solid rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.12);
+            border: 2px solid rgba(255, 255, 255, 0.2);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 1.4rem;
             margin: 0 auto 12px;
         }
-        .header-title { color: #fff; font-weight: 700; font-size: 1.1rem; margin-bottom: 4px; }
-        .header-sub { color: rgba(255,255,255,0.5); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .header-title {
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+
+        .header-sub {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
 
         /* Botón para ver historial */
         .btn-history {
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             color: #fff;
             padding: 6px 14px;
             border-radius: 20px;
@@ -77,7 +111,10 @@
             transition: 0.2s;
             font-family: 'Inter', sans-serif;
         }
-        .btn-history:hover { background: rgba(255,255,255,0.2); }
+
+        .btn-history:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
 
         .saldo-strip {
             background: #f8f9fa;
@@ -87,10 +124,24 @@
             justify-content: space-between;
             align-items: center;
         }
-        .saldo-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #999; }
-        .saldo-val { font-size: 1.2rem; font-weight: 700; color: #2e7d32; }
 
-        .form-body { padding: 24px 20px; }
+        .saldo-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #999;
+        }
+
+        .saldo-val {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #2e7d32;
+        }
+
+        .form-body {
+            padding: 24px 20px;
+        }
 
         .field-label {
             font-size: 0.72rem;
@@ -101,7 +152,10 @@
             margin-bottom: 8px;
             display: block;
         }
-        .field-wrap { margin-bottom: 20px; }
+
+        .field-wrap {
+            margin-bottom: 20px;
+        }
 
         .monto-wrap {
             display: flex;
@@ -112,7 +166,11 @@
             background: #fff;
             transition: border-color 0.2s;
         }
-        .monto-wrap:focus-within { border-color: #1a1a2e; }
+
+        .monto-wrap:focus-within {
+            border-color: #1a1a2e;
+        }
+
         .monto-prefix {
             padding: 12px 14px;
             background: #f5f5f5;
@@ -121,6 +179,7 @@
             font-size: 1rem;
             border-right: 1.5px solid #e0e0e0;
         }
+
         .monto-input {
             flex: 1;
             padding: 12px 14px;
@@ -146,9 +205,16 @@
             transition: border-color 0.2s;
             background: #fff;
         }
-        textarea.field-textarea:focus { border-color: #1a1a2e; }
 
-        .divider { height: 1px; background: #f0f0f0; margin: 4px 0 20px; }
+        textarea.field-textarea:focus {
+            border-color: #1a1a2e;
+        }
+
+        .divider {
+            height: 1px;
+            background: #f0f0f0;
+            margin: 4px 0 20px;
+        }
 
         .btn-guardar {
             width: 100%;
@@ -163,7 +229,10 @@
             margin-bottom: 10px;
             transition: background 0.2s;
         }
-        .btn-guardar:hover { background: #a31f1f; }
+
+        .btn-guardar:hover {
+            background: #a31f1f;
+        }
 
         .btn-cancelar {
             width: 100%;
@@ -183,25 +252,50 @@
         .modal-overlay {
             display: none;
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(4px);
             z-index: 1000;
             padding: 20px;
         }
+
         .modal-content {
             background: #fff;
             max-width: 400px;
             margin: 40px auto;
             border-radius: 24px;
             overflow: hidden;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
             animation: slideUp 0.3s ease-out;
         }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        .modal-header { padding: 20px; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center; }
-        .modal-body { padding: 20px; }
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            padding: 20px;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
         .total-badge {
             background: #fff5f5;
             padding: 20px;
@@ -211,7 +305,11 @@
             border: 1px dashed #feb2b2;
         }
 
-        .table-scroll { max-height: 250px; overflow-y: auto; }
+        .table-scroll {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
         .gasto-item {
             display: flex;
             justify-content: space-between;
@@ -220,110 +318,123 @@
         }
     </style>
 </head>
+
 <body>
 
-<nav class="top-nav">
-    <span class="nav-brand">PrestApp</span>
-    <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="nav-back">← Volver</a>
-</nav>
+    <nav class="top-nav">
+        <span class="nav-brand">PrestApp</span>
+        <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="nav-back">← Volver</a>
+    </nav>
 
-<div class="page">
-    <div class="main-card">
-        <div class="card-header">
-            <div class="header-ico">💸</div>
-            <div class="header-title">Registrar Gasto</div>
-            <div class="header-sub">{{ ruta.nombre }}</div>
-            
-            <!-- BOTÓN PARA ABRIR MODAL -->
-            <button class="btn-history" onclick="toggleModal(true)">
-                <i class="bi bi-calendar-check"></i> Ver Gastos del Mes
-            </button>
-        </div>
+    <div class="page">
+        <div class="main-card">
+            <div class="card-header">
+                <div class="header-ico">💸</div>
+                <div class="header-title">Registrar Gasto</div>
+                <div class="header-sub">{{ ruta.nombre }}</div>
 
-        <div class="saldo-strip">
-            <span class="saldo-label">Base disponible</span>
-            <span class="saldo-val">${{ ruta.base|intcomma }}</span>
-        </div>
+                <!-- BOTÓN PARA ABRIR MODAL -->
+                <button class="btn-history" onclick="toggleModal(true)">
+                    <i class="bi bi-calendar-check"></i> Ver Gastos del Mes
+                </button>
+            </div>
 
-        <div class="form-body">
-            <form method="POST">
-                {% csrf_token %}
-                <div class="field-wrap">
-                    <label class="field-label">Monto del gasto</label>
-                    <div class="monto-wrap">
-                        <span class="monto-prefix">$</span>
-                        <input type="number" step="0.01" name="monto" class="monto-input" placeholder="0.00" required autofocus>
+            <div class="saldo-strip">
+                <span class="saldo-label">Base disponible</span>
+                <span class="saldo-val">${{ ruta.base|intcomma }}</span>
+            </div>
+
+            <div class="form-body">
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="field-wrap">
+                        <label class="field-label">Monto del gasto</label>
+                        <div class="monto-wrap">
+                            <span class="monto-prefix">$</span>
+                            <input type="number" step="0.01" name="monto" class="monto-input" placeholder="0.00"
+                                required autofocus>
+                        </div>
                     </div>
-                </div>
 
-                <div class="field-wrap">
-                    <label class="field-label">Motivo / Descripción</label>
-                    <textarea name="descripcion" class="field-textarea" rows="3" placeholder="¿En qué se gastó?"></textarea>
-                </div>
+                    <div class="field-wrap">
+                        <label class="field-label">Motivo / Descripción</label>
+                        <textarea name="descripcion" class="field-textarea" rows="3"
+                            placeholder="¿En qué se gastó?"></textarea>
+                    </div>
 
-                <div class="divider"></div>
-                <button type="submit" class="btn-guardar">💸 Guardar gasto</button>
-                <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="btn-cancelar">Cancelar</a>
-            </form>
+                    <div class="divider"></div>
+                    <button type="submit" class="btn-guardar">💸 Guardar gasto</button>
+                    <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="btn-cancelar">Cancelar</a>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- VENTANA MODAL -->
-<div id="modalGastos" class="modal-overlay" onclick="handleOutsideClick(event)">
-    <div class="modal-content">
-        <div class="modal-header">
-            <span style="font-weight: 700; color: #1a1a2e;">Historial Mensual</span>
-            <button onclick="toggleModal(false)" style="background:none; border:none; font-size: 1.2rem; cursor:pointer;">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="total-badge">
-                <p style="font-size: 0.7rem; color: #c62828; font-weight: 700; text-transform: uppercase;">Total Gastado en {% now "F" %}</p>
-                <h2 style="color: #c62828; font-weight: 800; font-size: 1.8rem;">$ {{ total_gastos_mes|intcomma }}</h2>
+    <!-- VENTANA MODAL -->
+    <div id="modalGastos" class="modal-overlay" onclick="handleOutsideClick(event)">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span style="font-weight: 700; color: #1a1a2e;">Historial Mensual</span>
+                <button onclick="toggleModal(false)"
+                    style="background:none; border:none; font-size: 1.2rem; cursor:pointer;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="total-badge">
+                    <p style="font-size: 0.7rem; color: #c62828; font-weight: 700; text-transform: uppercase;">Total
+                        Gastado en {% now "F" %}</p>
+                    <h2 style="color: #c62828; font-weight: 800; font-size: 1.8rem;">$ {{ total_gastos_mes|intcomma }}
+                    </h2>
+                </div>
+
+                <p class="field-label" style="margin-bottom: 12px;">Últimos movimientos</p>
+                <div class="table-scroll">
+                    {% for gasto in gastos_recientes %}
+                    {% if "GASTO" in gasto.descripcion|upper %} {# Filtra si la palabra GASTO está en la descripción #}
+                    <div class="gasto-item">
+                        <div>
+                            <p style="font-size: 0.85rem; font-weight: 600; color: #333;">
+                                {{ gasto.descripcion|default:"GASTO SIN ESPECIFICAR" }}
+                            </p>
+                            <p style="font-size: 0.7rem; color: #999;">{{ gasto.fecha|date:"d M, Y" }}</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <p style="font-size: 0.85rem; font-weight: 700; color: #c62828;">
+                                - ${{ gasto.monto|intcomma }}
+                            </p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% empty %}
+                    <p style="text-align: center; color: #ccc; padding: 20px; font-size: 0.8rem;">
+                        No hay gastos registrados este mes.
+                    </p>
+                    {% endfor %}
+                </div>
+                <p style="text-align: center; color: #ccc; padding: 20px; font-size: 0.8rem;">
+                    No hay registros este mes.
+                </p>
+                {% endfor %}
             </div>
 
-            <p class="field-label" style="margin-bottom: 12px;">Últimos movimientos</p>
-            <div class="table-scroll">
-    {% for gasto in gastos_recientes %}
-        {% if gasto.tipo == 'EGRESO' %}  {# <--- Filtro para mostrar solo gastos #}
-            <div class="gasto-item">
-                <div>
-                    <p style="font-size: 0.85rem; font-weight: 600; color: #333;">
-                        {{ gasto.descripcion|default:"Sin descripción" }}
-                    </p>
-                    <p style="font-size: 0.7rem; color: #999;">{{ gasto.fecha|date:"d M, Y" }}</p>
-                </div>
-                <div style="text-align: right;">
-                    <p style="font-size: 0.85rem; font-weight: 700; color: #c62828;">
-                        - ${{ gasto.monto|intcomma }}
-                    </p>
-                </div>
-            </div>
-        {% endif %}
-    {% empty %}
-        <p style="text-align: center; color: #ccc; padding: 20px; font-size: 0.8rem;">
-            No hay registros este mes.
-        </p>
-    {% endfor %}
-</div>
-
-            <button onclick="toggleModal(false)" class="btn-cancelar" style="margin-top: 20px; background: #1a1a2e; color: #fff; border: none;">Entendido</button>
+            <button onclick="toggleModal(false)" class="btn-cancelar"
+                style="margin-top: 20px; background: #1a1a2e; color: #fff; border: none;">Entendido</button>
         </div>
     </div>
-</div>
+    </div>
 
-<script>
-    function toggleModal(show) {
-        const modal = document.getElementById('modalGastos');
-        modal.style.display = show ? 'block' : 'none';
-        if (show) document.body.style.overflow = 'hidden'; // Bloquear scroll
-        else document.body.style.overflow = 'auto';
-    }
+    <script>
+        function toggleModal(show) {
+            const modal = document.getElementById('modalGastos');
+            modal.style.display = show ? 'block' : 'none';
+            if (show) document.body.style.overflow = 'hidden'; // Bloquear scroll
+            else document.body.style.overflow = 'auto';
+        }
 
-    function handleOutsideClick(e) {
-        if (e.target.id === 'modalGastos') toggleModal(false);
-    }
-</script>
+        function handleOutsideClick(e) {
+            if (e.target.id === 'modalGastos') toggleModal(false);
+        }
+    </script>
 
 </body>
+
 </html>
