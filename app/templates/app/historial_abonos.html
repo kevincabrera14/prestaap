@@ -3,105 +3,221 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Historial de Abonos | {{ targeta.nombre_cliente }}</title>
+    <title>Abonos | {{ targeta.nombre_cliente }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --dark-navy: #1a1a2e;
+            --accent-blue: #1565c0;
+            --success-green: #2e7d32;
+            --danger-red: #c62828;
+            --bg-gray: #f8f9fa;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-gray); 
+            color: #333;
+        }
+
+        /* --- HEADER --- */
+        .top-nav {
+            background: var(--dark-navy);
+            padding: 1.5rem 0;
+            color: white;
+            border-bottom: 4px solid var(--accent-blue);
+        }
+
+        /* --- RESUMEN DE CUENTA --- */
+        .account-summary {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-top: -30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .stat-box {
+            padding: 10px;
+            border-right: 1px solid #eee;
+        }
+        .stat-box:last-child { border-right: none; }
+        
+        .stat-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.5px; }
+        .stat-value { font-size: 1.4rem; font-weight: 800; }
+
+        /* --- TABLA --- */
+        .card-table {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        }
+
+        .table thead th {
+            background: #fdfdfd;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: #aaa;
+            padding: 15px 20px;
+            border-bottom: 2px solid #f1f1f1;
+        }
+
+        .table tbody td {
+            padding: 18px 20px;
+            border-bottom: 1px solid #f8f8f8;
+            vertical-align: middle;
+        }
+
+        .badge-user {
+            background: #eef2ff;
+            color: #4338ca;
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .btn-delete-abono {
+            color: #ea4335;
+            background: #fff5f5;
+            border: 1px solid #ffebeb;
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .btn-delete-abono:hover { background: #ea4335; color: white; }
+
+        /* --- BOTONES --- */
+        .btn-back {
+            background: white;
+            color: var(--dark-navy);
+            border: 1px solid #ddd;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-back:hover { background: #f1f1f1; border-color: #ccc; }
+
+        @media (max-width: 768px) {
+            .stat-box { border-right: none; border-bottom: 1px solid #eee; margin-bottom: 15px; }
+            .account-summary { margin-top: 10px; }
+        }
+    </style>
 </head>
 <body>
 
-<div class="container py-5">
-    <div class="header-gradient shadow mb-4">
-        <div class="row align-items-center">
-            <div class="col-md-8">
-                <h2 class="fw-bold mb-1">Historial de Abonos</h2>
-                <p class="mb-0 opacity-75">Cliente: <strong>{{ targeta.nombre_cliente }}</strong></p>
+<header class="top-nav">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="mb-0 fw-bold">Historial de Cobros</h4>
+                <p class="mb-0 opacity-75 small"><i class="bi bi-person-fill"></i> {{ targeta.nombre_cliente }}</p>
             </div>
-            <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                <span class="badge bg-success px-3 py-2 fs-6 shadow-sm">ID: {{ targeta.numero_identificacion }}</span>
+            <div class="text-end d-none d-md-block">
+                <span class="badge bg-white text-dark py-2 px-3 rounded-pill shadow-sm">
+                    C.C. {{ targeta.numero_identificacion|default:"N/A" }}
+                </span>
             </div>
         </div>
     </div>
+</header>
 
+<div class="container py-4">
+    
+    <!-- ALERTAS -->
     {% if messages %}
         {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm mb-4" role="alert">
-                {{ message }}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-4 shadow-sm border-0 mb-4" role="alert">
+                <i class="bi bi-info-circle-fill me-2"></i> {{ message }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         {% endfor %}
     {% endif %}
 
-    <div class="card info-card mb-4 mx-2 mx-md-0">
-        <div class="card-body p-4">
-            <div class="row text-center text-md-start">
-                <div class="col-6 col-md-4 mb-3">
-                    <div class="stat-label">Monto Prestado</div>
-                    <div class="stat-value text-dark">${{ targeta.monto_total }}</div>
-                </div>
-                <div class="col-6 col-md-4 mb-3">
-                    <div class="stat-label text-success">Total Abonado</div>
-                    <div class="stat-value text-success">${{ total_abonado }}</div>
-                </div>
-                <div class="col-12 col-md-4 mb-3">
-                    <div class="stat-label text-danger">Saldo Restante</div>
-                    <div class="stat-value text-danger">${{ targeta.saldo_restante }}</div>
-                </div>
+    <!-- RESUMEN DE CUENTA -->
+    <div class="account-summary mb-4">
+        <div class="row text-center text-md-start">
+            <div class="col-md-4 stat-box">
+                <div class="stat-label">Monto del Crédito</div>
+                <div class="stat-value" style="color: var(--dark-navy);">${{ targeta.monto_total }}</div>
+            </div>
+            <div class="col-md-4 stat-box">
+                <div class="stat-label text-success">Total Cobrado</div>
+                <div class="stat-value text-success">${{ total_abonado }}</div>
+            </div>
+            <div class="col-md-4 stat-box">
+                <div class="stat-label text-danger">Saldo Pendiente</div>
+                <div class="stat-value text-danger">${{ targeta.saldo_restante }}</div>
             </div>
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-        <div class="card-header bg-white py-3">
-            <h6 class="m-0 fw-bold text-dark">📜 Listado de Transacciones</h6>
+    <!-- TABLA DE TRANSACCIONES -->
+    <div class="card card-table">
+        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2"></i> Registro de Actividad</h6>
+            <span class="text-muted small">{{ abonos|length }} movimientos</span>
         </div>
         <div class="table-responsive">
-            <table class="table table-custom align-middle mb-0">
+            <table class="table align-middle mb-0">
                 <thead>
                     <tr>
-                        <th class="ps-4">Fecha y Hora</th>
-                        <th>Monto</th>
-                        <th>Registrado por</th>
-                        <th class="text-center">Acciones</th>
+                        <th>Fecha y Hora</th>
+                        <th>Importe</th>
+                        <th>Cajero/Cobrador</th>
+                        <th class="text-end">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for a in abonos %}
                     <tr>
-                        <td class="ps-4 text-secondary">
-                            <span class="d-block fw-bold text-dark">{{ a.fecha|date:"d M, Y" }}</span>
-                            <small>{{ a.fecha|date:"H:i" }}</small>
+                        <td>
+                            <div class="fw-bold">{{ a.fecha|date:"d M, Y" }}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">{{ a.fecha|date:"H:i" }}</div>
                         </td>
                         <td>
-                            <span class="fw-bold text-success">+ ${{ a.monto }}</span>
+                            <span class="fw-bold text-success" style="font-size: 1.1rem;">+ ${{ a.monto }}</span>
                         </td>
                         <td>
                             {% if a.registrado_por %}
-                                <span class="badge-user small">👤 {{ a.registrado_por.username }}</span>
+                                <span class="badge-user"><i class="bi bi-person"></i> {{ a.registrado_por.username }}</span>
                             {% else %}
                                 <span class="text-muted small">—</span>
                             {% endif %}
                         </td>
-                        <td class="text-center">
+                        <td class="text-end">
                             {% if request.user == targeta.ruta.supervisor or request.user.is_staff %}
                                 <form action="{% url 'eliminar_abono' a.id %}" method="POST" 
-                                      onsubmit="return confirm('¿ESTÁS SEGURO? \n\n1. El dinero volverá a la deuda del cliente. \n2. Se restará de la base de la ruta. \n3. Esta acción no se puede deshacer.');">
+                                      onsubmit="return confirm('ATENCIÓN: Se revertirá el cobro. El saldo del cliente aumentará y el dinero se restará de la caja. ¿Continuar?');">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm px-3">
-                                        🗑️ Eliminar
+                                    <button type="submit" class="btn btn-delete-abono">
+                                        <i class="bi bi-trash3"></i> Eliminar
                                     </button>
                                 </form>
                             {% else %}
-                                <span class="badge bg-light text-muted fw-normal">Solo lectura</span>
+                                <span class="text-muted small">Verificado</span>
                             {% endif %}
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="4" class="text-center py-5 text-muted">
-                            <div class="fs-1 mb-2">💸</div>
-                            <p>No se han registrado abonos todavía.</p>
+                        <td colspan="4" class="text-center py-5">
+                            <i class="bi bi-journal-x text-muted" style="font-size: 3rem; opacity: 0.3;"></i>
+                            <p class="text-muted mt-3">Este cliente no registra abonos aún.</p>
                         </td>
                     </tr>
                     {% endfor %}
@@ -110,14 +226,15 @@
         </div>
     </div>
 
+    <!-- BOTÓN DE RETORNO -->
     <div class="mt-4 text-center text-md-start">
         {% if request.user.perfil.rol == 'SUPERVISOR' %}
-            <a href="{% url 'dashboard_supervisor' %}?ruta={{ targeta.ruta.id }}" class="btn btn-secondary btn-back shadow-sm">
-                ← Volver al Panel
+            <a href="{% url 'dashboard_supervisor' %}?ruta={{ targeta.ruta.id }}" class="btn-back">
+                <i class="bi bi-arrow-left"></i> Volver al Panel
             </a>
         {% else %}
-            <a href="{% url 'dashboard_trabajador' %}?ruta={{ targeta.ruta.id }}" class="btn btn-secondary btn-back shadow-sm">
-                ← Volver al Panel
+            <a href="{% url 'dashboard_trabajador' %}?ruta={{ targeta.ruta.id }}" class="btn-back">
+                <i class="bi bi-arrow-left"></i> Volver al Panel
             </a>
         {% endif %}
     </div>
