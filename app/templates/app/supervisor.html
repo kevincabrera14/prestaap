@@ -1,179 +1,174 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <title>PrestApp | Panel Supervisor</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
-
 <body>
 
-    <nav class="navbar navbar-dark custom-nav px-3 sticky-top mb-4">
-        <div class="container-fluid">
-            <span class="navbar-brand fw-bold">PrestApp <span
-                    class="fw-light opacity-75">|{{request.user.username}}</span></span>
-            <a href="{% url 'logout' %}" class="btn btn-outline-light btn-sm opacity-75">Salir</a>
+<nav class="custom-nav">
+    <span class="nav-brand">PrestApp <span class="nav-user">| {{ request.user.username }}</span></span>
+    <a href="{% url 'logout' %}" class="nav-salir">Salir</a>
+</nav>
+
+<div class="page">
+
+    <!-- Rutas -->
+    <div class="section-label">Rutas disponibles</div>
+    <div class="rutas-scroll">
+        {% for r in rutas %}
+        <a href="?ruta={{ r.id }}" class="btn-ruta {% if ruta_sel and r.id == ruta_sel.id %}active{% endif %}">
+            📍 {{ r.nombre }}
+        </a>
+        {% endfor %}
+    </div>
+
+    {% if ruta_sel %}
+
+    <!-- Menú acciones desplegable -->
+    <div class="panel-menu-wrap">
+        <button class="panel-menu-trigger" onclick="togglePanel(this)">
+            ⚡ Acciones de ruta <span class="arrow">▾</span>
+        </button>
+        <div class="panel-dropdown">
+            <a href="{% url 'crear_targeta' %}?ruta={{ ruta_sel.id }}" class="panel-item">
+                <div class="panel-ico ico-green">➕</div> Nueva targeta
+            </a>
+            <a href="{% url 'registrar_gasto' ruta_sel.id %}" class="panel-item">
+                <div class="panel-ico ico-red">💸</div> Registrar gasto
+            </a>
+            {% now "Y-m-d" as hoy %}
+            <a href="{% url 'reporte_diario' ruta_sel.id hoy %}" class="panel-item">
+                <div class="panel-ico ico-indigo">📊</div> Reporte diario
+            </a>
+            <a href="{% url 'historial_cajas' ruta_sel.id %}" class="panel-item">
+                <div class="panel-ico ico-gray">💰</div> Historial cajas
+            </a>
+            <a href="{% url 'clientes_finalizados' %}" class="panel-item">
+                <div class="panel-ico ico-blue">📂</div> Ver finalizados
+            </a>
+            <a href="{% url 'mapa_clientes' ruta_sel.id %}" class="panel-item">
+                <div class="panel-ico ico-amber">📍</div> Ver mapa de ruta
+            </a>
         </div>
-    </nav>
+    </div>
 
-    <div class="container">
-
-        <div class="mb-4">
-            <h6 class="fw-bold mb-3 text-secondary text-uppercase" style="font-size: 0.7rem;">Rutas Disponibles</h6>
-            <div class="row g-2 ruta-btn-group">
-                {% for r in rutas %}
-                <div class="col-6 col-md-3">
-                    <a href="?ruta={{ r.id }}"
-                        class="btn w-100 {% if ruta_sel and r.id == ruta_sel.id %}btn-primary shadow{% else %}btn-white border{% endif %}">
-                        📍 {{ r.nombre }}
-                    </a>
-                </div>
-                {% endfor %}
-            </div>
+    <!-- Resumen -->
+    <div class="resumen-grid">
+        <div class="res-card">
+            <div class="res-num">{{ resumen.total_clientes }}</div>
+            <div class="res-label">Clientes</div>
         </div>
-
-        {% if ruta_sel %}
-
-        <div class="row g-2 mb-4">
-            <div class="col-12 col-md-4">
-                <a href="{% url 'crear_targeta' %}?ruta={{ ruta_sel.id }}" class="btn btn-success w-100 shadow-sm fw-bold">
-                    ➕ Nueva Targeta
-                </a>
-            </div>
-            <div class="col-6 col-md-4">
-                <a href="{% url 'registrar_gasto' ruta_sel.id %}" class="btn btn-danger w-100 shadow-sm fw-bold">
-                    💸 Registrar Gasto
-                </a>
-            </div>
-            <div class="col-6 col-md-4">
-                {% now "Y-m-d" as hoy %}
-                <a href="{% url 'reporte_diario' ruta_sel.id hoy %}" class="btn btn-dark w-100 shadow-sm">
-                    📊 Reporte Diario
-                </a>
-            </div>
-
-            <div class="col-6 col-md-4">
-                <a href="{% url 'historial_cajas' ruta_sel.id %}" class="btn btn-outline-dark w-100 shadow-sm">
-                    💰 Historial Cajas
-                </a>
-            </div>
-            <div class="col-6 col-md-4">
-                <a href="{% url 'clientes_finalizados' %}" class="btn btn-outline-primary w-100 shadow-sm fw-bold">
-                    📂 Ver Finalizados
-                </a>
-            </div>
-
-            {% if ruta_sel.id %}
-            <div class="col-12 col-md-4">
-                <a href="{% url 'mapa_clientes' ruta_sel.id %}" class="btn btn-warning w-100 shadow-sm fw-bold">
-                    📍 Ver Mapa de Ruta
-                </a>
-            </div>
-            {% endif %}
+        <div class="res-card green">
+            <div class="res-num">${{ resumen.base }}</div>
+            <div class="res-label">Base</div>
         </div>
-
-        <div class="row g-2 mb-4">
-            <div class="col-6 col-md-3">
-                <div class="resumen-card text-center border-bottom border-primary border-4">
-                    <h4>{{ resumen.total_clientes }}</h4>
-                    <small>Clientes</small>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="resumen-card text-center border-bottom border-danger border-4">
-                    <h4 class="text-danger">{{ resumen.en_mora }}</h4>
-                    <small>En Mora</small>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="resumen-card text-center border-bottom border-success border-4">
-                    <h4>${{ resumen.base }}</h4>
-                    <small>Base</small>
-                </div>
-            </div>
-            <div class="col-6 col-md-3">
-                <div class="resumen-card text-center border-bottom border-warning border-4">
-                    <h4>${{ resumen.dinero_en_ruta }}</h4>
-                    <small>En Ruta</small>
-                </div>
-            </div>
+        <div class="res-card blue">
+            <div class="res-num">${{ resumen.dinero_en_ruta }}</div>
+            <div class="res-label">En ruta</div>
         </div>
+    </div>
 
-        <div class="mb-4">
-            <form method="GET">
-                <input type="hidden" name="ruta" value="{{ ruta_sel.id }}">
-                <input type="text" name="q" class="form-control search-bar" placeholder="🔍 Buscar cliente..."
-                    value="{{ request.GET.q|default:'' }}">
-            </form>
-        </div>
+    <!-- Buscador -->
+    <form method="GET">
+        <input type="hidden" name="ruta" value="{{ ruta_sel.id }}">
+        <input type="text" name="q" class="search-bar"
+               placeholder="🔍 Buscar cliente..."
+               value="{{ request.GET.q|default:'' }}">
+    </form>
 
-        <div class="row g-3">
-            {% for t in targetas %}
-            <div class="col-12 col-sm-6 col-lg-4">
-                <div class="card card-targeta-v2 shadow-sm">
-                    <div class="status-strip {% if t.estado == 'MORA' %}bg-mora{% else %}bg-al-dia{% endif %}"></div>
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div>
-                                <div class="client-name text-truncate" style="max-width: 150px;">{{ t.nombre_cliente }}</div>
-                                <small class="text-muted">ID: {{ t.numero_identificacion }}</small>
-                            </div>
-                            <!-- CAMBIO: badge con cuotas en lugar de estado mora/al día -->
-                            <span class="badge bg-secondary rounded-pill" style="font-size: 0.6rem;">
-                                {{ t.cuotas_pagadas }}/{{ t.total_cuotas }} cuotas
-                            </span>
-                        </div>
+    <!-- Tarjetas -->
+    <div class="cards-grid">
+        {% for t in targetas %}
+        <div class="card-targeta">
+            <div class="card-top-strip"></div>
+            <div class="card-inner">
+                <div class="card-header-row">
+                    <div>
+                        <div class="client-name">{{ t.nombre_cliente }}</div>
+                        <div class="client-id">ID: {{ t.numero_identificacion }}</div>
+                    </div>
+                    <span class="badge-cuotas">{{ t.cuotas_pagadas }}/{{ t.total_cuotas }} cuotas</span>
+                </div>
 
-                        <hr class="my-2 opacity-25">
+                <div class="card-divider"></div>
 
-                        <div class="row g-0">
-                            <div class="col-6">
-                                <div class="info-label">📞 Teléfono</div>
-                                <div class="info-value small">{{ t.telefono }}</div>
-                            </div>
-                            <div class="col-6 text-end">
-                                <div class="info-label">💰 Saldo</div>
-                                <div class="info-value text-primary">${{ t.saldo_restante }}</div>
-                            </div>
-                        </div>
+                <div class="info-row">
+                    <div>
+                        <div class="info-label-sm">📞 Teléfono</div>
+                        <div class="info-val">{{ t.telefono }}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="info-label-sm">💰 Saldo</div>
+                        <div class="info-val saldo">${{ t.saldo_restante }}</div>
+                    </div>
+                </div>
 
-                        <div class="action-grid">
-                            <a href="{% url 'crear_abono' t.id %}" class="btn btn-success btn-action">💵 Abonar</a>
-                            <a href="{% url 'historial_abonos' t.id %}" class="btn btn-outline-secondary btn-action">🕒 Historial</a>
-                            <a href="{% url 'editar_targeta' t.id %}" class="btn btn-warning btn-action">📝 Editar</a>
-                            <a href="{% url 'eliminar_targeta' t.id %}" class="btn btn-outline-danger btn-action"
-                                onclick="return confirm('¿Eliminar?')">🗑️ Eliminar</a>
+                <div class="card-actions">
+                    <a href="{% url 'crear_abono' t.id %}" class="btn-abonar">💵 Abonar</a>
+                    <div class="menu-wrap">
+                        <button class="btn-menu" onclick="toggleMenu(this)">⋮</button>
+                        <div class="menu-dropdown">
+                            <a href="{% url 'historial_abonos' t.id %}" class="menu-item">
+                                <span class="dot dot-gray"></span> 🕒 Historial
+                            </a>
+                            <a href="{% url 'editar_targeta' t.id %}" class="menu-item">
+                                <span class="dot dot-orange"></span> 📝 Editar
+                            </a>
+                            <a href="{% url 'eliminar_targeta' t.id %}" class="menu-item danger"
+                               onclick="return confirm('¿Eliminar a {{ t.nombre_cliente }}?')">
+                                <span class="dot dot-red"></span> 🗑️ Eliminar
+                            </a>
                         </div>
                     </div>
                 </div>
             </div>
-            {% empty %}
-            <div class="col-12 text-center py-5">
-                <p class="text-muted">No hay clientes.</p>
-            </div>
-            {% endfor %}
         </div>
-
-        {% else %}
-        <div class="row justify-content-center mt-5">
-            <div class="col-md-6 text-center">
-                <div class="p-5 bg-white rounded-4 shadow-sm">
-                    <h1 class="display-4">📍</h1>
-                    <h4 class="fw-bold">Selecciona una Ruta</h4>
-                    <p class="text-muted">Elige una ruta arriba para ver los movimientos.</p>
-                </div>
-            </div>
+        {% empty %}
+        <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <p style="color: #999;">No hay clientes en esta ruta.</p>
         </div>
-        {% endif %}
-
+        {% endfor %}
     </div>
 
-    <div class="py-5"></div>
-</body>
+    {% else %}
+    <div class="empty-state" style="margin-top: 40px;">
+        <div class="empty-icon">📍</div>
+        <h5 style="font-weight: 700; margin-bottom: 8px;">Selecciona una ruta</h5>
+        <p style="color: #999;">Elige una ruta arriba para ver los movimientos.</p>
+    </div>
+    {% endif %}
 
+</div>
+
+<script>
+    function togglePanel(btn) {
+        const dd = btn.nextElementSibling;
+        dd.classList.toggle('open');
+        btn.querySelector('.arrow').textContent = dd.classList.contains('open') ? '▴' : '▾';
+    }
+
+    function toggleMenu(btn) {
+        const dd = btn.nextElementSibling;
+        document.querySelectorAll('.menu-dropdown.open').forEach(d => { if (d !== dd) d.classList.remove('open'); });
+        dd.classList.toggle('open');
+    }
+
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.menu-wrap')) {
+            document.querySelectorAll('.menu-dropdown.open').forEach(d => d.classList.remove('open'));
+        }
+        if (!e.target.closest('.panel-menu-wrap')) {
+            document.querySelectorAll('.panel-dropdown.open').forEach(d => d.classList.remove('open'));
+        }
+    });
+</script>
+
+</body>
 </html>
