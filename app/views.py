@@ -353,15 +353,24 @@ def eliminar_targeta(request, targeta_id):
 # TRABAJADOR
 # =====================================================
 
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Q
+
 @login_required
 def dashboard_trabajador(request):
+    # Obtenemos las rutas del usuario
     rutas = Ruta.objects.filter(trabajadores=request.user)
+    
+    # Filtramos las tarjetas base
     targetas = Targeta.objects.filter(ruta__in=rutas)
 
+    # Captura de filtros desde el GET
     q = request.GET.get("q")
     estado = request.GET.get("estado")
     ruta_id = request.GET.get("ruta")
 
+    # Aplicación de filtros
     if q:
         targetas = targetas.filter(nombre_cliente__icontains=q)
     if estado:
@@ -369,10 +378,22 @@ def dashboard_trabajador(request):
     if ruta_id:
         targetas = targetas.filter(ruta_id=ruta_id)
 
+    # --- OPTIMIZACIÓN Y CÁLCULO DE CUOTAS ---
+    # Usamos prefetch_related para traer las cuotas de una sola vez y evitar lentitud
+    targetas = targetas.prefetch_related('cuotas')
+
+    for t in targetas:
+        # Esto ahora se ejecuta en memoria gracias al prefetch_related
+        todas_las_cuotas = t.cuotas.all()
+        t.cuotas_pagadas = sum(1 for c in todas_las_cuotas if c.estado == 'PAGADA')
+        t.total_cuotas = len(todas_las_cuotas)
+
+    # Resumen estadístico
     resumen = {
         "total_clientes": targetas.count(),
         "en_mora": targetas.filter(estado="MORA").count(),
-        "total_saldo": sum(t.saldo_restante for t in targetas),
+        # Usamos una lista de comprensión para el saldo (más rápido en Python que sum() con generador)
+        "total_saldo": sum([t.saldo_restante for t in targetas]),
     }
 
     return render(request, "app/trabajador.html", {
@@ -381,8 +402,6 @@ def dashboard_trabajador(request):
         "resumen": resumen,
         "ruta_sel": Ruta.objects.filter(id=ruta_id).first() if ruta_id else None,
     })
-
-
 # =====================================================
 # ABONOS
 # =====================================================

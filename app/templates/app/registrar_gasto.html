@@ -3,36 +3,242 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrar Gasto | PrestApp</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>PrestApp | Registrar Gasto</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: #f1f3f5; color: #1a1a1a; min-height: 100vh; }
+
+        .top-nav {
+            background: #1a1a2e;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        .nav-brand { color: #fff; font-weight: 700; font-size: 1rem; }
+        .nav-back {
+            color: rgba(255,255,255,0.7);
+            border: 1px solid rgba(255,255,255,0.2);
+            background: transparent;
+            border-radius: 8px;
+            padding: 5px 14px;
+            font-size: 0.8rem;
+            text-decoration: none;
+        }
+
+        .page { padding: 20px 16px 60px; max-width: 480px; margin: 0 auto; }
+
+        .main-card {
+            background: #fff;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+        }
+
+        .card-header {
+            background: #1a1a2e;
+            padding: 28px 20px 24px;
+            text-align: center;
+        }
+        .header-ico {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.12);
+            border: 2px solid rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            margin: 0 auto 12px;
+        }
+        .header-title { color: #fff; font-weight: 700; font-size: 1.1rem; margin-bottom: 4px; }
+        .header-sub { color: rgba(255,255,255,0.5); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .saldo-strip {
+            background: #f8f9fa;
+            border-bottom: 1px solid #f0f0f0;
+            padding: 14px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .saldo-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #999; }
+        .saldo-val { font-size: 1.2rem; font-weight: 700; color: #2e7d32; }
+
+        .form-body { padding: 24px 20px; }
+
+        .field-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #aaa;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .field-wrap { margin-bottom: 20px; }
+
+        .monto-wrap {
+            display: flex;
+            align-items: center;
+            border: 1.5px solid #e0e0e0;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #fff;
+            transition: border-color 0.2s;
+        }
+        .monto-wrap:focus-within { border-color: #1a1a2e; }
+        .monto-prefix {
+            padding: 12px 14px;
+            background: #f5f5f5;
+            font-weight: 700;
+            color: #c62828;
+            font-size: 1rem;
+            border-right: 1.5px solid #e0e0e0;
+        }
+        .monto-input {
+            flex: 1;
+            padding: 12px 14px;
+            border: none;
+            font-size: 1.1rem;
+            font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            color: #1a1a1a;
+            outline: none;
+            text-align: center;
+        }
+
+        textarea.field-textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1.5px solid #e0e0e0;
+            font-size: 0.92rem;
+            font-family: 'Inter', sans-serif;
+            color: #1a1a1a;
+            resize: none;
+            outline: none;
+            transition: border-color 0.2s;
+            background: #fff;
+        }
+        textarea.field-textarea:focus { border-color: #1a1a2e; }
+        textarea.field-textarea::placeholder { color: #ccc; }
+
+        .divider { height: 1px; background: #f0f0f0; margin: 4px 0 20px; }
+
+        .btn-guardar {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            background: #c62828;
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.95rem;
+            border: none;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            margin-bottom: 10px;
+            transition: background 0.2s;
+        }
+        .btn-guardar:hover { background: #a31f1f; }
+
+        .btn-cancelar {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            background: #f5f5f5;
+            color: #555;
+            font-weight: 600;
+            font-size: 0.88rem;
+            border: 1px solid #e8e8e8;
+            text-align: center;
+            text-decoration: none;
+            display: block;
+            transition: background 0.2s;
+        }
+        .btn-cancelar:hover { background: #ebebeb; color: #333; }
+
+        .nota {
+            margin-top: 20px;
+            background: #fff;
+            border-radius: 14px;
+            padding: 14px 16px;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+        .nota-ico { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+        .nota-txt { font-size: 0.8rem; color: #999; line-height: 1.5; }
+    </style>
 </head>
-<body class="bg-light">
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-5">
-                <div class="card shadow border-0">
-                    <div class="card-header bg-danger text-white fw-bold">💸 Nuevo Gasto: {{ ruta.nombre }}</div>
-                    <div class="card-body p-4">
-                        <form method="POST">
-                            {% csrf_token %}
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Monto ($)</label>
-                                <input type="number" step="0.01" name="monto" class="form-control form-control-lg" required autofocus>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Motivo / Descripción</label>
-                                <textarea name="descripcion" class="form-control" rows="3" placeholder="..."></textarea>
-                            </div>
-                            <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-danger btn-lg">Guardar Gasto</button>
-                                <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="btn btn-light">Cancelar</a>
-                            </div>
-                        </form>
+<body>
+
+<nav class="top-nav">
+    <span class="nav-brand">PrestApp</span>
+    <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="nav-back">← Volver</a>
+</nav>
+
+<div class="page">
+
+    <div class="main-card">
+
+        <div class="card-header">
+            <div class="header-ico">💸</div>
+            <div class="header-title">Registrar Gasto</div>
+            <div class="header-sub">{{ ruta.nombre }}</div>
+        </div>
+
+        <div class="saldo-strip">
+            <span class="saldo-label">Base disponible</span>
+            <span class="saldo-val">${{ ruta.base }}</span>
+        </div>
+
+        <div class="form-body">
+            <form method="POST">
+                {% csrf_token %}
+
+                <div class="field-wrap">
+                    <label class="field-label">Monto del gasto</label>
+                    <div class="monto-wrap">
+                        <span class="monto-prefix">$</span>
+                        <input type="number"
+                               step="0.01"
+                               name="monto"
+                               class="monto-input"
+                               placeholder="0.00"
+                               required
+                               autofocus>
                     </div>
                 </div>
-            </div>
+
+                <div class="field-wrap">
+                    <label class="field-label">Motivo / Descripción</label>
+                    <textarea name="descripcion"
+                              class="field-textarea"
+                              rows="3"
+                              placeholder="¿En qué se gastó?"></textarea>
+                </div>
+
+                <div class="divider"></div>
+
+                <button type="submit" class="btn-guardar">💸 Guardar gasto</button>
+                <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="btn-cancelar">Cancelar</a>
+            </form>
         </div>
     </div>
+
+    <div class="nota">
+        <span class="nota-ico">⚠️</span>
+        <span class="nota-txt">El monto será descontado directamente de la base de la ruta <strong>{{ ruta.nombre }}</strong>.</span>
+    </div>
+
+</div>
+
 </body>
 </html>
