@@ -1,4 +1,5 @@
 {% load static %}
+{% load humanize %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -65,7 +66,7 @@
             <div class="res-label">Clientes</div>
         </div>
         <div class="res-card green">
-            <div class="res-num">${{ resumen.base }}</div>
+            <div class="res-num">$ {{ resumen.base|floatformat:0|intcomma }}</div>
             <div class="res-label">Base</div>
         </div>
         <div class="res-card blue">

@@ -1,4 +1,5 @@
 {% load static %}
+{% load humanize %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -135,7 +136,7 @@
 
     <header class="report-header">
         <div class="report-title">
-            <h1>Cierre de Caja Diario</h1>
+            <h1>Reporte de Caja Diario</h1>
             <p>Ruta: <strong>{{ ruta.nombre }}</strong></p>
         </div>
         <div style="text-align: right;">
@@ -147,7 +148,7 @@
     <div class="summary-grid">
         <div class="summary-item">
             <div class="summary-label">Base Inicial</div>
-            <div class="summary-value">${{ caja.saldo_inicial }}</div>
+            <div class="summary-value">${{ caja.saldo_inicial|intcomma }}</div>
         </div>
         <div class="summary-item">
             <div class="summary-label">Ingresos</div>
