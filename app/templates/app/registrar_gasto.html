@@ -7,6 +7,9 @@
     <title>PrestApp | Registrar Gasto</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Iconos opcionales -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; background: #f1f3f5; color: #1a1a1a; min-height: 100vh; }
@@ -60,6 +63,21 @@
         }
         .header-title { color: #fff; font-weight: 700; font-size: 1.1rem; margin-bottom: 4px; }
         .header-sub { color: rgba(255,255,255,0.5); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Botón para ver historial */
+        .btn-history {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            margin-top: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+        .btn-history:hover { background: rgba(255,255,255,0.2); }
 
         .saldo-strip {
             background: #f8f9fa;
@@ -129,7 +147,6 @@
             background: #fff;
         }
         textarea.field-textarea:focus { border-color: #1a1a2e; }
-        textarea.field-textarea::placeholder { color: #ccc; }
 
         .divider { height: 1px; background: #f0f0f0; margin: 4px 0 20px; }
 
@@ -143,7 +160,6 @@
             font-size: 0.95rem;
             border: none;
             cursor: pointer;
-            font-family: 'Inter', sans-serif;
             margin-bottom: 10px;
             transition: background 0.2s;
         }
@@ -161,21 +177,47 @@
             text-align: center;
             text-decoration: none;
             display: block;
-            transition: background 0.2s;
         }
-        .btn-cancelar:hover { background: #ebebeb; color: #333; }
 
-        .nota {
-            margin-top: 20px;
-            background: #fff;
-            border-radius: 14px;
-            padding: 14px 16px;
-            display: flex;
-            gap: 10px;
-            align-items: flex-start;
+        /* ESTILOS DEL MODAL */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            padding: 20px;
         }
-        .nota-ico { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
-        .nota-txt { font-size: 0.8rem; color: #999; line-height: 1.5; }
+        .modal-content {
+            background: #fff;
+            max-width: 400px;
+            margin: 40px auto;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .modal-header { padding: 20px; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 20px; }
+        .total-badge {
+            background: #fff5f5;
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 1px dashed #feb2b2;
+        }
+
+        .table-scroll { max-height: 250px; overflow-y: auto; }
+        .gasto-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f3f5;
+        }
     </style>
 </head>
 <body>
@@ -186,60 +228,94 @@
 </nav>
 
 <div class="page">
-
     <div class="main-card">
-
         <div class="card-header">
             <div class="header-ico">💸</div>
             <div class="header-title">Registrar Gasto</div>
             <div class="header-sub">{{ ruta.nombre }}</div>
+            
+            <!-- BOTÓN PARA ABRIR MODAL -->
+            <button class="btn-history" onclick="toggleModal(true)">
+                <i class="bi bi-calendar-check"></i> Ver Gastos del Mes
+            </button>
         </div>
 
         <div class="saldo-strip">
             <span class="saldo-label">Base disponible</span>
-            <span class="saldo-val">${{ ruta.base |intcomma }}</span>
+            <span class="saldo-val">${{ ruta.base|intcomma }}</span>
         </div>
 
         <div class="form-body">
             <form method="POST">
                 {% csrf_token %}
-
                 <div class="field-wrap">
                     <label class="field-label">Monto del gasto</label>
                     <div class="monto-wrap">
                         <span class="monto-prefix">$</span>
-                        <input type="number"
-                               step="0.01"
-                               name="monto"
-                               class="monto-input"
-                               placeholder="0.00"
-                               required
-                               autofocus>
+                        <input type="number" step="0.01" name="monto" class="monto-input" placeholder="0.00" required autofocus>
                     </div>
                 </div>
 
                 <div class="field-wrap">
                     <label class="field-label">Motivo / Descripción</label>
-                    <textarea name="descripcion"
-                              class="field-textarea"
-                              rows="3"
-                              placeholder="¿En qué se gastó?"></textarea>
+                    <textarea name="descripcion" class="field-textarea" rows="3" placeholder="¿En qué se gastó?"></textarea>
                 </div>
 
                 <div class="divider"></div>
-
                 <button type="submit" class="btn-guardar">💸 Guardar gasto</button>
                 <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="btn-cancelar">Cancelar</a>
             </form>
         </div>
     </div>
-
-    <div class="nota">
-        <span class="nota-ico">⚠️</span>
-        <span class="nota-txt">El monto será descontado directamente de la base de la ruta <strong>{{ ruta.nombre }}</strong>.</span>
-    </div>
-
 </div>
+
+<!-- VENTANA MODAL -->
+<div id="modalGastos" class="modal-overlay" onclick="handleOutsideClick(event)">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span style="font-weight: 700; color: #1a1a2e;">Historial Mensual</span>
+            <button onclick="toggleModal(false)" style="background:none; border:none; font-size: 1.2rem; cursor:pointer;">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="total-badge">
+                <p style="font-size: 0.7rem; color: #c62828; font-weight: 700; text-transform: uppercase;">Total Gastado en {% now "F" %}</p>
+                <h2 style="color: #c62828; font-weight: 800; font-size: 1.8rem;">$ {{ total_gastos_mes|intcomma }}</h2>
+            </div>
+
+            <p class="field-label" style="margin-bottom: 12px;">Últimos movimientos</p>
+            <div class="table-scroll">
+                {% for gasto in gastos_recientes %}
+                <div class="gasto-item">
+                    <div>
+                        <p style="font-size: 0.85rem; font-weight: 600; color: #333;">{{ gasto.descripcion|default:"Sin descripción" }}</p>
+                        <p style="font-size: 0.7rem; color: #999;">{{ gasto.fecha|date:"d M, Y" }}</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <p style="font-size: 0.85rem; font-weight: 700; color: #c62828;">- ${{ gasto.monto|intcomma }}</p>
+                    </div>
+                </div>
+                {% empty %}
+                <p style="text-align: center; color: #ccc; padding: 20px; font-size: 0.8rem;">No hay registros este mes.</p>
+                {% endfor %}
+            </div>
+
+            <button onclick="toggleModal(false)" class="btn-cancelar" style="margin-top: 20px; background: #1a1a2e; color: #fff; border: none;">Entendido</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleModal(show) {
+        const modal = document.getElementById('modalGastos');
+        modal.style.display = show ? 'block' : 'none';
+        if (show) document.body.style.overflow = 'hidden'; // Bloquear scroll
+        else document.body.style.overflow = 'auto';
+    }
+
+    function handleOutsideClick(e) {
+        if (e.target.id === 'modalGastos') toggleModal(false);
+    }
+</script>
 
 </body>
 </html>

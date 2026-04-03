@@ -944,54 +944,82 @@ def crear_cuotas(targeta):
 from decimal import Decimal # Importante para manejar dinero con exactitud
 from django.db import transaction # Para asegurar que si falla algo, no se reste dinero a medias
 
+
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db import transaction
+from django.db.models import Sum
+from decimal import Decimal
+from datetime import date
+# Asegúrate de importar tus modelos
+# from .models import Ruta, MovimientoRuta 
+
 @login_required
 def registrar_gasto(request, ruta_id):
     ruta = get_object_or_404(Ruta, id=ruta_id)
-    
+    hoy = date.today()
+
+    # --- LÓGICA PARA EL MODAL (NUEVO) ---
+    # Obtenemos los movimientos de tipo EGRESO para esta ruta en el mes actual
+    gastos_mes_qs = MovimientoRuta.objects.filter(
+        ruta=ruta,
+        tipo='EGRESO',
+        fecha__month=hoy.month,
+        fecha__year=hoy.year
+    ).order_by('-fecha')
+
+    # Sumamos el total de esos gastos
+    total_gastos_mes = gastos_mes_qs.aggregate(Sum('monto'))['monto__sum'] or 0
+
+    # --- PROCESAMIENTO DEL FORMULARIO ---
     if request.method == 'POST':
         monto_str = request.POST.get('monto')
         descripcion = request.POST.get('descripcion')
         
         try:
             if monto_str:
-                # Convertimos a Decimal para que sea compatible con el modelo
                 monto = Decimal(monto_str)
                 
                 if monto <= 0:
                     messages.error(request, "El monto debe ser mayor a cero.")
-                    return render(request, 'app/registrar_gasto.html', {'ruta': ruta})
-
+                
                 # Verificamos si la base aguanta el gasto
-                if ruta.base < monto:
+                elif ruta.base < monto:
                     messages.error(request, f"⚠️ Fondos insuficientes. La base actual es ${ruta.base}")
-                    return render(request, 'app/registrar_gasto.html', {'ruta': ruta})
+                
+                else:
+                    # Transacción atómica para seguridad de datos
+                    with transaction.atomic():
+                        # 1. RESTAMOS DE LA BASE
+                        ruta.base -= monto
+                        ruta.save()
 
-                # Usamos una transacción para que se guarde el movimiento Y se reste la base al mismo tiempo
-                with transaction.atomic():
-                    # 1. RESTAMOS DE LA BASE
-                    ruta.base -= monto
-                    ruta.save()
+                        # 2. CREAMOS EL MOVIMIENTO
+                        MovimientoRuta.objects.create(
+                            ruta=ruta,
+                            tipo='EGRESO',
+                            monto=monto,
+                            descripcion=f"GASTO: {descripcion}"
+                        )
 
-                    # 2. CREAMOS EL MOVIMIENTO (Para auditoría y Reporte Diario)
-                    MovimientoRuta.objects.create(
-                        ruta=ruta,
-                        tipo='EGRESO',
-                        monto=monto,
-                        descripcion=f"GASTO: {descripcion}"
-                    )
-
-                messages.success(request, f"✅ Gasto de ${monto} descontado de la base.")
-                return redirect(f'/dashboard/supervisor/?ruta={ruta.id}')
+                    messages.success(request, f"✅ Gasto de ${monto} descontado de la base.")
+                    return redirect(f'/dashboard/supervisor/?ruta={ruta.id}')
             else:
                 messages.error(request, "El monto es obligatorio.")
+                
         except Exception as e:
             messages.error(request, f"Error al procesar el gasto: {e}")
             
-    return render(request, 'app/registrar_gasto.html', {'ruta': ruta})
-
-
-
-
+    # Enviamos los datos al template (incluyendo los del modal)
+    context = {
+        'ruta': ruta,
+        'gastos_recientes': gastos_mes_qs,  # Para la tablita del modal
+        'total_gastos_mes': total_gastos_mes # Para el encabezado del modal
+    }
+    
+    return render(request, 'app/registrar_gasto.html', context)
 
 
 
