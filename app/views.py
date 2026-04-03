@@ -581,27 +581,128 @@ from django.db import models # Asegúrate de tener esta importación al inicio d
 
 @login_required
 def historial_cajas(request, ruta_id):
-    ruta = get_object_or_404(Ruta, id=ruta_id)
-    
-    # Intentamos ejecutar el cierre automático de días pasados
-    from django.core.management import call_command
-    try:
-        call_command('cerrar_cajas')
-    except Exception as e:
-        # Esto imprimirá el error en los logs de Railway si algo falla
-        print(f"DEBUG: Error al ejecutar cerrar_cajas: {e}")
+    import calendar
+    import datetime
 
-    # Corregido: Usamos Q directamente si ya lo importaste arriba (from django.db.models import Q)
-    # o models.Q si importaste models.
-    historial = CajaRuta.objects.filter(
-        ruta=ruta
-    ).filter(
-        Q(cerrada=True) | Q(ingresos__gt=0) | Q(egresos__gt=0)
-    ).order_by('-fecha')
-    
-    return render(request, "app/historial_cajas.html", {
-        "ruta": ruta,
-        "historial": historial
+    ruta = get_object_or_404(Ruta, id=ruta_id)
+
+    # ── Mes seleccionado ──────────────────────────────────────
+    mes_param = request.GET.get('mes')
+    hoy = localdate()
+
+    try:
+        if mes_param:
+            anio, mes = int(mes_param.split('-')[0]), int(mes_param.split('-')[1])
+        else:
+            anio, mes = hoy.year, hoy.month
+    except Exception:
+        anio, mes = hoy.year, hoy.month
+
+    primer_dia = datetime.date(anio, mes, 1)
+    ultimo_dia = datetime.date(anio, mes, calendar.monthrange(anio, mes)[1])
+    mes_param_str = f'{anio}-{str(mes).zfill(2)}'
+
+    # ── Abonos del mes agrupados por día ─────────────────────
+    abonos_mes = (
+        Abono.objects
+        .filter(targeta__ruta=ruta, fecha__date__gte=primer_dia, fecha__date__lte=ultimo_dia)
+        .values('fecha__date')
+        .annotate(total=Sum('monto'))
+    )
+    abonos_por_dia = {a['fecha__date']: a['total'] for a in abonos_mes}
+
+    # ── Egresos del mes agrupados por día ────────────────────
+    egresos_mes = (
+        MovimientoRuta.objects
+        .filter(ruta=ruta, tipo='EGRESO', fecha__date__gte=primer_dia, fecha__date__lte=ultimo_dia)
+        .values('fecha__date')
+        .annotate(total=Sum('monto'))
+    )
+    egresos_por_dia = {e['fecha__date']: e['total'] for e in egresos_mes}
+
+    # ── Días con actividad ────────────────────────────────────
+    dias_con_actividad = sorted(
+        set(list(abonos_por_dia.keys()) + list(egresos_por_dia.keys())),
+        reverse=True
+    )
+
+    dias = []
+    for dia in dias_con_actividad:
+        ingresos_dia = abonos_por_dia.get(dia, Decimal('0.00'))
+        egresos_dia  = egresos_por_dia.get(dia, Decimal('0.00'))
+
+        movimientos = []
+
+        abonos_detalle = (
+            Abono.objects
+            .filter(targeta__ruta=ruta, fecha__date=dia)
+            .select_related('targeta')
+            .order_by('fecha')
+        )
+        for a in abonos_detalle:
+            movimientos.append({
+                'tipo': 'INGRESO',
+                'descripcion': f'Abono — {a.targeta.nombre_cliente}',
+                'monto': a.monto,
+                'hora': a.fecha,
+            })
+
+        egresos_detalle = (
+            MovimientoRuta.objects
+            .filter(ruta=ruta, tipo='EGRESO', fecha__date=dia)
+            .order_by('fecha')
+        )
+        for e in egresos_detalle:
+            movimientos.append({
+                'tipo': 'EGRESO',
+                'descripcion': e.descripcion,
+                'monto': e.monto,
+                'hora': e.fecha,
+            })
+
+        movimientos.sort(key=lambda x: x['hora'])
+
+        dias.append({
+            'fecha': dia,
+            'ingresos': ingresos_dia,
+            'egresos': egresos_dia,
+            'neto': ingresos_dia - egresos_dia,
+            'movimientos': movimientos,
+        })
+
+    # ── Resumen mensual ───────────────────────────────────────
+    total_ingresos_mes = sum(d['ingresos'] for d in dias)
+    total_egresos_mes  = sum(d['egresos']  for d in dias)
+    neto_mes           = total_ingresos_mes - total_egresos_mes
+
+    # ── Meses disponibles para el selector ───────────────────
+    primer_abono = (
+        Abono.objects
+        .filter(targeta__ruta=ruta)
+        .order_by('fecha')
+        .first()
+    )
+    meses_disponibles = []
+    if primer_abono:
+        cur = primer_abono.fecha.date().replace(day=1)
+        fin = hoy.replace(day=1)
+        while cur <= fin:
+            meses_disponibles.append(cur)
+            if cur.month == 12:
+                cur = cur.replace(year=cur.year + 1, month=1)
+            else:
+                cur = cur.replace(month=cur.month + 1)
+        meses_disponibles.reverse()
+
+    return render(request, 'app/historial_cajas.html', {
+        'ruta': ruta,
+        'dias': dias,
+        'mes_actual': primer_dia,
+        'total_ingresos_mes': total_ingresos_mes,
+        'total_egresos_mes': total_egresos_mes,
+        'neto_mes': neto_mes,
+        'meses_disponibles': meses_disponibles,
+        'mes_param': mes_param_str,
     })
 
 # =====================================================

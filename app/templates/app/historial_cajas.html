@@ -3,185 +3,301 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auditoría de Caja | {{ ruta.nombre }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <title>PrestApp | Historial Cajas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --glass-bg: rgba(255, 255, 255, 0.9);
-            --primary-gradient: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: #f1f3f5; color: #1a1a1a; min-height: 100vh; }
+
+        .top-nav {
+            background: #1a1a2e;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
         }
-        body { background-color: #f1f5f9; font-family: 'Inter', system-ui, sans-serif; }
-        
-        .header-gradient {
-            background: var(--primary-gradient);
-            color: white;
-            padding: 2rem 0;
-            margin-bottom: 2rem;
-            border-radius: 0 0 2rem 2rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        .nav-brand { color: #fff; font-weight: 700; font-size: 1rem; }
+        .nav-back {
+            color: rgba(255,255,255,0.7);
+            border: 1px solid rgba(255,255,255,0.2);
+            background: transparent;
+            border-radius: 8px;
+            padding: 5px 14px;
+            font-size: 0.8rem;
+            text-decoration: none;
         }
 
-        .card-cierre {
-            border: none;
-            border-radius: 1.2rem;
-            transition: all 0.3s ease;
-            overflow: hidden;
-            background: white;
-        }
-        .card-cierre:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.08) !important;
-        }
+        .page { padding: 16px; max-width: 700px; margin: 0 auto; padding-bottom: 60px; }
 
-        .date-badge {
-            background: #eff6ff;
-            color: #1e40af;
-            padding: 0.5rem 1rem;
-            border-radius: 0.8rem;
+        .section-label {
+            font-size: 0.65rem;
             font-weight: 700;
-            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #999;
+            margin-bottom: 10px;
         }
 
-        .stat-box {
-            padding: 1rem;
-            border-radius: 1rem;
-            background: #f8fafc;
-            text-align: center;
+        /* Selector de mes */
+        .mes-scroll {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            scrollbar-width: none;
+            margin-bottom: 20px;
         }
-
-        .movimiento-row {
-            border-left: 3px solid #e2e8f0;
-            padding: 0.75rem 1rem;
-            margin-left: 0.5rem;
-            position: relative;
+        .mes-scroll::-webkit-scrollbar { display: none; }
+        .btn-mes {
+            flex: 0 0 auto;
+            padding: 8px 16px;
+            border-radius: 10px;
+            border: 1.5px solid #ddd;
             background: #fff;
-            transition: background 0.2s;
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: #555;
+            text-decoration: none;
+            white-space: nowrap;
         }
-        .movimiento-row:hover { background: #f8fafc; }
-        .movimiento-row::before {
-            content: '';
-            position: absolute;
-            left: -6px;
-            top: 50%;
-            width: 9px;
-            height: 9px;
-            background: #cbd5e1;
-            border-radius: 50%;
-        }
+        .btn-mes.active { background: #1a1a2e; border-color: #1a1a2e; color: #fff; }
 
-        .btn-detalle {
-            border-radius: 0.8rem;
+        /* Resumen mensual */
+        .resumen-mes {
+            background: #1a1a2e;
+            border-radius: 18px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .resumen-titulo {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 14px;
+        }
+        .resumen-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .res-item { text-align: center; }
+        .res-num { font-size: 1.1rem; font-weight: 700; margin-bottom: 2px; }
+        .res-lbl { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.4); }
+        .res-item.ingreso .res-num { color: #66bb6a; }
+        .res-item.egreso  .res-num { color: #ef5350; }
+        .res-item.neto    .res-num { color: #fff; }
+
+        /* Cards de días */
+        .dia-card {
+            background: #fff;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .dia-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .dia-header:hover { background: #fafafa; }
+
+        .dia-fecha-wrap {}
+        .dia-fecha {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #1a1a1a;
+            margin-bottom: 2px;
+        }
+        .dia-nums {
+            display: flex;
+            gap: 12px;
+        }
+        .dia-num-item { font-size: 0.75rem; font-weight: 700; }
+        .dia-num-item.ing { color: #2e7d32; }
+        .dia-num-item.egr { color: #c62828; }
+
+        .dia-neto {
+            text-align: right;
+        }
+        .neto-val {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        .neto-val.pos { color: #2e7d32; }
+        .neto-val.neg { color: #c62828; }
+        .neto-lbl {
+            font-size: 0.65rem;
+            color: #aaa;
             font-weight: 600;
             text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.5px;
         }
 
-        .monto-final {
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: #1e3a8a;
+        .chevron {
+            font-size: 0.8rem;
+            color: #ccc;
+            margin-left: 10px;
+            transition: transform 0.2s;
+            flex-shrink: 0;
         }
+        .dia-card.open .chevron { transform: rotate(180deg); }
+
+        /* Detalle movimientos */
+        .dia-detalle {
+            display: none;
+            border-top: 1px solid #f0f0f0;
+            padding: 0 16px 14px;
+        }
+        .dia-card.open .dia-detalle { display: block; }
+
+        .mov-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .mov-item:last-child { border-bottom: none; }
+
+        .mov-left { display: flex; align-items: center; gap: 10px; }
+        .mov-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .mov-dot.ing { background: #2e7d32; }
+        .mov-dot.egr { background: #c62828; }
+
+        .mov-desc { font-size: 0.85rem; font-weight: 600; color: #1a1a1a; }
+        .mov-hora { font-size: 0.72rem; color: #aaa; margin-top: 1px; }
+
+        .mov-monto { font-weight: 700; font-size: 0.9rem; }
+        .mov-monto.ing { color: #2e7d32; }
+        .mov-monto.egr { color: #c62828; }
+
+        /* Empty */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: #fff;
+            border-radius: 20px;
+        }
+        .empty-ico { font-size: 2.5rem; margin-bottom: 12px; }
+        .empty-txt { color: #aaa; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
-<div class="header-gradient shadow">
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h1 class="h3 fw-bold mb-1">Auditoría de Cierres</h1>
-                <p class="mb-0 opacity-75"><i class="bi bi-geo-alt-fill"></i> Ruta: {{ ruta.nombre }}</p>
-            </div>
-            <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="btn btn-light rounded-pill px-4 fw-bold">
-                <i class="bi bi-arrow-left"></i> Panel
-            </a>
-        </div>
-    </div>
-</div>
+<nav class="top-nav">
+    <span class="nav-brand">PrestApp — {{ ruta.nombre }}</span>
+    <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="nav-back">← Panel</a>
+</nav>
 
-<div class="container pb-5">
-    <div class="row g-4">
-        {% for registro in historial %}
-        <div class="col-12">
-            <div class="card card-cierre shadow-sm">
-                <div class="card-body p-4">
-                    <div class="row align-items-center">
-                        <div class="col-lg-3 mb-3 mb-lg-0">
-                            <div class="date-badge mb-2">
-                                <i class="bi bi-calendar3"></i> {{ registro.fecha|date:"D, d M Y" }}
-                            </div>
-                            <div class="mt-2">
-                                <small class="text-muted d-block">Saldo de Apertura</small>
-                                <span class="fw-bold text-dark fs-5">${{ registro.saldo_inicial }}</span>
-                            </div>
-                        </div>
+<div class="page">
 
-                        <div class="col-lg-6 mb-3 mb-lg-0">
-                            <div class="row g-2">
-                                <div class="col-6">
-                                    <div class="stat-box">
-                                        <small class="text-success fw-bold text-uppercase" style="font-size: 0.7rem;">Ingresos</small>
-                                        <div class="text-success fw-bold fs-5">+ ${{ registro.ingresos }}</div>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="stat-box">
-                                        <small class="text-danger fw-bold text-uppercase" style="font-size: 0.7rem;">Egresos</small>
-                                        <div class="text-danger fw-bold fs-5">- ${{ registro.egresos }}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-3 text-lg-end">
-                            <small class="text-muted d-block">Efectivo a Entregar</small>
-                            <div class="monto-final mb-2">${{ registro.saldo_final }}</div>
-                            <button class="btn btn-primary btn-detalle w-100" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ registro.id }}">
-                                <i class="bi bi-list-check"></i> Ver Movimientos
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="collapse mt-4" id="collapse{{ registro.id }}">
-                        <div class="border-top pt-3">
-                            <h6 class="fw-bold mb-3 text-secondary text-uppercase" style="font-size: 0.8rem;">Cronología del Día</h6>
-                            <div class="list-group list-group-flush">
-                                {% for mov in registro.movimientos_del_dia %}
-                                <div class="movimiento-row d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <span class="badge {% if mov.tipo == 'INGRESO' %}bg-success{% else %}bg-danger{% endif %} rounded-pill me-2" style="font-size: 0.6rem;">
-                                            {{ mov.tipo }}
-                                        </span>
-                                        <span class="small fw-bold text-dark">{{ mov.descripcion }}</span>
-                                        <div class="text-muted" style="font-size: 0.75rem;">
-                                            <i class="bi bi-clock"></i> {{ mov.fecha|date:"H:i" }}
-                                        </div>
-                                    </div>
-                                    <div class="fw-bold {% if mov.tipo == 'INGRESO' %}text-success{% else %}text-danger{% endif %}">
-                                        {% if mov.tipo == 'INGRESO' %}+{% else %}-{% endif %} ${{ mov.monto }}
-                                    </div>
-                                </div>
-                                {% empty %}
-                                <p class="text-center text-muted small py-3">No hay movimientos registrados para este cierre.</p>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% empty %}
-        <div class="col-12 text-center py-5">
-            <i class="bi bi-folder-x display-1 text-muted"></i>
-            <p class="fs-5 text-muted mt-3">Aún no se han generado reportes de cierre para esta ruta.</p>
-        </div>
+    <!-- Selector de mes -->
+    {% if meses_disponibles %}
+    <div class="section-label">Período</div>
+    <div class="mes-scroll">
+        {% for m in meses_disponibles %}
+        <a href="?mes={{ m|date:'Y-m' }}"
+           class="btn-mes {% if m|date:'Y-m' == mes_param %}active{% endif %}">
+            {{ m|date:"M Y" }}
+        </a>
         {% endfor %}
     </div>
+    {% endif %}
+
+    <!-- Resumen mensual -->
+    <div class="resumen-mes">
+        <div class="resumen-titulo">{{ mes_actual|date:"F Y" }} — Resumen</div>
+        <div class="resumen-grid">
+            <div class="res-item ingreso">
+                <div class="res-num">${{ total_ingresos_mes }}</div>
+                <div class="res-lbl">Ingresos</div>
+            </div>
+            <div class="res-item egreso">
+                <div class="res-num">${{ total_egresos_mes }}</div>
+                <div class="res-lbl">Egresos</div>
+            </div>
+            <div class="res-item neto">
+                <div class="res-num">${{ neto_mes }}</div>
+                <div class="res-lbl">Neto</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Días -->
+    <div class="section-label">Movimientos por día</div>
+
+    {% if dias %}
+        {% for dia in dias %}
+        <div class="dia-card" id="dia-{{ forloop.counter }}">
+            <div class="dia-header" onclick="toggleDia('dia-{{ forloop.counter }}')">
+                <div class="dia-fecha-wrap">
+                    <div class="dia-fecha">{{ dia.fecha|date:"l d \d\e F" }}</div>
+                    <div class="dia-nums">
+                        <span class="dia-num-item ing">↑ ${{ dia.ingresos }}</span>
+                        <span class="dia-num-item egr">↓ ${{ dia.egresos }}</span>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div class="dia-neto">
+                        <div class="neto-val {% if dia.neto >= 0 %}pos{% else %}neg{% endif %}">
+                            ${{ dia.neto }}
+                        </div>
+                        <div class="neto-lbl">Neto</div>
+                    </div>
+                    <span class="chevron">▼</span>
+                </div>
+            </div>
+
+            <div class="dia-detalle">
+                {% for mov in dia.movimientos %}
+                <div class="mov-item">
+                    <div class="mov-left">
+                        <span class="mov-dot {% if mov.tipo == 'INGRESO' %}ing{% else %}egr{% endif %}"></span>
+                        <div>
+                            <div class="mov-desc">{{ mov.descripcion }}</div>
+                            <div class="mov-hora">{{ mov.hora|date:"H:i" }}</div>
+                        </div>
+                    </div>
+                    <span class="mov-monto {% if mov.tipo == 'INGRESO' %}ing{% else %}egr{% endif %}">
+                        {% if mov.tipo == 'INGRESO' %}+{% else %}-{% endif %}${{ mov.monto }}
+                    </span>
+                </div>
+                {% empty %}
+                <p style="color:#aaa; font-size:0.82rem; padding:10px 0;">Sin movimientos registrados.</p>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-ico">📭</div>
+            <div class="empty-txt">No hay movimientos registrados para este mes.</div>
+        </div>
+    {% endif %}
+
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function toggleDia(id) {
+        const card = document.getElementById(id);
+        card.classList.toggle('open');
+    }
+</script>
+
 </body>
 </html>
