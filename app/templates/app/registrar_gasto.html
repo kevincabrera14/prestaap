@@ -284,20 +284,28 @@
 
             <p class="field-label" style="margin-bottom: 12px;">Últimos movimientos</p>
             <div class="table-scroll">
-                {% for gasto in gastos_recientes %}
-                <div class="gasto-item">
-                    <div>
-                        <p style="font-size: 0.85rem; font-weight: 600; color: #333;">{{ gasto.descripcion|default:"Sin descripción" }}</p>
-                        <p style="font-size: 0.7rem; color: #999;">{{ gasto.fecha|date:"d M, Y" }}</p>
-                    </div>
-                    <div style="text-align: right;">
-                        <p style="font-size: 0.85rem; font-weight: 700; color: #c62828;">- ${{ gasto.monto|intcomma }}</p>
-                    </div>
+    {% for gasto in gastos_recientes %}
+        {% if gasto.tipo == 'EGRESO' %}  {# <--- Filtro para mostrar solo gastos #}
+            <div class="gasto-item">
+                <div>
+                    <p style="font-size: 0.85rem; font-weight: 600; color: #333;">
+                        {{ gasto.descripcion|default:"Sin descripción" }}
+                    </p>
+                    <p style="font-size: 0.7rem; color: #999;">{{ gasto.fecha|date:"d M, Y" }}</p>
                 </div>
-                {% empty %}
-                <p style="text-align: center; color: #ccc; padding: 20px; font-size: 0.8rem;">No hay registros este mes.</p>
-                {% endfor %}
+                <div style="text-align: right;">
+                    <p style="font-size: 0.85rem; font-weight: 700; color: #c62828;">
+                        - ${{ gasto.monto|intcomma }}
+                    </p>
+                </div>
             </div>
+        {% endif %}
+    {% empty %}
+        <p style="text-align: center; color: #ccc; padding: 20px; font-size: 0.8rem;">
+            No hay registros este mes.
+        </p>
+    {% endfor %}
+</div>
 
             <button onclick="toggleModal(false)" class="btn-cancelar" style="margin-top: 20px; background: #1a1a2e; color: #fff; border: none;">Entendido</button>
         </div>
