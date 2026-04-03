@@ -128,9 +128,9 @@
                 <p class="mb-0 opacity-75 small"><i class="bi bi-person-fill"></i> {{ targeta.nombre_cliente }}</p>
             </div>
             <div class="text-end d-none d-md-block">
-                <span class="badge bg-white text-dark py-2 px-3 rounded-pill shadow-sm">
-                    C.C. {{ targeta.numero_identificacion|default:"N/A" }}
-                </span>
+            <a href="{% url 'dashboard_trabajador' %}?ruta={{ targeta.ruta.id }}" class="btn-back">
+                <i class="bi bi-arrow-left"></i> Volver 
+            </a>
             </div>
         </div>
     </div>
