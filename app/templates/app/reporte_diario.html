@@ -4,108 +4,227 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reporte Diario - {{ ruta.nombre }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/style.css' %}">
-</head>
-<body class="bg-custom">
+    <title>Reporte Diario | {{ ruta.nombre }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --dark-navy: #1a1a2e;
+            --success-green: #2e7d32;
+            --danger-red: #c62828;
+            --soft-gray: #f8f9fa;
+        }
 
-<div class="container mt-4">
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f1f3f5; 
+            color: #333; 
+        }
+
+        .no-print-nav {
+            background: var(--dark-navy);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+
+        .report-paper {
+            background: white;
+            padding: 40px;
+            margin: 20px auto;
+            max-width: 900px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        /* Cabecera del Reporte */
+        .report-header {
+            border-bottom: 2px solid var(--soft-gray);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .report-title h1 { font-size: 1.5rem; font-weight: 800; margin: 0; color: var(--dark-navy); }
+        .report-title p { margin: 0; color: #888; font-size: 0.9rem; }
+
+        /* Grid de Totales */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: #eee;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #eee;
+            margin-bottom: 40px;
+        }
+
+        .summary-item {
+            background: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .summary-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: #999; letter-spacing: 1px; margin-bottom: 8px; }
+        .summary-value { font-size: 1.25rem; font-weight: 800; }
+        
+        .val-in { color: var(--success-green); }
+        .val-out { color: var(--danger-red); }
+        .val-final { color: var(--dark-navy); }
+
+        /* Tablas de Detalles */
+        .detail-section { margin-bottom: 30px; }
+        .section-title { 
+            font-size: 0.85rem; 
+            font-weight: 800; 
+            text-transform: uppercase; 
+            margin-bottom: 15px; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+        }
+
+        .custom-table { width: 100%; border-collapse: collapse; }
+        .custom-table th { 
+            text-align: left; 
+            font-size: 0.75rem; 
+            color: #999; 
+            border-bottom: 1px solid #eee; 
+            padding: 10px; 
+        }
+        .custom-table td { padding: 12px 10px; border-bottom: 1px dotted #f0f0f0; font-size: 0.9rem; }
+        .time-badge { font-size: 0.7rem; color: #bbb; font-weight: 400; }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; }
+            .report-paper { box-shadow: none; margin: 0; max-width: 100%; padding: 20px; }
+            .summary-grid { border: 1px solid #ddd; }
+            .summary-item { border: 1px solid #ddd; }
+        }
+
+        @media (max-width: 768px) {
+            .summary-grid { grid-template-columns: 1fr 1fr; }
+            .report-header { flex-direction: column; align-items: flex-start; gap: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="no-print-nav no-print">
+    <div style="font-weight: 700;">PrestApp <span style="font-weight: 400; opacity: 0.6;">| Supervisor</span></div>
+    <div style="display: flex; gap: 10px;">
+        <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" style="color: white; text-decoration: none; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.3); padding: 5px 15px; border-radius: 6px;">Volver</a>
+        <button onclick="window.print()" style="background: white; border: none; padding: 5px 15px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">🖨️ Imprimir</button>
+    </div>
+</nav>
+
+<div class="report-paper">
     {% if no_hay_caja %}
-    <div class="row justify-content-center">
-        <div class="col-md-6 text-center">
-            <div class="card shadow-sm border-0 p-5 mt-5">
-                <h1 class="display-1">📅</h1>
-                <h3 class="fw-bold">Reporte no disponible</h3>
-                <p class="text-muted">No existe una caja cerrada para la ruta <strong>{{ ruta.nombre }}</strong> en la fecha {{ fecha|date:"d/m/Y" }}.</p>
-                <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="btn btn-primary no-print">Volver al Panel</a>
-            </div>
-        </div>
+    <div style="text-align: center; padding: 100px 0;">
+        <div style="font-size: 4rem;">📅</div>
+        <h2 style="font-weight: 800;">Reporte no disponible</h2>
+        <p style="color: #888;">No se encontró cierre de caja para la ruta <strong>{{ ruta.nombre }}</strong> en esta fecha.</p>
     </div>
     {% else %}
-    
-    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
-        <h2 class="h4 mb-0 fw-bold">📊 Reporte Diario: {{ ruta.nombre }}</h2>
-        <div class="btn-group">
-            <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="btn btn-outline-secondary btn-sm">Volver</a>
-            <button onclick="window.print()" class="btn btn-dark btn-sm">Imprimir</button>
-        </div>
-    </div>
 
-    <div class="row g-3 mb-4 text-center">
-        <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm bg-primary text-white p-3 h-100">
-                <small>Saldo Inicial (Base)</small>
-                <h4 class="mb-0 fw-bold">${{ caja.saldo_inicial }}</h4>
-            </div>
+    <header class="report-header">
+        <div class="report-title">
+            <h1>Cierre de Caja Diario</h1>
+            <p>Ruta: <strong>{{ ruta.nombre }}</strong></p>
         </div>
-        <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm bg-success text-white p-3 h-100">
-                <small>Ingresos (Abonos)</small>
-                <h4 class="mb-0 fw-bold">+ ${{ total_ingresos }}</h4>
-            </div>
+        <div style="text-align: right;">
+            <p style="margin: 0; font-weight: 700; color: var(--dark-navy);">{{ fecha|date:"l, d \d\e F" }}</p>
+            <p style="margin: 0; font-size: 0.8rem; color: #aaa;">Generado: {% now "H:i" %}</p>
         </div>
-        <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm bg-danger text-white p-3 h-100">
-                <small>Egresos (Gastos)</small>
-                <h4 class="mb-0 fw-bold">- ${{ total_egresos }}</h4>
-            </div>
+    </header>
+
+    <div class="summary-grid">
+        <div class="summary-item">
+            <div class="summary-label">Base Inicial</div>
+            <div class="summary-value">${{ caja.saldo_inicial }}</div>
         </div>
-        <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm bg-dark text-white p-3 h-100">
-                <small>Saldo Final</small>
-                <h4 class="mb-0 fw-bold">${{ saldo_final }}</h4>
-            </div>
+        <div class="summary-item">
+            <div class="summary-label">Ingresos</div>
+            <div class="summary-value val-in">+ ${{ total_ingresos }}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Gastos</div>
+            <div class="summary-value val-out">- ${{ total_egresos }}</div>
+        </div>
+        <div class="summary-item" style="background: var(--soft-gray);">
+            <div class="summary-label">Saldo Final</div>
+            <div class="summary-value val-final">${{ saldo_final }}</div>
         </div>
     </div>
 
     <div class="row">
-        <div class="col-md-6 mb-4">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-white fw-bold text-success">💰 Detalle de Ingresos</div>
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
-                            <tr><th>Cliente</th><th class="text-end">Monto</th></tr>
-                        </thead>
-                        <tbody>
-                            {% for abono in abonos %}
-                            <tr>
-                                <td>{{ abono.targeta.nombre_cliente }}<br><small class="text-muted">{{ abono.fecha|time:"H:i" }}</small></td>
-                                <td class="text-end text-success fw-bold">${{ abono.monto }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="2" class="text-center py-3">Sin ingresos</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <!-- INGRESOS -->
+        <div class="detail-section">
+            <h3 class="section-title" style="color: var(--success-green);">
+                <i class="bi bi-arrow-down-left-circle-fill"></i> Detalle de Cobros (Abonos)
+            </h3>
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>CLIENTE / HORA</th>
+                        <th style="text-align: right;">MONTO RECIBIDO</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for abono in abonos %}
+                    <tr>
+                        <td>
+                            <div style="font-weight: 600;">{{ abono.targeta.nombre_cliente }}</div>
+                            <div class="time-badge">{{ abono.fecha|time:"H:i" }}</div>
+                        </td>
+                        <td style="text-align: right; font-weight: 700;" class="val-in">${{ abono.monto }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="2" style="text-align: center; color: #ccc; padding: 30px;">No se registraron cobros.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
 
-        <div class="col-md-6 mb-4">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-white fw-bold text-danger">💸 Detalle de Egresos</div>
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
-                            <tr><th>Descripción</th><th class="text-end">Monto</th></tr>
-                        </thead>
-                        <tbody>
-                            {% for egreso in egresos %}
-                            <tr>
-                                <td>{{ egreso.descripcion }}<br><small class="text-muted">{{ egreso.fecha|time:"H:i" }}</small></td>
-                                <td class="text-end text-danger fw-bold">-${{ egreso.monto }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr><td colspan="2" class="text-center py-3">Sin egresos</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <!-- EGRESOS -->
+        <div class="detail-section">
+            <h3 class="section-title" style="color: var(--danger-red);">
+                <i class="bi bi-arrow-up-right-circle-fill"></i> Detalle de Egresos (Gastos)
+            </h3>
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>DESCRIPCIÓN / HORA</th>
+                        <th style="text-align: right;">MONTO PAGADO</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for egreso in egresos %}
+                    <tr>
+                        <td>
+                            <div style="font-weight: 600;">{{ egreso.descripcion }}</div>
+                            <div class="time-badge">{{ egreso.fecha|time:"H:i" }}</div>
+                        </td>
+                        <td style="text-align: right; font-weight: 700;" class="val-out">-${{ egreso.monto }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="2" style="text-align: center; color: #ccc; padding: 30px;">No se registraron gastos.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
+
+    <footer style="margin-top: 50px; border-top: 1px solid #eee; padding-top: 20px; text-align: center; color: #bbb; font-size: 0.7rem;">
+        Este documento es un resumen oficial de transacciones diarias de PrestApp.
+    </footer>
+
     {% endif %}
 </div>
 
