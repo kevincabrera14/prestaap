@@ -1,202 +1,325 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
-    <title>PrestApp | Editar Tarjeta</title>
+    <title>PrestApp | Editar Cliente</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    
     <style>
-        #mini-map {
-            height: 200px;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            border: 2px solid #eee;
+        /* --- ESTILOS BASE (Mismos que los otros templates) --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --dark-navy: #1a1a2e;
+            --accent-blue: #1565c0;
+            --success-green: #2e7d32;
+            --bg-gray: #f1f3f5;
+            --border-color: #e0e0e0;
         }
 
-        .gps-box {
-            background: #f8f9fa;
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-gray); 
+            color: #1a1a1a;
+        }
+
+        /* --- NAVIGATION --- */
+        .top-nav {
+            background: var(--dark-navy);
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        }
+        .btn-back {
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 5px 12px;
+            border-radius: 8px;
+            transition: 0.2s;
+        }
+        .btn-back:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .nav-title { color: #fff; font-weight: 700; flex: 1; text-align: center; font-size: 1rem; margin-right: 50px; }
+
+        .page-container { max-width: 800px; margin: 0 auto; padding: 20px; }
+
+        /* --- FORM CARD --- */
+        .card-form {
+            background: white;
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            margin-bottom: 30px;
+        }
+        .card-inner { padding: 30px; }
+
+        /* Títulos de sección dentro del form */
+        .form-section-label {
+            font-size: 0.65rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #999;
+            margin-bottom: 15px;
+            margin-top: 10px;
+            display: block;
+        }
+
+        /* --- INPUTS ESTILO MINIMALISTA --- */
+        .form-label { font-size: 0.8rem; font-weight: 600; color: #555; margin-bottom: 4px; }
+        .form-control, .form-select {
+            padding: 12px 15px;
             border-radius: 12px;
+            border: 1.5px solid var(--border-color);
+            background-color: #fff;
+            font-size: 0.9rem;
+            transition: 0.2s;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.1);
+            outline: none;
+        }
+        textarea.form-control { border-radius: 12px; }
+
+        /* --- SECCIÓN GPS --- */
+        .gps-container {
+            border: 1.5px solid var(--border-color);
+            border-radius: 16px;
             padding: 15px;
-            border: 1px dashed #ced4da;
+            background: #fff;
+            height: 100%;
+        }
+        #mini-map {
+            height: 160px;
+            width: 100%;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            z-index: 1;
+        }
+        .btn-maps-external {
+            background: #f0f7ff;
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 8px;
+            border-radius: 8px;
+            display: block;
+            text-align: center;
+        }
+        .btn-maps-external:hover { background: #e0eeff; }
+
+        /* Estado sin GPS */
+        .no-gps-state {
+            text-align: center;
+            padding: 20px 10px;
+            background: #fff8e1;
+            border-radius: 12px;
+            border: 1px dashed #ffe082;
+        }
+        .btn-whatsapp-request {
+            background: var(--success-green);
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.8rem;
+            padding: 10px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .btn-whatsapp-request:hover { background: #1b5e20; color: white; }
+
+        /* --- BOTONES DE ACCIÓN (Abajo) --- */
+        .action-btns-wrap {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+        .btn-cancel {
+            background: #e0e0e0;
+            color: #555;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+        }
+        .btn-cancel:hover { background: #d5d5d5; }
+        
+        .btn-save-changes {
+            background: var(--dark-navy);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 12px rgba(26,26,46,0.15);
+        }
+        .btn-save-changes:hover { background: #2a2a4a; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .card-inner { padding: 20px; }
+            .action-btns-wrap { flex-direction: column-reverse; }
+            .btn-cancel, .btn-save-changes { width: 100%; text-align: center; }
         }
     </style>
 </head>
 
 <body>
 
-    <div class="container py-5">
-        <div class="row justify-content-center">
-            <div class="col-12 col-lg-8">
+<nav class="top-nav">
+    <a href="{% url 'dashboard_supervisor' %}?ruta={{ targeta.ruta.id }}" class="btn-back">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+    <span class="nav-title">Editar Cliente</span>
+</nav>
 
-                <div class="d-flex align-items-center mb-4">
-                    <a href="{% url 'dashboard_supervisor' %}?ruta={{ targeta.ruta.id }}"
-                        class="btn btn-light rounded-circle me-3 shadow-sm">
-                        ←
-                    </a>
-                    <h3 class="fw-bold m-0">✏️ Editar Tarjeta: {{ targeta.nombre_cliente }}</h3>
+<div class="page-container">
+    
+    <div class="card card-form">
+        <div class="card-inner">
+            <form method="post">
+                {% csrf_token %}
+
+                <span class="form-section-label">Asignación</span>
+                <div class="mb-4">
+                    <label class="form-label">Ruta de cobro</label>
+                    <select name="ruta" class="form-select" required>
+                        {% for r in rutas %}
+                        <option value="{{ r.id }}" {% if targeta.ruta.id == r.id %}selected{% endif %}>
+                            📍 {{ r.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
 
-                <div class="card form-card">
-                    <div class="card-body p-4 p-md-5">
-                        <form method="post">
-                            {% csrf_token %}
-
-                            <div class="section-title">📍 Ubicación de Ruta</div>
-                            <div class="mb-4">
-                                <label class="form-label">Ruta Asignada</label>
-                                <select name="ruta" class="form-select" required>
-                                    {% for r in rutas %}
-                                    <option value="{{ r.id }}" {% if targeta.ruta.id == r.id %} selected{% endif %}>
-                                        {{ r.nombre }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <div class="section-title">👤 Información del Cliente</div>
-                            <div class="row">
-                               <div class="col-md-6 mb-3">
-    <label class="form-label">Tipo de identificación</label>
-    <select name="tipo_identificacion" class="form-select" required>
-        <option value="CC" {% if targeta.tipo_identificacion == 'CC' %}selected{% endif %}>
-            Cédula
-        </option>
-        <option value="CE" {% if targeta.tipo_identificacion == 'CE' %}selected{% endif %}>
-            Cédula Extranjera
-        </option>
-        <option value="TI" {% if targeta.tipo_identificacion == 'TI' %}selected{% endif %}>
-            Tarjeta de Identidad
-        </option>
-    </select>
-</div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Número identificación</label>
-                                    <input type="text" name="numero_identificacion" class="form-control"
-                                        value="{{ targeta.numero_identificacion }}" required>
-                                </div>
-                                <div class="col-12 mb-3">
-                                    <label class="form-label">Nombre completo del cliente</label>
-                                    <input type="text" name="nombre_cliente" class="form-control"
-                                        value="{{ targeta.nombre_cliente }}" required>
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Teléfono</label>
-                                    <input type="text" name="telefono" class="form-control"
-                                        value="{{ targeta.telefono }}" required>
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">📍 Geolocalización</label>
-                                    {% if targeta.latitud %}
-                                    <div class="gps-box">
-                                        <div id="mini-map"></div>
-                                        <div class="d-grid">
-                                            <a href="{{ targeta.url_google_maps }}" target="_blank"
-                                                class="btn btn-sm btn-outline-primary">
-                                                Abrir en Google Maps
-                                            </a>
-                                        </div>
-                                        <input type="hidden" name="direccion_casa" value="{{ targeta.direccion_casa }}">
-                                    </div>
-                                    {% else %}
-                                    <div class="gps-box text-center">
-                                        <p class="small text-muted mb-2">Sin ubicación GPS registrada</p>
-                                        <a href="https://wa.me/{{ targeta.telefono }}?text=Hola%20{{ targeta.nombre_cliente }},%20por%20favor%20confirma%20tu%20ubicación%20haciendo%20clic%20aquí:%20http://{{ request.get_host }}/validar/{{ targeta.id }}/"
-                                            target="_blank" class="btn btn-sm btn-success w-100 fw-bold shadow-sm">
-                                            📲 Solicitar por WhatsApp
-                                        </a>
-                                        <input type="text" name="direccion_casa"
-                                            class="form-control mt-2 form-control-sm"
-                                            placeholder="O escribe dirección manual"
-                                            value="{{ targeta.direccion_casa|default:'' }}">
-                                    </div>
-                                    {% endif %}
-                                </div>
-
-                                <div class="col-12 mb-3">
-                                    <label class="form-label">Dirección negocio (opcional)</label>
-                                    <input type="text" name="direccion_negocio" class="form-control"
-                                        value="{{ targeta.direccion_negocio|default:'' }}">
-                                </div>
-                                <div class="col-12 mb-4">
-                                    <label class="form-label">Observaciones</label>
-                                    <textarea name="observaciones" class="form-control"
-                                        rows="2">{{ targeta.observaciones }}</textarea>
-                                </div>
-                            </div>
-
-                            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                                <a href="{% url 'dashboard_supervisor' %}?ruta={{ targeta.ruta.id }}"
-                                    class="btn btn-light btn-save text-muted me-md-2">Cancelar</a>
-                                <button type="submit" class="btn btn-warning btn-save shadow">
-                                    📝 Guardar Cambios
-                                </button>
-                            </div>
-                        </form>
+                <span class="form-section-label">Datos Personales</span>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-5">
+                        <label class="form-label">Tipo documento</label>
+                        <select name="tipo_identificacion" class="form-select" required>
+                            <option value="CC" {% if targeta.tipo_identificacion == 'CC' %}selected{% endif %}>Cédula de Ciudadanía</option>
+                            <option value="CE" {% if targeta.tipo_identificacion == 'CE' %}selected{% endif %}>Cédula de Extranjería</option>
+                            <option value="TI" {% if targeta.tipo_identificacion == 'TI' %}selected{% endif %}>Tarjeta de Identidad</option>
+                        </select>
+                    </div>
+                    <div class="col-md-7">
+                        <label class="form-label">Número de documento</label>
+                        <input type="text" name="numero_identificacion" class="form-control" placeholder="Ej: 10203040"
+                            value="{{ targeta.numero_identificacion }}" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Nombre completo del cliente</label>
+                        <input type="text" name="nombre_cliente" class="form-control" placeholder="Nombre y Apellidos"
+                            value="{{ targeta.nombre_cliente }}" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Teléfono de contacto</label>
+                        <input type="text" name="telefono" class="form-control" placeholder="Ej: 3001234567"
+                            value="{{ targeta.telefono }}" required>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-    <div class="card p-3 shadow-sm mb-3">
-        <h5>Información del Cliente</h5>
-        <hr>
-        <p><strong>Nombre:</strong> {{ targeta.nombre_cliente }}</p>
-        <p><strong>Teléfono:</strong> {{ targeta.telefono }}</p>
 
-        <div class="mt-3">
-            {% if not targeta.latitud %}
-            <div class="alert alert-warning p-2 small">
-                ⚠️ Este cliente no tiene ubicación GPS registrada.
-            </div>
-            <a href="https://wa.me/{{ targeta.telefono }}?text=Hola%20{{ targeta.nombre_cliente }},%20por%20favor%20confirma%20tu%20ubicación%20haciendo%20clic%20aquí:%20http://tu-dominio.com/validar/{{ targeta.id }}/"
-                class="btn btn-success w-100 shadow-sm fw-bold" target="_blank">
-                📲 Enviar Link de Ubicación por WhatsApp
-            </a>
-            {% else %}
-            <div class="d-flex align-items-center justify-content-between border p-2 rounded bg-light">
-                <div>
-                    <span class="badge bg-primary">📍 Ubicación Registrada</span>
+                <span class="form-section-label">Ubicación y Domicilio</span>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label">Dirección de residencia (Manual)</label>
+                        <input type="text" name="direccion_casa" class="form-control" placeholder="Calle, Carrera, Barrio..."
+                            value="{{ targeta.direccion_casa|default:'' }}">
+                        
+                        <div class="mt-3">
+                            <label class="form-label">Dirección del negocio (Opcional)</label>
+                            <input type="text" name="direccion_negocio" class="form-control"
+                                value="{{ targeta.direccion_negocio|default:'' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">Punto GPS Exacto</label>
+                        <div class="gps-container">
+                            {% if targeta.latitud %}
+                                <div id="mini-map"></div>
+                                <a href="{{ targeta.url_google_maps }}" target="_blank" class="btn-maps-external">
+                                    <i class="bi bi-google"></i> Ver en Google Maps
+                                </a>
+                            {% else %}
+                                <div class="no-gps-state">
+                                    <i class="bi bi-geo-alt text-warning" style="font-size: 1.5rem;"></i>
+                                    <p class="small text-muted mb-0 mt-1">Sin coordenadas GPS.</p>
+                                    <a href="https://wa.me/{{ targeta.telefono }}?text=Hola%20{{ targeta.nombre_cliente|urlencode }},%20por%20favor%20confirma%20tu%20ubicación%20haciendo%20clic%20aquí:%20http://{{ request.get_host }}/validar/{{ targeta.id }}/"
+                                       target="_blank" class="btn-whatsapp-request">
+                                        <i class="bi bi-whatsapp"></i> Solicitar Ubicación
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
-                <a href="{{ targeta.url_google_maps }}" target="_blank" class="btn btn-outline-primary btn-sm fw-bold">
-                    🗺️ Ver en Google Maps
-                </a>
-            </div>
-            {% endif %}
+
+                <div class="mb-2">
+                    <label class="form-label">Observaciones adicionales</label>
+                    <textarea name="observaciones" class="form-control" rows="3" placeholder="Notas sobre el cobro o el cliente...">{{ targeta.observaciones }}</textarea>
+                </div>
+
+                <div class="action-btns-wrap">
+                    <a href="{% url 'dashboard_supervisor' %}?ruta={{ targeta.ruta.id }}" class="btn-cancel">
+                        Cancelar
+                    </a>
+                    <button type="submit" class="btn-save-changes">
+                        <i class="bi bi-check-circle-fill"></i> Guardar Cambios
+                    </button>
+                </div>
+
+            </form>
         </div>
     </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <script>
-        // Verificamos que existan coordenadas antes de ejecutar el mapa
-        {% if targeta.latitud and targeta.longitud %}
-        document.addEventListener('DOMContentLoaded', function () {
-            // Arreglado: Sin espacios en el filtro y variable lng correcta
-            var lat = {{ targeta.latitud|stringformat:"f" }};
-            var lng = {{ targeta.longitud|stringformat:"f" }};
+<script>
+    // Inicialización del Mini Mapa si hay coordenadas
+    {% if targeta.latitud and targeta.longitud %}
+    document.addEventListener('DOMContentLoaded', function () {
+        var lat = {{ targeta.latitud|stringformat:"f" }};
+        var lng = {{ targeta.longitud|stringformat:"f" }};
 
-            var map = L.map('mini-map', {
-                zoomControl: false,
-                attributionControl: false
-            }).setView([lat, lng], 16);
+        // Mapa minimalista (CartoDB Positron)
+        var map = L.map('mini-map', {
+            zoomControl: false,
+            attributionControl: false
+        }).setView([lat, lng], 16);
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-            L.marker([lat, lng]).addTo(map);
-        });
-        {% endif %}
-    </script>
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+        L.marker([lat, lng]).addTo(map);
+    });
+    {% endif %}
+</script>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-</html>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-
 </html>
