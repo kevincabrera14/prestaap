@@ -5,220 +5,10 @@
     <meta charset="UTF-8">
     <title>PrestApp | Panel Cobrador</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-     <!-- Cargar el favicon usando la ruta que me diste -->
     <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
-    
-    <!-- Opcional: para asegurar compatibilidad con móviles -->
     <link rel="icon" type="image/png" href="{% static 'img/favicon.ico' %}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background: #f1f3f5; color: #1a1a1a; min-height: 100vh; }
-
-        .top-nav {
-            background: #1a1a2e;
-            padding: 14px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 50;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-        }
-        .nav-brand { color: #fff; font-weight: 700; font-size: 1rem; }
-        .nav-user { color: rgba(255,255,255,0.5); font-size: 0.85rem; margin-left: 6px; }
-        .nav-salir {
-            color: rgba(255,255,255,0.7);
-            border: 1px solid rgba(255,255,255,0.2);
-            background: transparent;
-            border-radius: 8px;
-            padding: 5px 14px;
-            font-size: 0.8rem;
-            text-decoration: none;
-        }
-
-        .page { padding: 16px; max-width: 900px; margin: 0 auto; }
-
-        .section-label {
-            font-size: 0.65rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #999;
-            margin-bottom: 10px;
-        }
-
-        /* Rutas */
-        .rutas-scroll {
-            display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            padding-bottom: 4px;
-            scrollbar-width: none;
-            margin-bottom: 18px;
-        }
-        .rutas-scroll::-webkit-scrollbar { display: none; }
-        .btn-ruta {
-            flex: 0 0 auto;
-            padding: 9px 18px;
-            border-radius: 10px;
-            border: 1.5px solid #ddd;
-            background: #fff;
-            font-weight: 600;
-            font-size: 0.85rem;
-            color: #555;
-            text-decoration: none;
-        }
-        .btn-ruta.active { background: #1a1a2e; border-color: #1a1a2e; color: #fff; }
-
-        /* Buscador */
-        .search-wrap {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 18px;
-            position: sticky;
-            top: 57px;
-            z-index: 40;
-            background: #f1f3f5;
-            padding: 8px 0;
-        }
-        .search-input {
-            flex: 1;
-            padding: 12px 16px;
-            border-radius: 12px;
-            border: 1.5px solid #e0e0e0;
-            background: #fff;
-            font-size: 0.9rem;
-            font-family: 'Inter', sans-serif;
-            outline: none;
-        }
-        .search-input:focus { border-color: #1a1a2e; }
-        .search-btn {
-            padding: 12px 16px;
-            border-radius: 12px;
-            background: #1a1a2e;
-            color: #fff;
-            border: none;
-            font-size: 0.9rem;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-        }
-
-        /* Cards */
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 14px;
-            margin-bottom: 60px;
-        }
-
-        .card-cobrador {
-            background: #fff;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            transition: transform 0.2s;
-        }
-        .card-cobrador:hover { transform: translateY(-3px); }
-
-        .card-top-strip { height: 5px; background: #1a1a2e; border-radius: 16px 16px 0 0; }
-
-        .card-inner { padding: 14px 16px; }
-
-        .card-header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 10px;
-        }
-        .client-name {
-            font-weight: 700;
-            font-size: 1rem;
-            color: #1a1a1a;
-            max-width: 180px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .client-id { font-size: 0.75rem; color: #aaa; margin-top: 2px; }
-
-        .badge-cuotas {
-            background: #f0f0f0;
-            color: #555;
-            font-size: 0.68rem;
-            font-weight: 700;
-            padding: 4px 9px;
-            border-radius: 20px;
-            white-space: nowrap;
-        }
-
-        .card-divider { height: 1px; background: #f0f0f0; margin: 10px 0; }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-        .info-block {}
-        .info-label-sm { font-size: 0.72rem; color: #aaa; margin-bottom: 2px; }
-        .info-val { font-weight: 700; font-size: 0.9rem; color: #1a1a1a; }
-        .info-val.saldo { color: #1565c0; font-size: 1rem; }
-        .info-val.small-txt { font-size: 0.82rem; }
-
-        .card-actions { display: flex; gap: 8px; align-items: center; }
-        .btn-abonar {
-            flex: 1;
-            padding: 11px;
-            border-radius: 11px;
-            background: #2e7d32;
-            color: #fff;
-            font-weight: 700;
-            font-size: 0.85rem;
-            border: none;
-            text-align: center;
-            text-decoration: none;
-            display: block;
-            font-family: 'Inter', sans-serif;
-            transition: background 0.2s;
-        }
-        .btn-abonar:hover { background: #1b5e20; color: #fff; }
-        .btn-historial {
-            padding: 11px 14px;
-            border-radius: 11px;
-            background: #f5f5f5;
-            color: #555;
-            font-weight: 700;
-            font-size: 0.82rem;
-            border: 1px solid #e8e8e8;
-            text-align: center;
-            text-decoration: none;
-            display: block;
-            font-family: 'Inter', sans-serif;
-            white-space: nowrap;
-            transition: background 0.2s;
-        }
-        .btn-historial:hover { background: #ebebeb; color: #333; }
-
-        /* Empty states */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            grid-column: 1 / -1;
-        }
-        .empty-ico { font-size: 2.5rem; margin-bottom: 12px; }
-        .empty-title { font-weight: 700; font-size: 1.1rem; margin-bottom: 6px; }
-        .empty-sub { color: #999; font-size: 0.88rem; }
-
-        .select-ruta-state {
-            text-align: center;
-            padding: 60px 20px;
-            background: #fff;
-            border-radius: 20px;
-            margin-top: 8px;
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
 
@@ -236,7 +26,7 @@
             📍 {{ r.nombre }}
         </a>
         {% empty %}
-        <p style="color:#aaa; font-size:0.85rem;">No tienes rutas asignadas.</p>
+        <p style="color: #aaa; font-size: 0.85rem;">No tienes rutas asignadas.</p>
         {% endfor %}
     </div>
 
@@ -245,7 +35,7 @@
     <form method="GET">
         <input type="hidden" name="ruta" value="{{ ruta_sel.id }}">
         <div class="search-wrap">
-            <input type="text" name="q" class="search-input"
+            <input type="text" name="q" class="search-bar"
                    placeholder="🔍 Buscar por nombre o ID..."
                    value="{{ request.GET.q|default:'' }}">
             <button type="submit" class="search-btn">Buscar</button>
@@ -254,7 +44,7 @@
 
     <div class="cards-grid">
         {% for t in targetas %}
-        <div class="card-cobrador">
+        <div class="card-targeta">
             <div class="card-top-strip"></div>
             <div class="card-inner">
 
@@ -268,22 +58,23 @@
 
                 <div class="card-divider"></div>
 
-                <div class="info-grid">
-                    <div class="info-block">
+                <div class="info-row">
+                    <div>
                         <div class="info-label-sm">📞 Teléfono</div>
                         <div class="info-val small-txt">{{ t.telefono }}</div>
                     </div>
-                    <div class="info-block" style="text-align: right;">
+                    <div style="text-align: right;">
                         <div class="info-label-sm">💰 Saldo</div>
                         <div class="info-val saldo">${{ t.saldo_restante }}</div>
                     </div>
-                    {% if t.direccion_casa %}
-                    <div class="info-block" style="grid-column: 1 / -1;">
-                        <div class="info-label-sm">📍 Dirección</div>
-                        <div class="info-val small-txt">{{ t.direccion_casa }}</div>
-                    </div>
-                    {% endif %}
                 </div>
+
+                {% if t.direccion_casa %}
+                <div style="margin-bottom: 12px;">
+                    <div class="info-label-sm">📍 Dirección</div>
+                    <div class="info-val small-txt">{{ t.direccion_casa }}</div>
+                </div>
+                {% endif %}
 
                 <div class="card-actions">
                     <a href="{% url 'historial_abonos' t.id %}" class="btn-historial">🕒 Historial</a>
@@ -294,7 +85,7 @@
         </div>
         {% empty %}
         <div class="empty-state">
-            <div class="empty-ico">✅</div>
+            <div class="empty-icon">✅</div>
             <div class="empty-title">¡Todo al día!</div>
             <div class="empty-sub">No se encontraron clientes pendientes en esta búsqueda.</div>
         </div>
@@ -304,8 +95,8 @@
     {% else %}
     <div class="select-ruta-state">
         <div style="font-size: 2.5rem; margin-bottom: 12px;">📍</div>
-        <div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 6px;">Selecciona una ruta</div>
-        <div style="color: #999; font-size: 0.88rem;">Elige una ruta arriba para empezar el cobro de hoy.</div>
+        <div class="empty-title">Selecciona una ruta</div>
+        <div class="empty-sub">Elige una ruta arriba para empezar el cobro de hoy.</div>
     </div>
     {% endif %}
 

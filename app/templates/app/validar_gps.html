@@ -1,90 +1,77 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>PrestApp | Confirmar Ubicación</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-     <!-- Cargar el favicon usando la ruta que me diste -->
     <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
-    
-    <!-- Opcional: para asegurar compatibilidad con móviles -->
     <link rel="icon" type="image/png" href="{% static 'img/favicon.ico' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        /* Estilos exclusivos de esta vista pública */
         body {
-            font-family: 'Inter', sans-serif;
-            background: #f1f3f5;
-            color: #1a1a1a;
-            min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            min-height: 100vh;
             padding: 20px;
+            background: var(--bg);
         }
 
         .card {
-            background: #fff;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.07);
             width: 100%;
             max-width: 420px;
+            border-radius: 20px;
+            overflow: hidden;
+            border: none;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
         }
 
         .card-header {
-            background: #1a1a2e;
-            padding: 32px 24px 28px;
+            background: var(--navy);
+            padding: 28px 20px 24px;
             text-align: center;
+            border-bottom: none;
         }
-        .header-ico {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.12);
-            border: 2px solid rgba(255,255,255,0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.6rem;
-            margin: 0 auto 14px;
-        }
-        .header-title { color: #fff; font-weight: 700; font-size: 1.15rem; margin-bottom: 4px; }
-        .header-sub { color: rgba(255,255,255,0.5); font-size: 0.78rem; }
 
-        .card-body { padding: 28px 24px; text-align: center; }
+        .card-body {
+            background: #fff;
+            padding: 24px 20px;
+        }
 
         .info-txt {
-            color: #888;
             font-size: 0.9rem;
+            color: #555;
             line-height: 1.6;
-            margin-bottom: 28px;
+            margin-bottom: 20px;
+            text-align: center;
         }
-        .info-txt strong { color: #1a1a1a; }
 
-        .btn-gps {
-            width: 100%;
-            padding: 15px;
+        .alert-exito {
+            display: none;
+            background: #e8f5e9;
+            color: var(--green);
+            padding: 12px 16px;
             border-radius: 12px;
-            background: #e65100;
-            color: #fff;
-            font-weight: 700;
-            font-size: 0.95rem;
-            border: none;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            transition: background 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin-bottom: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+            text-align: center;
         }
-        .btn-gps:hover { background: #bf360c; }
-        .btn-gps:disabled {
-            background: #ccc;
-            cursor: not-allowed;
+
+        .alert-error {
+            display: none;
+            background: #fdecea;
+            color: var(--red);
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+            text-align: center;
         }
 
         .estado-procesando {
@@ -92,62 +79,46 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
-            color: #888;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 12px;
+            padding: 12px;
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 16px;
         }
+
         .spinner {
             width: 18px;
             height: 18px;
-            border: 2px solid #e0e0e0;
-            border-top-color: #1a1a2e;
+            border: 2px solid #ddd;
+            border-top-color: var(--navy);
             border-radius: 50%;
             animation: spin 0.7s linear infinite;
+            flex-shrink: 0;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
 
-        .alert-exito {
-            display: none;
-            background: #e8f5e9;
-            color: #2e7d32;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn-gps {
+            width: 100%;
+            padding: 14px;
             border-radius: 12px;
-            padding: 14px 16px;
+            background: var(--navy);
+            color: #fff;
             font-weight: 700;
-            font-size: 0.9rem;
-            margin-bottom: 12px;
-        }
-
-        .alert-error {
-            display: none;
-            background: #fdecea;
-            color: #c62828;
-            border-radius: 12px;
-            padding: 14px 16px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            margin-bottom: 12px;
-        }
-
-        .nota {
-            background: #fff8e1;
-            border-radius: 12px;
-            padding: 12px 14px;
+            font-size: 0.95rem;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
             display: flex;
+            align-items: center;
+            justify-content: center;
             gap: 8px;
-            align-items: flex-start;
-            text-align: left;
+            margin-bottom: 16px;
+            transition: background 0.2s;
         }
-        .nota-ico { font-size: 0.95rem; flex-shrink: 0; margin-top: 1px; }
-        .nota-txt { font-size: 0.78rem; color: #e65100; line-height: 1.5; font-weight: 500; }
 
-        .brand-footer {
-            margin-top: 28px;
-            font-size: 0.75rem;
-            color: #ccc;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
+        .btn-gps:hover { background: #2a2a4a; }
     </style>
 </head>
 <body>

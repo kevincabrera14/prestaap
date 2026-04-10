@@ -2,209 +2,66 @@
 {% load humanize %}
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
     <title>Abonos | {{ targeta.nombre_cliente }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-     <!-- Cargar el favicon usando la ruta que me diste -->
     <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
-    
-    <!-- Opcional: para asegurar compatibilidad con móviles -->
     <link rel="icon" type="image/png" href="{% static 'img/favicon.ico' %}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <style>
-        :root {
-            --dark-navy: #1a1a2e;
-            --accent-blue: #1565c0;
-            --success-green: #2e7d32;
-            --danger-red: #c62828;
-            --bg-gray: #f8f9fa;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-gray);
-            color: #333;
-        }
-
-        /* --- HEADER --- */
-        .top-nav {
-            background: var(--dark-navy);
-            padding: 1.5rem 0;
-            color: white;
-            border-bottom: 4px solid var(--accent-blue);
-        }
-
-        /* --- RESUMEN DE CUENTA --- */
-        .account-summary {
-            background: white;
-            border-radius: 20px;
-            padding: 25px;
-            margin-top: -30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .stat-box {
-            padding: 10px;
-            border-right: 1px solid #eee;
-        }
-
-        .stat-box:last-child {
-            border-right: none;
-        }
-
-        .stat-label {
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: #888;
-            letter-spacing: 0.5px;
-        }
-
-        .stat-value {
-            font-size: 1.4rem;
-            font-weight: 800;
-        }
-
-        /* --- TABLA --- */
-        .card-table {
-            background: white;
-            border-radius: 20px;
-            overflow: hidden;
-            border: none;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-        }
-
-        .table thead th {
-            background: #fdfdfd;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            font-weight: 700;
-            color: #aaa;
-            padding: 15px 20px;
-            border-bottom: 2px solid #f1f1f1;
-        }
-
-        .table tbody td {
-            padding: 18px 20px;
-            border-bottom: 1px solid #f8f8f8;
-            vertical-align: middle;
-        }
-
-        .badge-user {
-            background: #eef2ff;
-            color: #4338ca;
-            padding: 5px 10px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.75rem;
-        }
-
-        .btn-delete-abono {
-            color: #ea4335;
-            background: #fff5f5;
-            border: 1px solid #ffebeb;
-            padding: 6px 12px;
-            border-radius: 10px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            transition: 0.2s;
-        }
-
-        .btn-delete-abono:hover {
-            background: #ea4335;
-            color: white;
-        }
-
-        /* --- BOTONES --- */
-        .btn-back {
-            background: white;
-            color: var(--dark-navy);
-            border: 1px solid #ddd;
-            padding: 10px 20px;
-            border-radius: 12px;
-            font-weight: 600;
-            transition: 0.2s;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-back:hover {
-            background: #f1f1f1;
-            border-color: #ccc;
-        }
-
-        @media (max-width: 768px) {
-            .stat-box {
-                border-right: none;
-                border-bottom: 1px solid #eee;
-                margin-bottom: 15px;
-            }
-
-            .account-summary {
-                margin-top: 10px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
-
 <body>
 
-    <header class="top-nav">
+    <header style="background: var(--navy); padding: 1.5rem 0; color: white; border-bottom: 4px solid var(--blue);">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h4 class="mb-0 fw-bold">Historial de Cobros</h4>
                     <p class="mb-0 opacity-75 small"><i class="bi bi-person-fill"></i> {{ targeta.nombre_cliente }}</p>
-                    <a href="{% url 'dashboard_supervisor' %}?ruta={{ targeta.ruta.id }}" class="btn-back">
+                    <a href="{% url 'dashboard_supervisor' %}?ruta={{ targeta.ruta.id }}"
+                       style="background: white; color: var(--navy); border: 1px solid #ddd; padding: 10px 20px; border-radius: 12px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 0.9rem;">
                         <i class="bi bi-arrow-left"></i> Volver
                     </a>
                 </div>
-
             </div>
         </div>
     </header>
 
     <div class="container py-4">
 
-        <!-- ALERTAS -->
         {% if messages %}
         {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-4 shadow-sm border-0 mb-4"
-            role="alert">
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-4 shadow-sm border-0 mb-4" role="alert">
             <i class="bi bi-info-circle-fill me-2"></i> {{ message }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
         {% endfor %}
         {% endif %}
 
-        <!-- RESUMEN DE CUENTA -->
-        <div class="account-summary mb-4">
+        <!-- Resumen de cuenta -->
+        <div style="background: white; border-radius: 20px; padding: 25px; margin-top: -30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.05);" class="mb-4">
             <div class="row text-center text-md-start">
-                <div class="col-md-4 stat-box">
-                    <div class="stat-label">Monto del Crédito</div>
-                    <div class="stat-value" style="color: var(--dark-navy);">${{ targeta.monto_total }}</div>
+                <div class="col-md-4" style="padding: 10px; border-right: 1px solid #eee;">
+                    <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.5px;">Monto del Crédito</div>
+                    <div style="font-size: 1.4rem; font-weight: 800; color: var(--navy);">${{ targeta.monto_total }}</div>
                 </div>
-                <div class="col-md-4 stat-box">
-                    <div class="stat-label text-success">Total Cobrado</div>
-                    <div class="stat-value text-success">${{ total_abonado }}</div>
+                <div class="col-md-4" style="padding: 10px; border-right: 1px solid #eee;">
+                    <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.5px;">Total Cobrado</div>
+                    <div style="font-size: 1.4rem; font-weight: 800; color: var(--green);">${{ total_abonado }}</div>
                 </div>
-                <div class="col-md-4 stat-box">
-                    <div class="stat-label text-danger">Saldo Pendiente</div>
-                    <div class="stat-value text-danger">${{ targeta.saldo_restante }}</div>
+                <div class="col-md-4" style="padding: 10px;">
+                    <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.5px;">Saldo Pendiente</div>
+                    <div style="font-size: 1.4rem; font-weight: 800; color: var(--red);">${{ targeta.saldo_restante }}</div>
                 </div>
             </div>
         </div>
 
-        <!-- TABLA DE TRANSACCIONES -->
-        <div class="card card-table">
-            <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+        <!-- Tabla de transacciones -->
+        <div style="background: white; border-radius: 20px; overflow: hidden; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+            <div class="card-header bg-white py-3 border-0 d-flex justify-content: space-between align-items-center">
                 <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2"></i> Registro de Actividad</h6>
                 <span class="text-muted small">{{ abonos|length }} movimientos</span>
             </div>
@@ -212,35 +69,35 @@
                 <table class="table align-middle mb-0">
                     <thead>
                         <tr>
-                            <th>Fecha y Hora</th>
-                            <th>Importe</th>
-                            <th>Cajero/Cobrador</th>
-                            <th class="text-end">Acciones</th>
+                            <th style="background: #fdfdfd; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #aaa; padding: 15px 20px; border-bottom: 2px solid #f1f1f1;">Fecha y Hora</th>
+                            <th style="background: #fdfdfd; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #aaa; padding: 15px 20px; border-bottom: 2px solid #f1f1f1;">Importe</th>
+                            <th style="background: #fdfdfd; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #aaa; padding: 15px 20px; border-bottom: 2px solid #f1f1f1;">Cajero/Cobrador</th>
+                            <th style="background: #fdfdfd; font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #aaa; padding: 15px 20px; border-bottom: 2px solid #f1f1f1;" class="text-end">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for a in abonos %}
                         <tr>
-                            <td>
+                            <td style="padding: 18px 20px; border-bottom: 1px solid #f8f8f8; vertical-align: middle;">
                                 <div class="fw-bold">{{ a.fecha|date:"d M, Y" }}</div>
                                 <div class="text-muted" style="font-size: 0.75rem;">{{ a.fecha|date:"H:i" }}</div>
                             </td>
-                            <td>
+                            <td style="padding: 18px 20px; border-bottom: 1px solid #f8f8f8; vertical-align: middle;">
                                 <span class="fw-bold text-success" style="font-size: 1.1rem;">+ ${{ a.monto|intcomma }}</span>
                             </td>
-                            <td>
+                            <td style="padding: 18px 20px; border-bottom: 1px solid #f8f8f8; vertical-align: middle;">
                                 {% if a.registrado_por %}
-                                <span class="badge-user"><i class="bi bi-person"></i> {{ a.registrado_por.username}}</span>
+                                <span class="badge-user"><i class="bi bi-person"></i> {{ a.registrado_por.username }}</span>
                                 {% else %}
                                 <span class="text-muted small">—</span>
                                 {% endif %}
                             </td>
-                            <td class="text-end">
+                            <td style="padding: 18px 20px; border-bottom: 1px solid #f8f8f8; vertical-align: middle;" class="text-end">
                                 {% if request.user == targeta.ruta.supervisor or request.user.is_staff %}
                                 <form action="{% url 'eliminar_abono' a.id %}" method="POST"
                                     onsubmit="return confirm('ATENCIÓN: Se revertirá el cobro. El saldo del cliente aumentará y el dinero se restará de la caja. ¿Continuar?');">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-delete-abono">
+                                    <button type="submit" class="btn-delete-abono">
                                         <i class="bi bi-trash3"></i> Eliminar
                                     </button>
                                 </form>
@@ -262,21 +119,23 @@
             </div>
         </div>
 
-        <!-- BOTÓN DE RETORNO -->
+        <!-- Botón de retorno -->
         <div class="mt-4 text-center text-md-start">
             {% if request.user.perfil.rol == 'SUPERVISOR' %}
-            <a href="{% url 'dashboard_supervisor' %}?ruta={{ targeta.ruta.id }}" class="btn-back">
+            <a href="{% url 'dashboard_supervisor' %}?ruta={{ targeta.ruta.id }}"
+               style="background: white; color: var(--navy); border: 1px solid #ddd; padding: 10px 20px; border-radius: 12px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
                 <i class="bi bi-arrow-left"></i> Volver al Panel
             </a>
             {% else %}
-            <a href="{% url 'dashboard_trabajador' %}?ruta={{ targeta.ruta.id }}" class="btn-back">
+            <a href="{% url 'dashboard_trabajador' %}?ruta={{ targeta.ruta.id }}"
+               style="background: white; color: var(--navy); border: 1px solid #ddd; padding: 10px 20px; border-radius: 12px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
                 <i class="bi bi-arrow-left"></i> Volver al Panel
             </a>
             {% endif %}
         </div>
+
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-
 </html>

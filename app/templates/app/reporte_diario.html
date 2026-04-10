@@ -6,29 +6,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reporte Diario | {{ ruta.nombre }}</title>
-     <!-- Cargar el favicon usando la ruta que me diste -->
     <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
-    
-    <!-- Opcional: para asegurar compatibilidad con móviles -->
     <link rel="icon" type="image/png" href="{% static 'img/favicon.ico' %}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <style>
+        /* Variables locales del reporte */
         :root {
-            --dark-navy: #1a1a2e;
-            --success-green: #2e7d32;
-            --danger-red: #c62828;
-            --soft-gray: #f8f9fa;
+            --rpt-navy:   #1a1a2e;
+            --rpt-green:  #2e7d32;
+            --rpt-red:    #c62828;
+            --rpt-gray:   #f8f9fa;
         }
 
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: #f1f3f5; 
-            color: #333; 
-        }
-
-        .no-print-nav {
-            background: var(--dark-navy);
+        /* Nav de impresión */
+        .print-nav {
+            background: var(--rpt-navy);
             padding: 12px 20px;
             display: flex;
             justify-content: space-between;
@@ -36,6 +29,32 @@
             color: white;
         }
 
+        .print-nav-brand { font-weight: 700; }
+        .print-nav-brand span { font-weight: 400; opacity: 0.6; }
+
+        .print-nav-actions { display: flex; gap: 10px; }
+
+        .btn-volver-rpt {
+            color: white;
+            text-decoration: none;
+            font-size: 0.8rem;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 5px 15px;
+            border-radius: 6px;
+        }
+
+        .btn-imprimir {
+            background: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Hoja del reporte */
         .report-paper {
             background: white;
             padding: 40px;
@@ -45,9 +64,9 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.05);
         }
 
-        /* Cabecera del Reporte */
+        /* Cabecera */
         .report-header {
-            border-bottom: 2px solid var(--soft-gray);
+            border-bottom: 2px solid var(--rpt-gray);
             padding-bottom: 20px;
             margin-bottom: 30px;
             display: flex;
@@ -55,10 +74,20 @@
             align-items: flex-end;
         }
 
-        .report-title h1 { font-size: 1.5rem; font-weight: 800; margin: 0; color: var(--dark-navy); }
+        .report-title h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin: 0;
+            color: var(--rpt-navy);
+        }
+
         .report-title p { margin: 0; color: #888; font-size: 0.9rem; }
 
-        /* Grid de Totales */
+        .report-meta { text-align: right; }
+        .report-meta-date { margin: 0; font-weight: 700; color: var(--rpt-navy); }
+        .report-meta-gen  { margin: 0; font-size: 0.8rem; color: #aaa; }
+
+        /* Grid de resumen */
         .summary-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -76,67 +105,118 @@
             text-align: center;
         }
 
-        .summary-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: #999; letter-spacing: 1px; margin-bottom: 8px; }
+        .summary-item.highlight { background: var(--rpt-gray); }
+
+        .summary-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #999;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
         .summary-value { font-size: 1.25rem; font-weight: 800; }
-        
-        .val-in { color: var(--success-green); }
-        .val-out { color: var(--danger-red); }
-        .val-final { color: var(--dark-navy); }
+        .val-in    { color: var(--rpt-green); }
+        .val-out   { color: var(--rpt-red); }
+        .val-final { color: var(--rpt-navy); }
 
-        /* Tablas de Detalles */
+        /* Secciones de detalle */
         .detail-section { margin-bottom: 30px; }
-        .section-title { 
-            font-size: 0.85rem; 
-            font-weight: 800; 
-            text-transform: uppercase; 
-            margin-bottom: 15px; 
-            display: flex; 
-            align-items: center; 
-            gap: 8px; 
+
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
+        .section-title.ingresos { color: var(--rpt-green); }
+        .section-title.egresos  { color: var(--rpt-red); }
+
+        /* Tablas */
         .custom-table { width: 100%; border-collapse: collapse; }
-        .custom-table th { 
-            text-align: left; 
-            font-size: 0.75rem; 
-            color: #999; 
-            border-bottom: 1px solid #eee; 
-            padding: 10px; 
-        }
-        .custom-table td { padding: 12px 10px; border-bottom: 1px dotted #f0f0f0; font-size: 0.9rem; }
-        .time-badge { font-size: 0.7rem; color: #bbb; font-weight: 400; }
 
+        .custom-table th {
+            text-align: left;
+            font-size: 0.75rem;
+            color: #999;
+            border-bottom: 1px solid #eee;
+            padding: 10px;
+        }
+
+        .custom-table th.align-right { text-align: right; }
+
+        .custom-table td {
+            padding: 12px 10px;
+            border-bottom: 1px dotted #f0f0f0;
+            font-size: 0.9rem;
+        }
+
+        .custom-table td.align-right { text-align: right; }
+
+        .td-name   { font-weight: 600; }
+        .time-badge { font-size: 0.7rem; color: #bbb; font-weight: 400; }
+        .td-amount  { font-weight: 700; }
+        .td-empty   { text-align: center; color: #ccc; padding: 30px; }
+
+        /* Footer */
+        .report-footer {
+            margin-top: 50px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+            text-align: center;
+            color: #bbb;
+            font-size: 0.7rem;
+        }
+
+        /* Estado vacío */
+        .no-report {
+            text-align: center;
+            padding: 100px 0;
+        }
+
+        .no-report-icon { font-size: 4rem; }
+        .no-report h2   { font-weight: 800; }
+        .no-report p    { color: #888; }
+
+        /* Print */
         @media print {
             .no-print { display: none !important; }
             body { background: white; }
             .report-paper { box-shadow: none; margin: 0; max-width: 100%; padding: 20px; }
-            .summary-grid { border: 1px solid #ddd; }
-            .summary-item { border: 1px solid #ddd; }
+            .summary-grid, .summary-item { border: 1px solid #ddd; }
         }
 
+        /* Mobile */
         @media (max-width: 768px) {
-            .summary-grid { grid-template-columns: 1fr 1fr; }
+            .summary-grid  { grid-template-columns: 1fr 1fr; }
             .report-header { flex-direction: column; align-items: flex-start; gap: 15px; }
         }
     </style>
 </head>
 <body>
 
-<nav class="no-print-nav no-print">
-    <div style="font-weight: 700;">PrestApp <span style="font-weight: 400; opacity: 0.6;">| Supervisor</span></div>
-    <div style="display: flex; gap: 10px;">
-        <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" style="color: white; text-decoration: none; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.3); padding: 5px 15px; border-radius: 6px;">Volver</a>
-        <button onclick="window.print()" style="background: white; border: none; padding: 5px 15px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">🖨️ Imprimir</button>
+<nav class="print-nav no-print">
+    <div class="print-nav-brand">PrestApp <span>| Supervisor</span></div>
+    <div class="print-nav-actions">
+        <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="btn-volver-rpt">Volver</a>
+        <button onclick="window.print()" class="btn-imprimir">🖨️ Imprimir</button>
     </div>
 </nav>
 
 <div class="report-paper">
+
     {% if no_hay_caja %}
-    <div style="text-align: center; padding: 100px 0;">
-        <div style="font-size: 4rem;">📅</div>
-        <h2 style="font-weight: 800;">Reporte no disponible</h2>
-        <p style="color: #888;">No se encontró cierre de caja para la ruta <strong>{{ ruta.nombre }}</strong> en esta fecha.</p>
+    <div class="no-report">
+        <div class="no-report-icon">📅</div>
+        <h2>Reporte no disponible</h2>
+        <p>No se encontró cierre de caja para la ruta <strong>{{ ruta.nombre }}</strong> en esta fecha.</p>
     </div>
+
     {% else %}
 
     <header class="report-header">
@@ -144,9 +224,9 @@
             <h1>Reporte de Caja Diario</h1>
             <p>Ruta: <strong>{{ ruta.nombre }}</strong></p>
         </div>
-        <div style="text-align: right;">
-            <p style="margin: 0; font-weight: 700; color: var(--dark-navy);">{{ fecha|date:"l, d \d\e F" }}</p>
-            <p style="margin: 0; font-size: 0.8rem; color: #aaa;">Generado: {% now "H:i" %}</p>
+        <div class="report-meta">
+            <p class="report-meta-date">{{ fecha|date:"l, d \d\e F" }}</p>
+            <p class="report-meta-gen">Generado: {% now "H:i" %}</p>
         </div>
     </header>
 
@@ -163,71 +243,63 @@
             <div class="summary-label">Gastos</div>
             <div class="summary-value val-out">- ${{ total_egresos }}</div>
         </div>
-        <div class="summary-item" style="background: var(--soft-gray);">
+        <div class="summary-item highlight">
             <div class="summary-label">Saldo Final</div>
             <div class="summary-value val-final">${{ saldo_final }}</div>
         </div>
     </div>
 
-    <div class="row">
-        <!-- INGRESOS -->
-        <div class="detail-section">
-            <h3 class="section-title" style="color: var(--success-green);">
-                <i class="bi bi-arrow-down-left-circle-fill"></i> Detalle de Cobros (Abonos)
-            </h3>
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th>CLIENTE / HORA</th>
-                        <th style="text-align: right;">MONTO RECIBIDO</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for abono in abonos %}
-                    <tr>
-                        <td>
-                            <div style="font-weight: 600;">{{ abono.targeta.nombre_cliente }}</div>
-                            <div class="time-badge">{{ abono.fecha|time:"H:i" }}</div>
-                        </td>
-                        <td style="text-align: right; font-weight: 700;" class="val-in">${{ abono.monto }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="2" style="text-align: center; color: #ccc; padding: 30px;">No se registraron cobros.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- EGRESOS -->
-        <div class="detail-section">
-            <h3 class="section-title" style="color: var(--danger-red);">
-                <i class="bi bi-arrow-up-right-circle-fill"></i> Detalle de Egresos (Gastos)
-            </h3>
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th>DESCRIPCIÓN / HORA</th>
-                        <th style="text-align: right;">MONTO PAGADO</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for egreso in egresos %}
-                    <tr>
-                        <td>
-                            <div style="font-weight: 600;">{{ egreso.descripcion }}</div>
-                            <div class="time-badge">{{ egreso.fecha|time:"H:i" }}</div>
-                        </td>
-                        <td style="text-align: right; font-weight: 700;" class="val-out">-${{ egreso.monto }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="2" style="text-align: center; color: #ccc; padding: 30px;">No se registraron gastos.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <div class="detail-section">
+        <h3 class="section-title ingresos">↙ Detalle de Cobros (Abonos)</h3>
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>CLIENTE / HORA</th>
+                    <th class="align-right">MONTO RECIBIDO</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for abono in abonos %}
+                <tr>
+                    <td>
+                        <div class="td-name">{{ abono.targeta.nombre_cliente }}</div>
+                        <div class="time-badge">{{ abono.fecha|time:"H:i" }}</div>
+                    </td>
+                    <td class="align-right td-amount val-in">${{ abono.monto }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="2" class="td-empty">No se registraron cobros.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
-    <footer style="margin-top: 50px; border-top: 1px solid #eee; padding-top: 20px; text-align: center; color: #bbb; font-size: 0.7rem;">
+    <div class="detail-section">
+        <h3 class="section-title egresos">↗ Detalle de Egresos (Gastos)</h3>
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>DESCRIPCIÓN / HORA</th>
+                    <th class="align-right">MONTO PAGADO</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for egreso in egresos %}
+                <tr>
+                    <td>
+                        <div class="td-name">{{ egreso.descripcion }}</div>
+                        <div class="time-badge">{{ egreso.fecha|time:"H:i" }}</div>
+                    </td>
+                    <td class="align-right td-amount val-out">-${{ egreso.monto }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="2" class="td-empty">No se registraron gastos.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <footer class="report-footer">
         Este documento es un resumen oficial de transacciones diarias de PrestApp.
     </footer>
 

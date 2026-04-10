@@ -1,30 +1,36 @@
 #views 
-# =====================================================
+
+# ===============================================================================================================================================================
 # import
-# =====================================================
+# ===============================================================================================================================================================
+
 
 from django.utils.timezone import localtime, make_aware, get_current_timezone, localdate, now
-from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from .permissions import supervisor_required
 from .models import Ruta, Targeta, Abono, MovimientoRuta, CajaRuta, Cuota
 from django.contrib import messages
-from django.db.models import Sum, Q, F
+from django.db.models import Sum, Q, F,Count
+from django.db import transaction
 from decimal import Decimal
 import datetime
-from django.utils import timezone
-from django.utils.timezone import localtime, localdate, make_aware
-
 from django.http import HttpResponse
 from django.contrib.auth.decorators import user_passes_test
-from .models import Cuota
-
 from django.urls import reverse
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from datetime import date
+from datetime import timedelta 
+from decimal import Decimal 
+from django.db import transaction 
+from django.http import JsonResponse
 
-# =====================================================
+
+# ===============================================================================================================================================================
 # AUTH
-# =====================================================
+# ===============================================================================================================================================================
+
 
 def login_view(request):
     if request.user.is_authenticated:
@@ -42,16 +48,16 @@ def login_view(request):
 
     return render(request, "app/login.html")
 
-
 @login_required
 def cerrar_sesion(request):
     logout(request)
     return redirect('login')
 
 
-# =====================================================
+# ===================================================================================================================================================================
 # DASHBOARD CENTRAL
-# =====================================================
+# ========================================================================================================================================================================
+
 
 @login_required(login_url='login')
 def dashboard(request):
@@ -72,22 +78,20 @@ def dashboard(request):
     return redirect('login')
 
 
-# =====================================================
+# ================================================================================================================================================
 # ADMIN
-# =====================================================
+# ================================================================================================================================================
 
 @login_required
 def dashboard_admin(request):
     rutas = Ruta.objects.select_related('supervisor').prefetch_related('trabajadores')
     return render(request, 'app/admin.html', {'rutas': rutas})
 
-
-# =====================================================
+# ================================================================================================================================================
 # SUPERVISOR
-# =====================================================
-from django.db.models import Q # Importante añadir esta importación al inicio
+# ================================================================================================================================================
 
-from django.db.models import Q # Importante añadir esta importación al inicio
+
 @login_required
 @supervisor_required
 def dashboard_supervisor(request):
@@ -149,9 +153,62 @@ def dashboard_supervisor(request):
     }
 
     return render(request, "app/supervisor.html", context)
-# =====================================================
+
+
+# ================================================================================================================================================
+# TRABAJADOR
+# ================================================================================================================================================
+
+@login_required
+def dashboard_trabajador(request):
+    # Obtenemos las rutas del usuario
+    rutas = Ruta.objects.filter(trabajadores=request.user)
+    
+    # Filtramos las tarjetas base
+    targetas = Targeta.objects.filter(ruta__in=rutas)
+
+    # Captura de filtros desde el GET
+    q = request.GET.get("q")
+    estado = request.GET.get("estado")
+    ruta_id = request.GET.get("ruta")
+
+    # Aplicación de filtros
+    if q:
+        targetas = targetas.filter(nombre_cliente__icontains=q)
+    if estado:
+        targetas = targetas.filter(estado=estado)
+    if ruta_id:
+        targetas = targetas.filter(ruta_id=ruta_id)
+
+    # --- OPTIMIZACIÓN Y CÁLCULO DE CUOTAS ---
+    # Usamos prefetch_related para traer las cuotas de una sola vez y evitar lentitud
+    targetas = targetas.prefetch_related('cuotas')
+
+    for t in targetas:
+        # Esto ahora se ejecuta en memoria gracias al prefetch_related
+        todas_las_cuotas = t.cuotas.all()
+        t.cuotas_pagadas = sum(1 for c in todas_las_cuotas if c.estado == 'PAGADA')
+        t.total_cuotas = len(todas_las_cuotas)
+
+    # Resumen estadístico
+    resumen = {
+        "total_clientes": targetas.count(),
+        "en_mora": targetas.filter(estado="MORA").count(),
+        # Usamos una lista de comprensión para el saldo (más rápido en Python que sum() con generador)
+        "total_saldo": sum([t.saldo_restante for t in targetas]),
+    }
+
+    return render(request, "app/trabajador.html", {
+        "rutas": rutas,
+        "targetas": targetas,
+        "resumen": resumen,
+        "ruta_sel": Ruta.objects.filter(id=ruta_id).first() if ruta_id else None,
+    })
+
+
+# ================================================================================================================================================
 # ruta
-# =====================================================
+# ================================================================================================================================================
 
 
 @login_required
@@ -168,8 +225,6 @@ def crear_ruta(request):
 
     return render(request, "app/crear_ruta.html")
 
-
-
 @login_required
 @supervisor_required
 def editar_ruta(request, ruta_id):
@@ -184,7 +239,6 @@ def editar_ruta(request, ruta_id):
 
     return render(request, "app/editar_ruta.html", {"ruta": ruta})
 
-
 @login_required
 @supervisor_required
 def eliminar_ruta(request, ruta_id):
@@ -192,6 +246,11 @@ def eliminar_ruta(request, ruta_id):
     ruta.delete()
     messages.success(request, "Ruta eliminada")
     return redirect('dashboard_supervisor')
+
+
+# ================================================================================================================================================
+# targetas
+# ================================================================================================================================================
 
 
 @login_required
@@ -263,7 +322,6 @@ def crear_targeta(request):
     return render(request, 'app/crear_targeta.html', {
         'rutas': rutas
     })
-
 
 @login_required
 @supervisor_required
@@ -349,62 +407,83 @@ def eliminar_targeta(request, targeta_id):
 
     return redirect(f"/dashboard/supervisor/?ruta={ruta.id}")
 
-# =====================================================
-# TRABAJADOR
-# =====================================================
+@login_required
+@supervisor_required
+def renovar_targeta(request, targeta_id):
+    targeta = get_object_or_404(Targeta, id=targeta_id, ruta__supervisor=request.user)
+    ruta = targeta.ruta
 
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q
+    if request.method == "POST":
+        monto = Decimal(request.POST.get("monto_base"))
+        tasa = int(request.POST.get("tasa_interes"))
+        plazo = int(request.POST.get("plazo_dias"))
+
+        if monto > ruta.base:
+            messages.error(request, "Base insuficiente en la ruta.")
+            return redirect(request.path)
+
+        try:
+            with transaction.atomic():
+                # 1. Limpiar historial de cuotas y abonos viejos (Para que no se mezclen)
+                targeta.cuotas.all().delete()
+                targeta.abonos.all().delete()
+
+                # 2. Restaurar valores de la tarjeta
+                targeta.monto_base = monto
+                targeta.tasa_interes = tasa
+                targeta.plazo_dias = plazo
+                targeta.estado = 'AL_DIA' # Vuelve a estar activa
+                targeta.save()
+
+                # 3. Generar nuevas cuotas
+                crear_cuotas(targeta)
+
+                # 4. Descontar de la base y registrar movimiento
+                ruta.base -= monto
+                ruta.save()
+
+                MovimientoRuta.objects.create(
+                    ruta=ruta,
+                    tipo='EGRESO',
+                    monto=monto,
+                    descripcion=f"RENOVACIÓN (Restauración): {targeta.nombre_cliente}"
+                )
+
+            messages.success(request, f"Crédito restaurado para {targeta.nombre_cliente}")
+            return redirect(f"/dashboard/supervisor/?ruta={ruta.id}")
+
+        except Exception as e:
+            messages.error(request, f"Error: {e}")
+
+    return render(request, "app/renovar_targeta.html", {"targeta": targeta})
 
 @login_required
-def dashboard_trabajador(request):
-    # Obtenemos las rutas del usuario
-    rutas = Ruta.objects.filter(trabajadores=request.user)
-    
-    # Filtramos las tarjetas base
-    targetas = Targeta.objects.filter(ruta__in=rutas)
-
-    # Captura de filtros desde el GET
-    q = request.GET.get("q")
-    estado = request.GET.get("estado")
+@supervisor_required
+def clientes_finalizados(request):
+    rutas = Ruta.objects.filter(supervisor=request.user)
     ruta_id = request.GET.get("ruta")
-
-    # Aplicación de filtros
-    if q:
-        targetas = targetas.filter(nombre_cliente__icontains=q)
-    if estado:
-        targetas = targetas.filter(estado=estado)
+    
+    # Buscamos tarjetas del supervisor
+    query = Targeta.objects.filter(ruta__supervisor=request.user)
+    
     if ruta_id:
-        targetas = targetas.filter(ruta_id=ruta_id)
+        query = query.filter(ruta_id=ruta_id)
 
-    # --- OPTIMIZACIÓN Y CÁLCULO DE CUOTAS ---
-    # Usamos prefetch_related para traer las cuotas de una sola vez y evitar lentitud
-    targetas = targetas.prefetch_related('cuotas')
+    # FILTRO CLAVE: Traemos las que ya están marcadas PAGADA 
+    # O las que detectamos que ya no deben nada (saldo_restante == 0)
+    targetas = [t for t in query if t.estado == 'PAGADA' or t.saldo_restante <= 0]
 
-    for t in targetas:
-        # Esto ahora se ejecuta en memoria gracias al prefetch_related
-        todas_las_cuotas = t.cuotas.all()
-        t.cuotas_pagadas = sum(1 for c in todas_las_cuotas if c.estado == 'PAGADA')
-        t.total_cuotas = len(todas_las_cuotas)
-
-    # Resumen estadístico
-    resumen = {
-        "total_clientes": targetas.count(),
-        "en_mora": targetas.filter(estado="MORA").count(),
-        # Usamos una lista de comprensión para el saldo (más rápido en Python que sum() con generador)
-        "total_saldo": sum([t.saldo_restante for t in targetas]),
-    }
-
-    return render(request, "app/trabajador.html", {
-        "rutas": rutas,
+    return render(request, "app/clientes_finalizados.html", {
         "targetas": targetas,
-        "resumen": resumen,
-        "ruta_sel": Ruta.objects.filter(id=ruta_id).first() if ruta_id else None,
+        "rutas": rutas,
+        "ruta_sel": rutas.filter(id=ruta_id).first() if ruta_id else None
     })
-# =====================================================
-# ABONOS
-# =====================================================
+
+
+# ================================================================================================================================================
+# abonos
+# ================================================================================================================================================
+
 
 @login_required
 @supervisor_required
@@ -416,9 +495,6 @@ def lista_abonos(request, targeta_id):
         'targeta': targeta,
         'abonos': abonos
     })
-
-
-
 
 @login_required
 def crear_abono(request, targeta_id=None):
@@ -521,6 +597,48 @@ def crear_abono(request, targeta_id=None):
         "cuotas": cuotas_pendientes,
     })
 
+def crear_cuotas(targeta):
+
+
+
+    """
+    Genera cuotas con fecha de vencimiento. 
+    1. Si es tarde (8 PM+), inicia un día después.
+    2. Si un vencimiento cae DOMINGO, se pasa al LUNES.
+    """
+    monto_total = targeta.monto_total
+    plazo = targeta.plazo_dias
+    monto_cuota = (monto_total / Decimal(plazo)).quantize(Decimal('0.01'))
+    
+    HORA_CORTE = 20  # 8:00 PM
+    ahora = timezone.localtime(timezone.now())
+    # Definimos desde cuándo empezamos a contar los días del plazo
+    dia_referencia = localdate()
+
+    if ahora.hour >= HORA_CORTE:
+        dia_referencia = dia_referencia + datetime.timedelta(days=1)
+
+    # Creamos las cuotas una por una
+    for i in range(1, plazo + 1):
+        # Calculamos la fecha tentativa (sumando i días al día de referencia)
+        vencimiento = dia_referencia + datetime.timedelta(days=i)
+        
+        # --- LÓGICA EXCLUIR DOMINGOS ---
+        if vencimiento.weekday() == 6: 
+            vencimiento = vencimiento + datetime.timedelta(days=1)
+        # -------------------------------
+        
+        Cuota.objects.create(
+            targeta=targeta,
+            numero=i,
+            monto=monto_cuota,
+            saldo_cuota=monto_cuota,  # <--- IMPORTANTE: Se añade el saldo inicial aquí
+            fecha_vencimiento=vencimiento,
+            estado='PENDIENTE'
+        )
+    
+    targeta.actualizar_estado()
+
 @login_required
 def historial_abonos(request, targeta_id):
     targeta = get_object_or_404(Targeta, id=targeta_id)
@@ -547,6 +665,51 @@ def historial_abonos(request, targeta_id):
         "total_abonado": total_abonado
     })
 
+@login_required
+def eliminar_abono(request, abono_id):
+    abono = get_object_or_404(Abono, id=abono_id)
+    targeta = abono.targeta
+    ruta = targeta.ruta
+
+    # Seguridad: Solo Supervisor de esta ruta o Staff
+    if request.user != ruta.supervisor and not request.user.is_staff:
+        messages.error(request, "No tienes permiso para eliminar abonos.")
+        return redirect('historial_abonos', targeta_id=targeta.id)
+
+    with transaction.atomic():
+        # 1. Devolver el saldo a la cuota
+        if abono.cuota:
+            cuota = abono.cuota
+            cuota.saldo_cuota += abono.monto
+            cuota.estado = 'PENDIENTE'
+            cuota.fecha_pago = None
+            cuota.save()
+
+        # 2. Restar de la base de la ruta
+        ruta.base -= abono.monto
+        ruta.save()
+
+        # 3. Crear un movimiento de salida para dejar rastro (Auditoría)
+        MovimientoRuta.objects.create(
+            ruta=ruta,
+            tipo='EGRESO',
+            monto=abono.monto,
+            descripcion=f"ANULACIÓN ABONO - Cliente: {targeta.nombre_cliente} (Abono ID: {abono.id})"
+        )
+
+        # 4. Eliminar el abono
+        abono.delete()
+        
+        # 5. Actualizar estado de la tarjeta (por si vuelve a mora)
+        targeta.actualizar_estado()
+
+    messages.success(request, f"Abono eliminado. Se han devuelto ${abono.monto} a la deuda.")
+    return redirect('historial_abonos', targeta_id=targeta.id)
+
+
+# ================================================================================================================================================
+# gastos
+# ================================================================================================================================================
 
 
 @login_required
@@ -575,9 +738,77 @@ def retiro_justificado(request, ruta_id):
         'ruta': ruta
     })
 
+@login_required
+def registrar_gasto(request, ruta_id):
+    ruta = get_object_or_404(Ruta, id=ruta_id)
+    hoy = date.today()
+
+    # --- LÓGICA PARA EL MODAL (CORREGIDA) ---
+    # Filtramos por tipo EGRESO Y que la descripción empiece con "GASTO:"
+    gastos_mes_qs = MovimientoRuta.objects.filter(
+        ruta=ruta,
+        tipo='EGRESO',
+        descripcion__startswith='GASTO:', # <--- ESTO ES LA CLAVE
+        fecha__month=hoy.month,
+        fecha__year=hoy.year
+    ).order_by('-fecha')
+
+    # Sumamos el total de esos gastos filtrados
+    total_gastos_mes = gastos_mes_qs.aggregate(Sum('monto'))['monto__sum'] or 0
+
+    # --- PROCESAMIENTO DEL FORMULARIO ---
+    if request.method == 'POST':
+        monto_str = request.POST.get('monto')
+        descripcion = request.POST.get('descripcion')
+        
+        try:
+            if monto_str:
+                monto = Decimal(monto_str)
+                
+                if monto <= 0:
+                    messages.error(request, "El monto debe ser mayor a cero.")
+                
+                # Verificamos si la base aguanta el gasto
+                elif ruta.base < monto:
+                    messages.error(request, f"⚠️ Fondos insuficientes. La base actual es ${ruta.base}")
+                
+                else:
+                    # Transacción atómica para seguridad de datos
+                    with transaction.atomic():
+                        # 1. RESTAMOS DE LA BASE
+                        ruta.base -= monto
+                        ruta.save()
+
+                        # 2. CREAMOS EL MOVIMIENTO
+                        MovimientoRuta.objects.create(
+                            ruta=ruta,
+                            tipo='EGRESO',
+                            monto=monto,
+                            descripcion=f"GASTO: {descripcion}"
+                        )
+
+                    messages.success(request, f"✅ Gasto de ${monto} descontado de la base.")
+                    return redirect(f'/dashboard/supervisor/?ruta={ruta.id}')
+            else:
+                messages.error(request, "El monto es obligatorio.")
+                
+        except Exception as e:
+            messages.error(request, f"Error al procesar el gasto: {e}")
+            
+    # Enviamos los datos al template (incluyendo los del modal)
+    context = {
+        'ruta': ruta,
+        'gastos_recientes': gastos_mes_qs,  # Para la tablita del modal
+        'total_gastos_mes': total_gastos_mes # Para el encabezado del modal
+    }
+    
+    return render(request, 'app/registrar_gasto.html', context)
 
 
-from django.db import models # Asegúrate de tener esta importación al inicio del archivo
+# ================================================================================================================================================
+# cajas
+# ================================================================================================================================================
+
 
 @login_required
 def historial_cajas(request, ruta_id):
@@ -705,9 +936,6 @@ def historial_cajas(request, ruta_id):
         'mes_param': mes_param_str,
     })
 
-# =====================================================
-# 🔒 CIERRE AUTOMÁTICO DE CAJAS ANTRIORES
-# =====================================================
 def cerrar_cajas_anteriores(ruta):
     hoy = localdate()
 
@@ -733,12 +961,6 @@ def cerrar_cajas_anteriores(ruta):
         caja.saldo_final = caja.saldo_inicial + ingresos - egresos
         caja.cerrada = True
         caja.save()
-
-
-# =====================================================
-# 📊 MOVIMIENTOS DE RUTA (CAJA DEL DÍA)
-# =====================================================
-from datetime import timedelta # Asegúrate de tener esta importación arriba
 
 @login_required
 def movimientos_ruta(request, ruta_id):
@@ -902,259 +1124,6 @@ def reporte_diario(request, ruta_id, fecha):
         "saldo_final": caja.saldo_final,
     })
 
-def crear_cuotas(targeta):
-    """
-    Genera cuotas con fecha de vencimiento. 
-    1. Si es tarde (8 PM+), inicia un día después.
-    2. Si un vencimiento cae DOMINGO, se pasa al LUNES.
-    """
-    monto_total = targeta.monto_total
-    plazo = targeta.plazo_dias
-    monto_cuota = (monto_total / Decimal(plazo)).quantize(Decimal('0.01'))
-    
-    HORA_CORTE = 20  # 8:00 PM
-    ahora = timezone.localtime(timezone.now())
-    # Definimos desde cuándo empezamos a contar los días del plazo
-    dia_referencia = localdate()
-
-    if ahora.hour >= HORA_CORTE:
-        dia_referencia = dia_referencia + datetime.timedelta(days=1)
-
-    # Creamos las cuotas una por una
-    for i in range(1, plazo + 1):
-        # Calculamos la fecha tentativa (sumando i días al día de referencia)
-        vencimiento = dia_referencia + datetime.timedelta(days=i)
-        
-        # --- LÓGICA EXCLUIR DOMINGOS ---
-        if vencimiento.weekday() == 6: 
-            vencimiento = vencimiento + datetime.timedelta(days=1)
-        # -------------------------------
-        
-        Cuota.objects.create(
-            targeta=targeta,
-            numero=i,
-            monto=monto_cuota,
-            saldo_cuota=monto_cuota,  # <--- IMPORTANTE: Se añade el saldo inicial aquí
-            fecha_vencimiento=vencimiento,
-            estado='PENDIENTE'
-        )
-    
-    targeta.actualizar_estado()
-
-from decimal import Decimal # Importante para manejar dinero con exactitud
-from django.db import transaction # Para asegurar que si falla algo, no se reste dinero a medias
-
-
-
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.db import transaction
-from django.db.models import Sum
-from decimal import Decimal
-from datetime import date
-# Asegúrate de importar tus modelos
-# from .models import Ruta, MovimientoRuta 
-
-@login_required
-def registrar_gasto(request, ruta_id):
-    ruta = get_object_or_404(Ruta, id=ruta_id)
-    hoy = date.today()
-
-    # --- LÓGICA PARA EL MODAL (CORREGIDA) ---
-    # Filtramos por tipo EGRESO Y que la descripción empiece con "GASTO:"
-    gastos_mes_qs = MovimientoRuta.objects.filter(
-        ruta=ruta,
-        tipo='EGRESO',
-        descripcion__startswith='GASTO:', # <--- ESTO ES LA CLAVE
-        fecha__month=hoy.month,
-        fecha__year=hoy.year
-    ).order_by('-fecha')
-
-    # Sumamos el total de esos gastos filtrados
-    total_gastos_mes = gastos_mes_qs.aggregate(Sum('monto'))['monto__sum'] or 0
-
-    # --- PROCESAMIENTO DEL FORMULARIO ---
-    if request.method == 'POST':
-        monto_str = request.POST.get('monto')
-        descripcion = request.POST.get('descripcion')
-        
-        try:
-            if monto_str:
-                monto = Decimal(monto_str)
-                
-                if monto <= 0:
-                    messages.error(request, "El monto debe ser mayor a cero.")
-                
-                # Verificamos si la base aguanta el gasto
-                elif ruta.base < monto:
-                    messages.error(request, f"⚠️ Fondos insuficientes. La base actual es ${ruta.base}")
-                
-                else:
-                    # Transacción atómica para seguridad de datos
-                    with transaction.atomic():
-                        # 1. RESTAMOS DE LA BASE
-                        ruta.base -= monto
-                        ruta.save()
-
-                        # 2. CREAMOS EL MOVIMIENTO
-                        MovimientoRuta.objects.create(
-                            ruta=ruta,
-                            tipo='EGRESO',
-                            monto=monto,
-                            descripcion=f"GASTO: {descripcion}"
-                        )
-
-                    messages.success(request, f"✅ Gasto de ${monto} descontado de la base.")
-                    return redirect(f'/dashboard/supervisor/?ruta={ruta.id}')
-            else:
-                messages.error(request, "El monto es obligatorio.")
-                
-        except Exception as e:
-            messages.error(request, f"Error al procesar el gasto: {e}")
-            
-    # Enviamos los datos al template (incluyendo los del modal)
-    context = {
-        'ruta': ruta,
-        'gastos_recientes': gastos_mes_qs,  # Para la tablita del modal
-        'total_gastos_mes': total_gastos_mes # Para el encabezado del modal
-    }
-    
-    return render(request, 'app/registrar_gasto.html', context)
-
-
-
-
-
-
-
-
-
-
-
-
-
-@login_required
-def eliminar_abono(request, abono_id):
-    abono = get_object_or_404(Abono, id=abono_id)
-    targeta = abono.targeta
-    ruta = targeta.ruta
-
-    # Seguridad: Solo Supervisor de esta ruta o Staff
-    if request.user != ruta.supervisor and not request.user.is_staff:
-        messages.error(request, "No tienes permiso para eliminar abonos.")
-        return redirect('historial_abonos', targeta_id=targeta.id)
-
-    with transaction.atomic():
-        # 1. Devolver el saldo a la cuota
-        if abono.cuota:
-            cuota = abono.cuota
-            cuota.saldo_cuota += abono.monto
-            cuota.estado = 'PENDIENTE'
-            cuota.fecha_pago = None
-            cuota.save()
-
-        # 2. Restar de la base de la ruta
-        ruta.base -= abono.monto
-        ruta.save()
-
-        # 3. Crear un movimiento de salida para dejar rastro (Auditoría)
-        MovimientoRuta.objects.create(
-            ruta=ruta,
-            tipo='EGRESO',
-            monto=abono.monto,
-            descripcion=f"ANULACIÓN ABONO - Cliente: {targeta.nombre_cliente} (Abono ID: {abono.id})"
-        )
-
-        # 4. Eliminar el abono
-        abono.delete()
-        
-        # 5. Actualizar estado de la tarjeta (por si vuelve a mora)
-        targeta.actualizar_estado()
-
-    messages.success(request, f"Abono eliminado. Se han devuelto ${abono.monto} a la deuda.")
-    return redirect('historial_abonos', targeta_id=targeta.id)
-
-
-
-
-@login_required
-@supervisor_required
-def renovar_targeta(request, targeta_id):
-    targeta = get_object_or_404(Targeta, id=targeta_id, ruta__supervisor=request.user)
-    ruta = targeta.ruta
-
-    if request.method == "POST":
-        monto = Decimal(request.POST.get("monto_base"))
-        tasa = int(request.POST.get("tasa_interes"))
-        plazo = int(request.POST.get("plazo_dias"))
-
-        if monto > ruta.base:
-            messages.error(request, "Base insuficiente en la ruta.")
-            return redirect(request.path)
-
-        try:
-            with transaction.atomic():
-                # 1. Limpiar historial de cuotas y abonos viejos (Para que no se mezclen)
-                targeta.cuotas.all().delete()
-                targeta.abonos.all().delete()
-
-                # 2. Restaurar valores de la tarjeta
-                targeta.monto_base = monto
-                targeta.tasa_interes = tasa
-                targeta.plazo_dias = plazo
-                targeta.estado = 'AL_DIA' # Vuelve a estar activa
-                targeta.save()
-
-                # 3. Generar nuevas cuotas
-                crear_cuotas(targeta)
-
-                # 4. Descontar de la base y registrar movimiento
-                ruta.base -= monto
-                ruta.save()
-
-                MovimientoRuta.objects.create(
-                    ruta=ruta,
-                    tipo='EGRESO',
-                    monto=monto,
-                    descripcion=f"RENOVACIÓN (Restauración): {targeta.nombre_cliente}"
-                )
-
-            messages.success(request, f"Crédito restaurado para {targeta.nombre_cliente}")
-            return redirect(f"/dashboard/supervisor/?ruta={ruta.id}")
-
-        except Exception as e:
-            messages.error(request, f"Error: {e}")
-
-    return render(request, "app/renovar_targeta.html", {"targeta": targeta})
-
-
-@login_required
-@supervisor_required
-def clientes_finalizados(request):
-    rutas = Ruta.objects.filter(supervisor=request.user)
-    ruta_id = request.GET.get("ruta")
-    
-    # Buscamos tarjetas del supervisor
-    query = Targeta.objects.filter(ruta__supervisor=request.user)
-    
-    if ruta_id:
-        query = query.filter(ruta_id=ruta_id)
-
-    # FILTRO CLAVE: Traemos las que ya están marcadas PAGADA 
-    # O las que detectamos que ya no deben nada (saldo_restante == 0)
-    targetas = [t for t in query if t.estado == 'PAGADA' or t.saldo_restante <= 0]
-
-    return render(request, "app/clientes_finalizados.html", {
-        "targetas": targetas,
-        "rutas": rutas,
-        "ruta_sel": rutas.filter(id=ruta_id).first() if ruta_id else None
-    })
-
-
-
-
-
 def historial_cierres(request, ruta_id):
     ruta = get_object_or_404(Ruta, id=ruta_id)
     historial = ReporteDiario.objects.filter(ruta=ruta).order_by('-fecha')
@@ -1172,6 +1141,11 @@ def historial_cierres(request, ruta_id):
     })
 
 
+# ================================================================================================================================================
+# mapa
+# ================================================================================================================================================
+
+
 def mapa_clientes(request, ruta_id):
     ruta = get_object_or_404(Ruta, id=ruta_id)
     # Solo traemos las tarjetas que tengan ubicación guardada
@@ -1181,7 +1155,6 @@ def mapa_clientes(request, ruta_id):
         'ruta': ruta,
         'clientes': clientes
     })
-
 
 def guardar_gps_cliente(request, targeta_id):
     targeta = get_object_or_404(Targeta, id=targeta_id)
@@ -1202,8 +1175,6 @@ def guardar_gps_cliente(request, targeta_id):
     
 
     from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
-from .models import Targeta
 
 def validar_gps_cliente(request, pk):
     # Buscamos la tarjeta por su ID (pk)

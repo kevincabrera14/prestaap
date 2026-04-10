@@ -4,207 +4,28 @@
 <head>
     <meta charset="UTF-8">
     <title>PrestApp | Editar Cliente</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1"> <!-- Cargar el favicon usando la ruta que me diste -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
-    
-    <!-- Opcional: para asegurar compatibilidad con móviles -->
     <link rel="icon" type="image/png" href="{% static 'img/favicon.ico' %}">
-    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <style>
-        /* --- ESTILOS BASE (Mismos que los otros templates) --- */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        :root {
-            --dark-navy: #1a1a2e;
-            --accent-blue: #1565c0;
-            --success-green: #2e7d32;
-            --bg-gray: #f1f3f5;
-            --border-color: #e0e0e0;
-        }
-
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: var(--bg-gray); 
-            color: #1a1a1a;
-        }
-
-        /* --- NAVIGATION --- */
-        .top-nav {
-            background: var(--dark-navy);
-            padding: 14px 20px;
-            display: flex;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-        }
-        .btn-back {
-            color: rgba(255,255,255,0.7);
-            text-decoration: none;
-            font-size: 0.8rem;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            border: 1px solid rgba(255,255,255,0.2);
-            padding: 5px 12px;
-            border-radius: 8px;
-            transition: 0.2s;
-        }
-        .btn-back:hover { background: rgba(255,255,255,0.1); color: #fff; }
-        .nav-title { color: #fff; font-weight: 700; flex: 1; text-align: center; font-size: 1rem; margin-right: 50px; }
-
-        .page-container { max-width: 800px; margin: 0 auto; padding: 20px; }
-
-        /* --- FORM CARD --- */
-        .card-form {
-            background: white;
-            border-radius: 20px;
-            border: none;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-            margin-bottom: 30px;
-        }
-        .card-inner { padding: 30px; }
-
-        /* Títulos de sección dentro del form */
-        .form-section-label {
-            font-size: 0.65rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #999;
-            margin-bottom: 15px;
-            margin-top: 10px;
-            display: block;
-        }
-
-        /* --- INPUTS ESTILO MINIMALISTA --- */
-        .form-label { font-size: 0.8rem; font-weight: 600; color: #555; margin-bottom: 4px; }
-        .form-control, .form-select {
-            padding: 12px 15px;
-            border-radius: 12px;
-            border: 1.5px solid var(--border-color);
-            background-color: #fff;
-            font-size: 0.9rem;
-            transition: 0.2s;
-        }
-        .form-control:focus, .form-select:focus {
-            border-color: var(--accent-blue);
-            box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.1);
-            outline: none;
-        }
-        textarea.form-control { border-radius: 12px; }
-
-        /* --- SECCIÓN GPS --- */
-        .gps-container {
-            border: 1.5px solid var(--border-color);
-            border-radius: 16px;
-            padding: 15px;
-            background: #fff;
-            height: 100%;
-        }
-        #mini-map {
-            height: 160px;
-            width: 100%;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            z-index: 1;
-        }
-        .btn-maps-external {
-            background: #f0f7ff;
-            color: var(--accent-blue);
-            text-decoration: none;
-            font-size: 0.75rem;
-            font-weight: 700;
-            padding: 8px;
-            border-radius: 8px;
-            display: block;
-            text-align: center;
-        }
-        .btn-maps-external:hover { background: #e0eeff; }
-
-        /* Estado sin GPS */
-        .no-gps-state {
-            text-align: center;
-            padding: 20px 10px;
-            background: #fff8e1;
-            border-radius: 12px;
-            border: 1px dashed #ffe082;
-        }
-        .btn-whatsapp-request {
-            background: var(--success-green);
-            color: white;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 0.8rem;
-            padding: 10px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 10px;
-        }
-        .btn-whatsapp-request:hover { background: #1b5e20; color: white; }
-
-        /* --- BOTONES DE ACCIÓN (Abajo) --- */
-        .action-btns-wrap {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 30px;
-        }
-        .btn-cancel {
-            background: #e0e0e0;
-            color: #555;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            text-decoration: none;
-        }
-        .btn-cancel:hover { background: #d5d5d5; }
-        
-        .btn-save-changes {
-            background: var(--dark-navy);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            box-shadow: 0 4px 12px rgba(26,26,46,0.15);
-        }
-        .btn-save-changes:hover { background: #2a2a4a; }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .card-inner { padding: 20px; }
-            .action-btns-wrap { flex-direction: column-reverse; }
-            .btn-cancel, .btn-save-changes { width: 100%; text-align: center; }
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
-
 <body>
 
 <nav class="top-nav">
-    <a href="{% url 'dashboard_supervisor' %}?ruta={{ targeta.ruta.id }}" class="btn-back">
+    <a href="{% url 'dashboard_supervisor' %}?ruta={{ targeta.ruta.id }}" class="nav-back">
         <i class="bi bi-arrow-left"></i> Volver
     </a>
     <span class="nav-title">Editar Cliente</span>
 </nav>
 
-<div class="page-container">
-    
+<div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+
     <div class="card card-form">
-        <div class="card-inner">
+        <div class="card-inner-form">
             <form method="post">
                 {% csrf_token %}
 
@@ -232,18 +53,18 @@
                     </div>
                     <div class="col-md-7">
                         <label class="form-label">Número de documento</label>
-                        <input type="text" name="numero_identificacion" class="form-control" placeholder="Ej: 10203040"
-                            value="{{ targeta.numero_identificacion }}" required>
+                        <input type="text" name="numero_identificacion" class="form-control"
+                            placeholder="Ej: 10203040" value="{{ targeta.numero_identificacion }}" required>
                     </div>
                     <div class="col-12">
                         <label class="form-label">Nombre completo del cliente</label>
-                        <input type="text" name="nombre_cliente" class="form-control" placeholder="Nombre y Apellidos"
-                            value="{{ targeta.nombre_cliente }}" required>
+                        <input type="text" name="nombre_cliente" class="form-control"
+                            placeholder="Nombre y Apellidos" value="{{ targeta.nombre_cliente }}" required>
                     </div>
                     <div class="col-12">
                         <label class="form-label">Teléfono de contacto</label>
-                        <input type="text" name="telefono" class="form-control" placeholder="Ej: 3001234567"
-                            value="{{ targeta.telefono }}" required>
+                        <input type="text" name="telefono" class="form-control"
+                            placeholder="Ej: 3001234567" value="{{ targeta.telefono }}" required>
                     </div>
                 </div>
 
@@ -251,16 +72,16 @@
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
                         <label class="form-label">Dirección de residencia (Manual)</label>
-                        <input type="text" name="direccion_casa" class="form-control" placeholder="Calle, Carrera, Barrio..."
-                            value="{{ targeta.direccion_casa|default:'' }}">
-                        
+                        <input type="text" name="direccion_casa" class="form-control"
+                            placeholder="Calle, Carrera, Barrio..." value="{{ targeta.direccion_casa|default:'' }}">
+
                         <div class="mt-3">
                             <label class="form-label">Dirección del negocio (Opcional)</label>
                             <input type="text" name="direccion_negocio" class="form-control"
                                 value="{{ targeta.direccion_negocio|default:'' }}">
                         </div>
                     </div>
-                    
+
                     <div class="col-md-6">
                         <label class="form-label">Punto GPS Exacto</label>
                         <div class="gps-container">
@@ -285,7 +106,8 @@
 
                 <div class="mb-2">
                     <label class="form-label">Observaciones adicionales</label>
-                    <textarea name="observaciones" class="form-control" rows="3" placeholder="Notas sobre el cobro o el cliente...">{{ targeta.observaciones }}</textarea>
+                    <textarea name="observaciones" class="form-control" rows="3"
+                        placeholder="Notas sobre el cobro o el cliente...">{{ targeta.observaciones }}</textarea>
                 </div>
 
                 <div class="action-btns-wrap">
@@ -307,13 +129,11 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // Inicialización del Mini Mapa si hay coordenadas
     {% if targeta.latitud and targeta.longitud %}
     document.addEventListener('DOMContentLoaded', function () {
         var lat = {{ targeta.latitud|stringformat:"f" }};
         var lng = {{ targeta.longitud|stringformat:"f" }};
 
-        // Mapa minimalista (CartoDB Positron)
         var map = L.map('mini-map', {
             zoomControl: false,
             attributionControl: false

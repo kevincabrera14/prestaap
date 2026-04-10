@@ -4,11 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <title>PrestApp | Registrar Abono</title>
-    <!-- Relación con el archivo de icono -->
-    <link rel="icon" type="image/x-icon" href="{% static 'app/img/favicon.ico' %}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
+    <link rel="icon" type="image/png" href="{% static 'img/favicon.ico' %}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
 
@@ -30,20 +30,17 @@
 
     <div class="main-card">
 
-        <!-- Header cliente -->
         <div class="client-header">
             <div class="client-avatar">{{ targeta.nombre_cliente|slice:":1"|upper }}</div>
             <div class="client-name-hdr">{{ targeta.nombre_cliente }}</div>
             <div class="client-sub">Registrar abono</div>
         </div>
 
-        <!-- Saldo -->
         <div class="saldo-strip">
             <span class="saldo-label">Saldo pendiente</span>
             <span class="saldo-val">${{ targeta.saldo_restante }}</span>
         </div>
 
-        <!-- Formulario -->
         <div class="form-body">
             <form method="post">
                 {% csrf_token %}
@@ -63,7 +60,7 @@
                 <div class="field-wrap">
                     <label class="field-label">2. Monto a recibir</label>
                     <div class="monto-wrap">
-                        <span class="monto-prefix">$</span>
+                        <span class="monto-prefix ingreso">$</span>
                         <input type="number"
                                step="0.01"
                                name="monto_abono"
