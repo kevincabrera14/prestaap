@@ -1,4 +1,5 @@
 {% load static %}
+{% load humanize %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -52,15 +53,15 @@
     <div class="resumen-titulo">Resumen del mes</div>
     <div class="resumen-grid-cajas">
         <div class="res-item ingreso">
-            <div class="res-num-caja">${{ total_ingresos_mes }}</div>
+            <div class="res-num-caja">${{ total_ingresos_mes|intcomma }}</div>
             <div class="res-lbl">Cobrado</div>
         </div>
         <div class="res-item egreso">
-            <div class="res-num-caja">${{ total_capital_mes }}</div>
+            <div class="res-num-caja">${{ total_capital_mes|intcomma }}</div>
             <div class="res-lbl">Prestado</div>
         </div>
         <div class="res-item neto">
-            <div class="res-num-caja">${{ neto_mes }}</div>
+            <div class="res-num-caja">${{ neto_mes|intcomma }}</div>
             <div class="res-lbl">Neto</div>
         </div>
     </div>
@@ -70,18 +71,18 @@
         <div class="resumen-titulo" style="margin-bottom:10px;">Egresos operativos</div>
         <div class="resumen-grid-cajas">
             <div class="res-item egreso">
-                <div class="res-num-caja">${{ total_gastos_mes }}</div>
+                <div class="res-num-caja">${{ total_gastos_mes|intcomma }}</div>
                 <div class="res-lbl">Gastos</div>
             </div>
             <div class="res-item egreso">
                 <div class="res-num-caja">
                     {# Pérdidas = egresos que no son préstamos ni renovaciones ni gastos normales #}
-                    ${{ total_egresos_mes|add:total_capital_mes|add:total_gastos_mes }}
+                    ${{ total_egresos_mes|add:total_capital_mes|add:total_gastos_mes|intcomma }}
                 </div>
                 <div class="res-lbl">Pérdidas</div>
             </div>
             <div class="res-item neto">
-                <div class="res-num-caja">${{ total_egresos_mes }}</div>
+                <div class="res-num-caja">${{ total_egresos_mes|intcomma }}</div>
                 <div class="res-lbl">Total egresado</div>
             </div>
         </div>
@@ -99,13 +100,13 @@
             <div>
                 <div class="dia-fecha">{{ dia.fecha|date:"l d \d\e F" }}</div>
                 <div class="dia-nums">
-                    <span class="dia-num-item ing">↑ ${{ dia.ingresos }}</span>
-                    <span class="dia-num-item egr">↓ ${{ dia.egresos }}</span>
+                    <span class="dia-num-item ing">↑ ${{ dia.ingresos|intcomma }}</span>
+                    <span class="dia-num-item egr">↓ ${{ dia.egresos|intcomma }}</span>
                 </div>
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
                 <div style="text-align:right;">
-                    <div class="neto-val {% if dia.neto >= 0 %}pos{% else %}neg{% endif %}">${{ dia.neto }}</div>
+                    <div class="neto-val {% if dia.neto >= 0 %}pos{% else %}neg{% endif %}">${{ dia.neto|intcomma }}</div>
                     <div class="neto-lbl">Neto</div>
                 </div>
                 <span class="chevron">▼</span>
@@ -125,7 +126,7 @@
                     <div class="seccion-meta">
                         <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.abonos|length }}</span>
                         {% if dia.abonos %}
-                        <span class="meta-total green">+${{ dia.total_abonos }}</span>
+                        <span class="meta-total green">+${{ dia.total_abonos|intcomma }}</span>
                         {% endif %}
                         <span class="chevron">▼</span>
                     </div>
@@ -142,7 +143,7 @@
                                 {% endif %}
                             </div>
                         </div>
-                        <span class="mov-monto green">+${{ m.monto }}</span>
+                        <span class="mov-monto green">+${{ m.monto|intcomma }}</span>
                     </div>
                     {% empty %}
                     <div class="seccion-empty">Sin abonos este día.</div>
@@ -160,7 +161,7 @@
                     <div class="seccion-meta">
                         <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.prestamos|length }}</span>
                         {% if dia.prestamos %}
-                        <span class="meta-total blue">-${{ dia.total_prestamos }}</span>
+                        <span class="meta-total blue">-${{ dia.total_prestamos|intcomma }}</span>
                         {% endif %}
                         <span class="chevron">▼</span>
                     </div>
@@ -177,7 +178,7 @@
                                 {% endif %}
                             </div>
                         </div>
-                        <span class="mov-monto blue">-${{ m.monto }}</span>
+                        <span class="mov-monto blue">-${{ m.monto|intcomma }}</span>
                     </div>
                     {% empty %}
                     <div class="seccion-empty">Sin préstamos este día.</div>
@@ -195,7 +196,7 @@
                     <div class="seccion-meta">
                         <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.renovaciones|length }}</span>
                         {% if dia.renovaciones %}
-                        <span class="meta-total amber">-${{ dia.total_renovaciones }}</span>
+                        <span class="meta-total amber">-${{ dia.total_renovaciones|intcomma }}</span>
                         {% endif %}
                         <span class="chevron">▼</span>
                     </div>
@@ -212,7 +213,7 @@
                                 {% endif %}
                             </div>
                         </div>
-                        <span class="mov-monto amber">-${{ m.monto }}</span>
+                        <span class="mov-monto amber">-${{ m.monto|intcomma }}</span>
                     </div>
                     {% empty %}
                     <div class="seccion-empty">Sin renovaciones este día.</div>
@@ -230,7 +231,7 @@
                     <div class="seccion-meta">
                         <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.gastos|length }}</span>
                         {% if dia.gastos %}
-                        <span class="meta-total red">-${{ dia.total_gastos }}</span>
+                        <span class="meta-total red">-${{ dia.total_gastos|intcomma }}</span>
                         {% endif %}
                         <span class="chevron">▼</span>
                     </div>
@@ -247,7 +248,7 @@
                                 {% endif %}
                             </div>
                         </div>
-                        <span class="mov-monto red">-${{ m.monto }}</span>
+                        <span class="mov-monto red">-${{ m.monto|intcomma }}</span>
                     </div>
                     {% empty %}
                     <div class="seccion-empty">Sin gastos este día.</div>
@@ -266,9 +267,7 @@
     </div>
     {% endif %}
 
-</div><!-- /page -->
-
-<script>
+</div><script>
 function toggleDia(id) {
     document.getElementById(id).classList.toggle('open');
 }
