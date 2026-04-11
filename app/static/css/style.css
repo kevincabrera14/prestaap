@@ -1750,3 +1750,214 @@ body {
     color: var(--text-muted);
     margin-bottom: 20px;
 }
+
+
+/* ============================================================
+   8. MAPA DE CLIENTES
+   ============================================================ */
+
+.map-section {
+    position: relative;
+    margin-top: 20px;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    border: 4px solid white;
+}
+
+#map { height: 500px; width: 100%; z-index: 1; }
+
+.leaflet-popup-content-wrapper { border-radius: 12px; padding: 5px; }
+.leaflet-popup-tip { background: white; }
+
+.map-search {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999;
+    width: 90%;
+    max-width: 400px;
+}
+
+.map-search-input {
+    width: 100%;
+    border-radius: var(--radius-md);
+    border: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    padding: 12px 20px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 30px 0 15px;
+}
+
+.list-title { font-weight: 800; font-size: 1.1rem; color: var(--navy); }
+
+.list-count {
+    background: var(--navy);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+}
+
+.clientes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 60px;
+}
+
+.cliente-card {
+    background: white;
+    border-radius: 18px;
+    padding: 16px;
+    border: 1px solid rgba(0,0,0,0.05);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.3s ease;
+}
+
+.cliente-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+    border-color: var(--blue);
+}
+
+.cliente-card .client-name {
+    font-weight: 700;
+    color: var(--navy);
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.client-addr {
+    font-size: 0.8rem;
+    color: #777;
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+}
+
+.btn-gmaps {
+    background: #f0f7ff;
+    color: var(--blue);
+    border: none;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 8px 12px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 12px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.btn-gmaps:hover { background: var(--blue); color: white; }
+
+.nav-info { display: flex; align-items: center; gap: 12px; }
+.nav-info-title { font-weight: 700; font-size: 1rem; color: white; margin: 0; }
+.nav-info-sub { font-size: 0.75rem; color: rgba(255,255,255,0.7); }
+
+.empty-mapa {
+    text-align: center;
+    padding: 60px 20px;
+    grid-column: 1 / -1;
+}
+
+.empty-mapa-icon { font-size: 3rem; opacity: 0.3; margin-bottom: 12px; }
+.empty-mapa p { color: #999; }
+
+@media (max-width: 768px) {
+    #map { height: 350px; }
+    .clientes-grid { grid-template-columns: 1fr 1fr; }
+}
+
+
+/* ============================================================
+   9. RENOVAR TARGETA
+   ============================================================ */
+
+.renovar-wrap {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 20px 16px 60px;
+}
+
+.renovar-card {
+    background: #fff;
+    border-radius: var(--radius-xl);
+    border: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+    overflow: hidden;
+}
+
+.renovar-header {
+    background: var(--navy);
+    padding: 24px 20px;
+    text-align: center;
+}
+
+.renovar-header h3 {
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin: 0 0 4px;
+}
+
+.renovar-header p {
+    color: rgba(255,255,255,0.6);
+    font-size: 0.8rem;
+    margin: 0;
+}
+
+.renovar-body { padding: 24px 20px; }
+
+.renovar-alert {
+    background: #e8f4fd;
+    border-left: 4px solid var(--blue);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 0.88rem;
+    color: #1a3a5c;
+    margin-bottom: 20px;
+}
+
+.renovar-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.btn-renovar-confirm {
+    width: 100%;
+    padding: 14px;
+    border-radius: var(--radius-md);
+    background: var(--blue);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s;
+    margin-bottom: 10px;
+}
+
+.btn-renovar-confirm:hover { background: #0d47a1; }
