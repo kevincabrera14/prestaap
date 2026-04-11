@@ -76,10 +76,10 @@
             </div>
             <div class="res-item egreso">
                 <div class="res-num-caja">
-                    {# Pérdidas = egresos que no son préstamos ni renovaciones ni gastos normales #}
-                    ${{ total_egresos_mes|add:total_capital_mes|add:total_gastos_mes|intcomma }}
+                    {# Otros/Pérdidas: Muestra descuadres o egresos no clasificados #}
+                    ${{ total_perdidas_mes|intcomma }}
                 </div>
-                <div class="res-lbl">Pérdidas</div>
+                <div class="res-lbl">Otros</div>
             </div>
             <div class="res-item neto">
                 <div class="res-num-caja">${{ total_egresos_mes|intcomma }}</div>
@@ -267,7 +267,9 @@
     </div>
     {% endif %}
 
-</div><script>
+</div>
+
+<script>
 function toggleDia(id) {
     document.getElementById(id).classList.toggle('open');
 }
