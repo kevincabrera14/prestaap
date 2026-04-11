@@ -989,6 +989,7 @@ def historial_cajas(request, ruta_id):
         'meses_disponibles': meses_disponibles,
         'mes_param': mes_param_str,
     })
+
 def cerrar_cajas_anteriores(ruta):
     hoy = localdate()
 
