@@ -1,5 +1,3 @@
-#views 
-
 # ===============================================================================================================================================================
 # import
 # ===============================================================================================================================================================
@@ -21,9 +19,9 @@ from django.urls import reverse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from datetime import date
-from datetime import timedelta 
-from decimal import Decimal 
-from django.db import transaction 
+from datetime import timedelta
+from decimal import Decimal
+from django.db import transaction
 from django.http import JsonResponse
 from django.utils import timezone
 
@@ -351,7 +349,8 @@ def crear_targeta(request):
             tasa_interes=tasa,
             plazo_dias=plazo,
             frecuencia_cobro=frecuencia,
-            creada_por=request.user
+            creada_por=request.user,
+            abonos_offset=Decimal('0.00'),
         )
 
         crear_cuotas(targeta)
@@ -439,9 +438,18 @@ def eliminar_targeta(request, targeta_id):
 
     return redirect(f"/dashboard/supervisor/?ruta={ruta.id}")
 
+
 @login_required
 @supervisor_required
 def renovar_targeta(request, targeta_id):
+    """
+    CORRECCIONES aplicadas:
+    1. Ya NO se borran los abonos históricos → el reporte diario conserva los
+       pagos que el cliente hizo antes de la renovación ese mismo día.
+    2. Se guarda en `abonos_offset` la suma de abonos previos para que
+       `total_abonado` y `saldo_restante` arranquen desde 0 en el nuevo ciclo.
+    3. Se eliminó el estado inválido 'AL_DIA'; se usa 'PAGO' directamente.
+    """
     targeta = get_object_or_404(Targeta, id=targeta_id, ruta__supervisor=request.user)
     ruta = targeta.ruta
 
@@ -456,20 +464,31 @@ def renovar_targeta(request, targeta_id):
 
         try:
             with transaction.atomic():
-                targeta.cuotas.all().delete()
-                targeta.abonos.all().delete()
+                # ── 1. Acumular abonos previos en el offset ───────────────
+                # Los abonos NO se borran; así el reporte diario los conserva.
+                abonos_actuales = targeta.abonos.aggregate(
+                    total=Sum('monto')
+                )['total'] or Decimal('0.00')
+                targeta.abonos_offset = abonos_actuales
 
+                # ── 2. Borrar SOLO las cuotas del ciclo anterior ──────────
+                targeta.cuotas.all().delete()
+
+                # ── 3. Actualizar datos del nuevo crédito ─────────────────
                 targeta.monto_base   = monto
                 targeta.tasa_interes = tasa
                 targeta.plazo_dias   = plazo
-                targeta.estado       = 'AL_DIA'
+                targeta.estado       = 'PAGO'   # estado válido (antes era 'AL_DIA')
                 targeta.save()
 
+                # ── 4. Crear cuotas del nuevo ciclo ───────────────────────
                 crear_cuotas(targeta)
 
+                # ── 5. Descontar de la base de la ruta ────────────────────
                 ruta.base -= monto
-                ruta.save()
+                ruta.save(update_fields=['base'])
 
+                # ── 6. Registrar el egreso de la renovación ───────────────
                 MovimientoRuta.objects.create(
                     ruta=ruta,
                     tipo='EGRESO',
@@ -484,6 +503,7 @@ def renovar_targeta(request, targeta_id):
             messages.error(request, f"Error: {e}")
 
     return render(request, "app/renovar_targeta.html", {"targeta": targeta})
+
 
 @login_required
 @supervisor_required
@@ -520,8 +540,18 @@ def lista_abonos(request, targeta_id):
         'abonos':  abonos
     })
 
+
 @login_required
 def crear_abono(request, targeta_id=None):
+    """
+    CORRECCIONES aplicadas:
+    1. El campo de monto libre sólo se procesa si hay cuotas PENDIENTES.
+       Si no hay cuotas pendientes y el saldo es 0, la tarjeta se marca
+       PAGADA y redirige a clientes_finalizados en lugar de acumular
+       abonos sin cuota.
+    2. Se añade validación explícita: si el monto libre supera el saldo
+       restante, se ajusta al saldo exacto para no sobre-abonar.
+    """
     if not targeta_id:
         targeta_id = request.POST.get("targeta") or request.GET.get("targeta")
 
@@ -535,9 +565,23 @@ def crear_abono(request, targeta_id=None):
         cuota_id    = request.POST.get("cuota")
         monto_input = request.POST.get("monto_abono")
 
+        # ── Validar: si no hay cuotas pendientes no se puede abonar ──────
+        if not cuotas_pendientes.exists():
+            if targeta.saldo_restante <= 0:
+                targeta.estado = 'PAGADA'
+                targeta.save(update_fields=['estado'])
+                messages.info(request, f"La tarjeta de {targeta.nombre_cliente} ya está saldada.")
+            else:
+                messages.error(
+                    request,
+                    "No hay cuotas pendientes para registrar el abono. "
+                    "Verifique el estado de la tarjeta."
+                )
+            return redirect(request.path)
+
         try:
             monto_recibido = Decimal(monto_input) if monto_input and Decimal(monto_input) > 0 else Decimal(0)
-        except (ValueError, TypeError, Decimal.InvalidOperation):
+        except (ValueError, TypeError, Exception):
             monto_recibido = Decimal(0)
 
         cuota_inicio = None
@@ -548,6 +592,11 @@ def crear_abono(request, targeta_id=None):
         if monto_recibido <= 0:
             messages.error(request, "Debe seleccionar una cuota o ingresar un monto.")
             return redirect(request.path)
+
+        # ── Ajustar monto libre al saldo real para no sobre-abonar ───────
+        saldo_actual_targeta = targeta.saldo_restante
+        if monto_recibido > saldo_actual_targeta:
+            monto_recibido = saldo_actual_targeta
 
         if cuota_id:
             if not cuota_inicio:
@@ -563,19 +612,20 @@ def crear_abono(request, targeta_id=None):
         ruta = targeta.ruta
 
         with transaction.atomic():
+            monto_por_distribuir = monto_recibido
             for cuota in cuotas_a_procesar:
-                if monto_recibido <= 0:
+                if monto_por_distribuir <= 0:
                     break
 
-                saldo_actual = cuota.saldo_cuota if cuota.saldo_cuota is not None else Decimal('0.00')
-                if saldo_actual <= 0:
+                saldo_cuota_actual = cuota.saldo_cuota if cuota.saldo_cuota is not None else Decimal('0.00')
+                if saldo_cuota_actual <= 0:
                     continue
 
-                pago_a_cuota  = min(saldo_actual, monto_recibido)
-                cuota.saldo_cuota = saldo_actual - pago_a_cuota
+                pago_a_cuota       = min(saldo_cuota_actual, monto_por_distribuir)
+                cuota.saldo_cuota  = saldo_cuota_actual - pago_a_cuota
                 if cuota.saldo_cuota <= 0:
-                    cuota.estado     = 'PAGADA'
-                    cuota.saldo_cuota = 0
+                    cuota.estado      = 'PAGADA'
+                    cuota.saldo_cuota = Decimal('0.00')
                     cuota.fecha_pago  = now()
                 cuota.save()
 
@@ -585,7 +635,7 @@ def crear_abono(request, targeta_id=None):
                     monto=pago_a_cuota,
                     registrado_por=request.user
                 )
-                monto_recibido -= pago_a_cuota
+                monto_por_distribuir -= pago_a_cuota
 
             ruta.base += monto_original
             ruta.save(update_fields=['base'])
@@ -595,6 +645,8 @@ def crear_abono(request, targeta_id=None):
                 descripcion=f"Abono - Cliente: {targeta.nombre_cliente}"
             )
 
+            # ── Refrescar saldo desde BD y actualizar estado ──────────────
+            targeta.refresh_from_db()
             if targeta.saldo_restante <= 0:
                 targeta.estado = 'PAGADA'
                 targeta.save(update_fields=['estado'])
@@ -624,8 +676,8 @@ def crear_cuotas(targeta):
     plazo        = targeta.plazo_dias
     monto_cuota  = (monto_total / Decimal(plazo)).quantize(Decimal('0.01'))
 
-    HORA_CORTE    = 20
-    ahora         = timezone.localtime(timezone.now())
+    HORA_CORTE     = 20
+    ahora          = timezone.localtime(timezone.now())
     dia_referencia = localdate()
 
     if ahora.hour >= HORA_CORTE:
@@ -646,6 +698,8 @@ def crear_cuotas(targeta):
             estado='PENDIENTE'
         )
 
+    # Actualizar estado con las cuotas ya creadas
+    targeta.refresh_from_db()
     targeta.actualizar_estado()
 
 
@@ -701,6 +755,7 @@ def eliminar_abono(request, abono_id):
         )
 
         abono.delete()
+        targeta.refresh_from_db()
         targeta.actualizar_estado()
 
     messages.success(request, f"Abono eliminado. Se han devuelto ${abono.monto} a la deuda.")

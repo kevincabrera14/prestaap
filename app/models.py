@@ -79,7 +79,7 @@ class Targeta(models.Model):
     numero_identificacion = models.CharField(max_length=30)
     nombre_cliente = models.CharField(max_length=100)
     telefono = models.CharField(max_length=20)
-    
+
     # Direcciones opcionales para usar el GPS como fuente principal
     direccion_casa = models.CharField(max_length=255, blank=True, null=True)
     direccion_negocio = models.CharField(max_length=255, blank=True, null=True)
@@ -101,13 +101,13 @@ class Targeta(models.Model):
         ('QUINCENAL', 'Quincenal'),
         ('MENSUAL',   'Mensual'),
     )
- 
+
     frecuencia_cobro = models.CharField(
         max_length=10,
         choices=FRECUENCIA_CHOICES,
         default='DIARIO',
     )
-    
+
     estado = models.CharField(
         max_length=10,
         choices=ESTADO_CHOICES,
@@ -118,6 +118,16 @@ class Targeta(models.Model):
         User,
         on_delete=models.SET_NULL,
         null=True
+    )
+
+    # -------- OFFSET PARA RENOVACIONES --------
+    # Acumula el total pagado en ciclos anteriores para no borrar el historial
+    # de abonos al renovar un crédito.
+    abonos_offset = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text='Suma de abonos de ciclos anteriores (renovaciones)',
     )
 
     # ===============================
@@ -138,29 +148,37 @@ class Targeta(models.Model):
 
     @property
     def total_abonado(self):
-        total = self.abonos.aggregate(
-            total=Sum('monto')
-        )['total']
-        return total if total else Decimal('0.00')
+        """
+        Suma de abonos del ciclo ACTUAL.
+        Se resta abonos_offset para ignorar pagos de ciclos anteriores
+        (los abonos previos a una renovación se conservan en BD para no
+        borrarlos del reporte diario).
+        """
+        total = self.abonos.aggregate(total=Sum('monto'))['total']
+        bruto = total if total else Decimal('0.00')
+        return max(bruto - self.abonos_offset, Decimal('0.00'))
 
     @property
     def saldo_restante(self):
         return self.monto_total - self.total_abonado
 
     def actualizar_estado(self):
-        """Actualiza si la tarjeta está al día, en mora o pagada por completo."""
+        """
+        Actualiza si la tarjeta está al día, en mora o pagada por completo.
+
+        CORRECCIÓN: se eliminó el bypass del domingo (elif weekday==6: pass)
+        que dejaba la tarjeta en MORA al crearse o renovarse en domingo.
+        """
         hoy = localdate()
         saldo = self.saldo_restante
 
         if saldo <= Decimal('0.00'):
             self.estado = 'PAGADA'
-        elif hoy.weekday() == 6:
-            pass
         elif self.cuotas.filter(estado='PENDIENTE', fecha_vencimiento__lt=hoy).exists():
             self.estado = 'MORA'
         else:
             self.estado = 'PAGO'
-            
+
         self.save(update_fields=['estado'])
 
     def __str__(self):
@@ -179,9 +197,9 @@ class Cuota(models.Model):
     targeta = models.ForeignKey(Targeta, on_delete=models.CASCADE, related_name='cuotas')
     fecha_vencimiento = models.DateField(null=True, blank=True)
     numero = models.PositiveIntegerField()
-    monto = models.DecimalField(max_digits=10, decimal_places=2) 
-    
-    saldo_cuota = models.DecimalField(max_digits=10, decimal_places=2, default=0) 
+    monto = models.DecimalField(max_digits=10, decimal_places=2)
+
+    saldo_cuota = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='PENDIENTE')
     fecha_pago = models.DateTimeField(null=True, blank=True)
