@@ -42,7 +42,7 @@ urlpatterns = [
     path('ruta/<int:ruta_id>/movimientos/', views.movimientos_ruta, name='movimientos_ruta'),
 
     path('ruta/<int:ruta_id>/retiro/', views.retiro_justificado, name='retiro_justificado'),
-    
+
     path('ruta/<int:ruta_id>/cajas/', views.historial_cajas, name='historial_cajas'),
    
     path('reporte-diario/<int:ruta_id>/<str:fecha>/',views.reporte_diario,name='reporte_diario'),
@@ -69,5 +69,5 @@ urlpatterns = [
 
     path('validar/<int:pk>/', views.validar_gps_cliente, name='validar_gps_cliente'),
 
-    path('ruta/<int:ruta_id>/resumen-mensual/', views.resumen_mensual, name='resumen_mensual'),
+   
 ]

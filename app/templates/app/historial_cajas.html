@@ -6,500 +6,260 @@
     <title>PrestApp | Historial Cajas — {{ ruta.nombre }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        :root {
-            --ink:        #0f1117;
-            --ink-2:      #4a4f5e;
-            --ink-3:      #9299a8;
-            --bg:         #f2f4f7;
-            --surface:    #ffffff;
-            --border:     #e6e9ed;
-
-            --green:      #166534;
-            --green-bg:   #f0fdf4;
-            --green-acc:  #22c55e;
-
-            --red:        #991b1b;
-            --red-bg:     #fef2f2;
-            --red-acc:    #ef4444;
-
-            --blue:       #1e40af;
-            --blue-bg:    #eff6ff;
-            --blue-acc:   #3b82f6;
-
-            --amber:      #92400e;
-            --amber-bg:   #fffbeb;
-            --amber-acc:  #f59e0b;
-
-            --navy:       #111827;
-        }
-
-        body {
-            font-family: 'DM Sans', sans-serif;
-            background: var(--bg);
-            color: var(--ink);
-            min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        /* NAV */
-        .nav {
-            background: var(--navy);
-            padding: 0 20px;
-            height: 54px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .nav-left  { display: flex; align-items: center; gap: 10px; }
-        .nav-brand { color: #fff; font-weight: 700; font-size: .92rem; }
-        .nav-pill  {
-            background: rgba(255,255,255,.08);
-            border: 1px solid rgba(255,255,255,.1);
-            color: rgba(255,255,255,.6);
-            font-size: .7rem; font-weight: 600;
-            padding: 3px 9px; border-radius: 20px;
-        }
-        .nav-back {
-            color: rgba(255,255,255,.65);
-            border: 1px solid rgba(255,255,255,.14);
-            padding: 5px 13px; border-radius: 7px;
-            font-size: .76rem; font-weight: 600;
-            text-decoration: none; transition: .15s;
-        }
-        .nav-back:hover { background: rgba(255,255,255,.1); color: #fff; }
-
-        /* SHELL */
-        .shell { max-width: 780px; margin: 0 auto; padding: 24px 16px 90px; }
-
-        /* MES CHIPS */
-        .mes-bar {
-            display: flex; gap: 7px;
-            overflow-x: auto; scrollbar-width: none;
-            padding-bottom: 2px; margin-bottom: 22px;
-        }
-        .mes-bar::-webkit-scrollbar { display: none; }
-        .mes-chip {
-            flex: 0 0 auto;
-            padding: 6px 15px; border-radius: 30px;
-            border: 1.5px solid var(--border);
-            background: var(--surface);
-            font-size: .78rem; font-weight: 600;
-            color: var(--ink-2); text-decoration: none;
-            white-space: nowrap; transition: .15s;
-        }
-        .mes-chip:hover  { border-color: var(--navy); color: var(--navy); }
-        .mes-chip.active { background: var(--navy); border-color: var(--navy); color: #fff; }
-
-        /* ENCABEZADO MES */
-        .mes-head  { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; }
-        .mes-title { font-size: 1.2rem; font-weight: 700; }
-        .mes-sub   { font-size: .75rem; color: var(--ink-3); font-family: 'DM Mono', monospace; }
-
-        /* KPIs */
-        .kpi-row {
-            display: grid; grid-template-columns: repeat(3,1fr);
-            gap: 9px; margin-bottom: 26px;
-        }
-        .kpi {
-            background: var(--surface); border-radius: 16px;
-            border: 1px solid var(--border);
-            padding: 15px 13px 13px;
-            position: relative; overflow: hidden;
-        }
-        .kpi::after {
-            content: ''; position: absolute;
-            top: 0; left: 0; right: 0; height: 3px;
-        }
-        .kpi.ing::after          { background: var(--green-acc); }
-        .kpi.egr::after          { background: var(--red-acc); }
-        .kpi.net::after          { background: var(--blue-acc); }
-        .kpi.net.neg::after      { background: var(--red-acc); }
-        .kpi-lbl {
-            font-size: .62rem; font-weight: 700;
-            text-transform: uppercase; letter-spacing: .08em;
-            color: var(--ink-3); margin-bottom: 5px;
-        }
-        .kpi-val { font-size: 1.15rem; font-weight: 700; font-family: 'DM Mono', monospace; }
-        .kpi.ing .kpi-val     { color: var(--green); }
-        .kpi.egr .kpi-val     { color: var(--red); }
-        .kpi.net .kpi-val     { color: var(--blue); }
-        .kpi.net.neg .kpi-val { color: var(--red); }
-
-        /* DÍA CARD */
-        .dia-stack { display: flex; flex-direction: column; gap: 12px; }
-
-        .dia-card {
-            background: var(--surface);
-            border-radius: 20px; border: 1px solid var(--border);
-            overflow: hidden; transition: box-shadow .2s;
-        }
-        .dia-card.open { box-shadow: 0 4px 20px rgba(0,0,0,.07); }
-
-        .dia-head {
-            display: flex; justify-content: space-between;
-            align-items: center; padding: 14px 18px;
-            cursor: pointer; user-select: none; gap: 12px;
-            transition: background .12s;
-        }
-        .dia-head:hover { background: #fafbfc; }
-
-        .dia-info { flex: 1; min-width: 0; }
-        .dia-fecha { font-weight: 700; font-size: .93rem; color: var(--ink); margin-bottom: 1px; }
-        .dia-fecha::first-letter { text-transform: uppercase; }
-        .dia-meta  { font-size: .7rem; color: var(--ink-3); font-weight: 500; }
-
-        .dia-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-        .pill-row  { display: flex; gap: 6px; }
-        .pill {
-            font-size: .72rem; font-weight: 700;
-            font-family: 'DM Mono', monospace;
-            padding: 3px 9px; border-radius: 20px;
-        }
-        .pill.ing { background: var(--green-bg); color: var(--green); }
-        .pill.egr { background: var(--red-bg);   color: var(--red); }
-
-        .neto-tag {
-            font-family: 'DM Mono', monospace;
-            font-size: .78rem; font-weight: 700;
-            padding: 4px 10px; border-radius: 7px;
-        }
-        .neto-tag.pos { background: var(--green-bg); color: var(--green); }
-        .neto-tag.neg { background: var(--red-bg);   color: var(--red); }
-
-        .chevron { font-size: .65rem; color: var(--ink-3); transition: transform .2s; flex-shrink: 0; }
-        .dia-card.open .dia-head .chevron { transform: rotate(180deg); }
-
-        /* BODY */
-        .dia-body { display: none; border-top: 1px solid var(--border); }
-        .dia-card.open .dia-body { display: block; }
-
-        /* SECCIÓN */
-        .sec { border-bottom: 1px solid var(--border); }
-        .sec:last-child { border-bottom: none; }
-
-        .sec-head {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 10px 18px; cursor: pointer; user-select: none;
-            transition: background .1s;
-        }
-        .sec-head:hover { background: #fafbfc; }
-
-        .sec-label {
-            display: flex; align-items: center; gap: 8px;
-            font-size: .74rem; font-weight: 700;
-            text-transform: uppercase; letter-spacing: .06em;
-        }
-        .sec-ico {
-            width: 24px; height: 24px; border-radius: 6px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: .78rem; flex-shrink: 0;
-        }
-        .sec-ico.v-abono    { background: var(--green-bg); }
-        .sec-ico.v-prestamo { background: var(--blue-bg); }
-        .sec-ico.v-renov    { background: var(--amber-bg); }
-        .sec-ico.v-gasto    { background: var(--red-bg); }
-
-        .sec-label.v-abono    { color: var(--green); }
-        .sec-label.v-prestamo { color: var(--blue); }
-        .sec-label.v-renov    { color: var(--amber); }
-        .sec-label.v-gasto    { color: var(--red); }
-
-        .sec-right { display: flex; align-items: center; gap: 7px; }
-        .sec-count {
-            font-size: .68rem; font-weight: 600;
-            background: var(--bg); color: var(--ink-3);
-            padding: 2px 7px; border-radius: 10px;
-        }
-        .sec-monto {
-            font-family: 'DM Mono', monospace;
-            font-size: .78rem; font-weight: 700;
-        }
-        .sec-monto.v-abono    { color: var(--green); }
-        .sec-monto.v-prestamo { color: var(--blue); }
-        .sec-monto.v-renov    { color: var(--amber); }
-        .sec-monto.v-gasto    { color: var(--red); }
-
-        .sec-chev { font-size: .58rem; color: var(--ink-3); transition: transform .18s; }
-        .sec.open .sec-chev { transform: rotate(180deg); }
-
-        .sec-rows { display: none; }
-        .sec.open .sec-rows { display: block; }
-
-        /* FILA MOV */
-        .mov-row {
-            display: flex; align-items: center; gap: 10px;
-            padding: 10px 18px 10px 50px;
-            border-bottom: 1px solid #f4f5f7;
-            transition: background .1s;
-        }
-        .mov-row:last-child { border-bottom: none; }
-        .mov-row:hover { background: #fafbfc; }
-
-        .mov-info { flex: 1; min-width: 0; }
-        .mov-nombre {
-            font-size: .84rem; font-weight: 600; color: var(--ink);
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .mov-submeta {
-            display: flex; align-items: center; gap: 6px;
-            margin-top: 2px; flex-wrap: wrap;
-        }
-        .mov-hora  { font-size: .66rem; font-family: 'DM Mono', monospace; color: var(--ink-3); }
-        .mov-user  {
-            display: inline-flex; align-items: center; gap: 3px;
-            font-size: .65rem; font-weight: 600; color: var(--ink-3);
-            background: var(--bg); border-radius: 4px; padding: 1px 6px;
-        }
-
-        .mov-monto { font-family: 'DM Mono', monospace; font-size: .84rem; font-weight: 700; flex-shrink: 0; }
-        .mov-monto.v-abono    { color: var(--green); }
-        .mov-monto.v-prestamo { color: var(--blue); }
-        .mov-monto.v-renov    { color: var(--amber); }
-        .mov-monto.v-gasto    { color: var(--red); }
-
-        .sec-empty { padding: 12px 18px 12px 50px; font-size: .76rem; color: var(--ink-3); font-style: italic; }
-
-        /* VACÍO GLOBAL */
-        .empty-global {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 20px; padding: 60px 20px; text-align: center;
-        }
-        .empty-ico { font-size: 2rem; margin-bottom: 10px; opacity: .35; }
-        .empty-txt { font-size: .86rem; color: var(--ink-3); }
-
-        @media (max-width: 480px) {
-            .pill-row { display: none; }
-            .kpi-val  { font-size: 1rem; }
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
 
-<nav class="nav">
-    <div class="nav-left">
+<nav class="top-nav">
+    <div style="display:flex; align-items:center; gap:10px;">
         <span class="nav-brand">PrestApp</span>
-        <span class="nav-pill">{{ ruta.nombre }}</span>
+        <span style="background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.1);
+                     color:rgba(255,255,255,.6); font-size:.7rem; font-weight:600;
+                     padding:3px 9px; border-radius:20px;">{{ ruta.nombre }}</span>
     </div>
     <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="nav-back">← Panel</a>
 </nav>
 
-<div class="shell">
+<div class="page" style="max-width:780px;">
 
     {% if messages %}
         {% for msg in messages %}
-        <div style="margin-bottom:14px;padding:11px 15px;border-radius:9px;font-size:.86rem;font-weight:600;
-            background:{% if 'success' in msg.tags %}var(--green-bg){% else %}var(--red-bg){% endif %};
-            color:{% if 'success' in msg.tags %}var(--green){% else %}var(--red){% endif %};">
+        <div class="alert {% if 'success' in msg.tags %}alert-success{% else %}alert-error{% endif %}">
             {{ msg }}
         </div>
         {% endfor %}
     {% endif %}
 
+    {# ── SELECTOR DE MES ── #}
     {% if meses_disponibles %}
-    <div class="mes-bar">
+    <div class="section-label">Período</div>
+    <div class="mes-scroll">
         {% for m in meses_disponibles %}
         <a href="?mes={{ m|date:'Y-m' }}"
-           class="mes-chip {% if m|date:'Y-m' == mes_param %}active{% endif %}">
+           class="btn-mes {% if m|date:'Y-m' == mes_param %}active{% endif %}">
             {{ m|date:"M Y" }}
         </a>
         {% endfor %}
     </div>
     {% endif %}
 
-    <div class="mes-head">
-        <div class="mes-title">{{ mes_actual|date:"F Y" }}</div>
-        <div class="mes-sub">{{ dias|length }} día{{ dias|length|pluralize:"s" }} con movimientos</div>
+    {# ── KPIs ── #}
+    <div class="mes-heading">{{ mes_actual|date:"F Y" }}</div>
+    <div class="mes-sub">{{ dias|length }} día{{ dias|length|pluralize:"s" }} con movimientos</div>
+
+    <div class="resumen-mes">
+        <div class="resumen-titulo">Resumen del mes</div>
+        <div class="resumen-grid-cajas">
+            <div class="res-item ingreso">
+                <div class="res-num-caja">${{ total_ingresos_mes }}</div>
+                <div class="res-lbl">Ingresos</div>
+            </div>
+            <div class="res-item egreso">
+                <div class="res-num-caja">${{ total_egresos_mes }}</div>
+                <div class="res-lbl">Egresos</div>
+            </div>
+            <div class="res-item neto">
+                <div class="res-num-caja">${{ neto_mes }}</div>
+                <div class="res-lbl">Neto</div>
+            </div>
+        </div>
     </div>
 
-    <div class="kpi-row">
-        <div class="kpi ing">
-            <div class="kpi-lbl">Ingresos</div>
-            <div class="kpi-val">${{ total_ingresos_mes }}</div>
-        </div>
-        <div class="kpi egr">
-            <div class="kpi-lbl">Egresos</div>
-            <div class="kpi-val">${{ total_egresos_mes }}</div>
-        </div>
-        <div class="kpi net {% if neto_mes < 0 %}neg{% endif %}">
-            <div class="kpi-lbl">Neto</div>
-            <div class="kpi-val">${{ neto_mes }}</div>
-        </div>
-    </div>
-
+    {# ── DÍAS ── #}
     {% if dias %}
-    <div class="dia-stack">
-    {% for dia in dias %}
 
+    {% for dia in dias %}
     <div class="dia-card" id="d{{ forloop.counter }}">
 
-        <div class="dia-head" onclick="toggleDia('d{{ forloop.counter }}')">
-            <div class="dia-info">
+        {# Cabecera del día #}
+        <div class="dia-header" onclick="toggleDia('d{{ forloop.counter }}')">
+            <div>
                 <div class="dia-fecha">{{ dia.fecha|date:"l d \d\e F" }}</div>
-                <div class="dia-meta">{{ dia.total_movimientos }} movimiento{{ dia.total_movimientos|pluralize:"s" }}</div>
-            </div>
-            <div class="dia-right">
-                <div class="pill-row">
-                    {% if dia.ingresos %}<span class="pill ing">↑ ${{ dia.ingresos }}</span>{% endif %}
-                    {% if dia.egresos  %}<span class="pill egr">↓ ${{ dia.egresos }}</span>{% endif %}
+                <div class="dia-nums">
+                    <span class="dia-num-item ing">↑ ${{ dia.ingresos }}</span>
+                    <span class="dia-num-item egr">↓ ${{ dia.egresos }}</span>
                 </div>
-                <span class="neto-tag {% if dia.neto >= 0 %}pos{% else %}neg{% endif %}">${{ dia.neto }}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <div style="text-align:right;">
+                    <div class="neto-val {% if dia.neto >= 0 %}pos{% else %}neg{% endif %}">${{ dia.neto }}</div>
+                    <div class="neto-lbl">Neto</div>
+                </div>
                 <span class="chevron">▼</span>
             </div>
         </div>
 
-        <div class="dia-body">
+        {# Body expandible #}
+        <div class="dia-detalle">
 
             {# 1. ABONOS #}
-            <div class="sec {% if dia.abonos %}open{% endif %}" id="s-ab-{{ forloop.counter }}">
-                <div class="sec-head" onclick="toggleSec('s-ab-{{ forloop.counter }}')">
-                    <div class="sec-label v-abono">
-                        <span class="sec-ico v-abono">💵</span>
+            <div class="seccion {% if dia.abonos %}open{% endif %}" id="s-ab-{{ forloop.counter }}" style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none;">
+                <div class="seccion-header" onclick="toggleSec('s-ab-{{ forloop.counter }}')">
+                    <div class="seccion-titulo">
+                        <span class="seccion-ico ico-green">💵</span>
                         Abonos cobrados
                     </div>
-                    <div class="sec-right">
-                        <span class="sec-count">{{ dia.abonos|length }}</span>
-                        {% if dia.abonos %}<span class="sec-monto v-abono">+${{ dia.total_abonos }}</span>{% endif %}
-                        <span class="sec-chev">▾</span>
+                    <div class="seccion-meta">
+                        <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.abonos|length }}</span>
+                        {% if dia.abonos %}
+                        <span class="meta-total green">+${{ dia.total_abonos }}</span>
+                        {% endif %}
+                        <span class="chevron">▼</span>
                     </div>
                 </div>
-                <div class="sec-rows">
+                <div class="seccion-body">
                     {% for m in dia.abonos %}
                     <div class="mov-row">
                         <div class="mov-info">
                             <div class="mov-nombre">{{ m.cliente }}</div>
-                            <div class="mov-submeta">
-                                <span class="mov-hora">{{ m.hora|date:"H:i" }}</span>
-                                {% if m.usuario %}<span class="mov-user">👤 {{ m.usuario }}</span>{% endif %}
+                            <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
+                                <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
+                                {% if m.usuario %}
+                                <span class="badge-user">👤 {{ m.usuario }}</span>
+                                {% endif %}
                             </div>
                         </div>
-                        <span class="mov-monto v-abono">+${{ m.monto }}</span>
+                        <span class="mov-monto green">+${{ m.monto }}</span>
                     </div>
                     {% empty %}
-                    <div class="sec-empty">Sin abonos este día.</div>
+                    <div class="seccion-empty">Sin abonos este día.</div>
                     {% endfor %}
                 </div>
             </div>
 
             {# 2. PRÉSTAMOS #}
-            <div class="sec" id="s-pr-{{ forloop.counter }}">
-                <div class="sec-head" onclick="toggleSec('s-pr-{{ forloop.counter }}')">
-                    <div class="sec-label v-prestamo">
-                        <span class="sec-ico v-prestamo">📋</span>
+            <div class="seccion" id="s-pr-{{ forloop.counter }}" style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none;">
+                <div class="seccion-header" onclick="toggleSec('s-pr-{{ forloop.counter }}')">
+                    <div class="seccion-titulo">
+                        <span class="seccion-ico ico-blue">📋</span>
                         Préstamos otorgados
                     </div>
-                    <div class="sec-right">
-                        <span class="sec-count">{{ dia.prestamos|length }}</span>
-                        {% if dia.prestamos %}<span class="sec-monto v-prestamo">-${{ dia.total_prestamos }}</span>{% endif %}
-                        <span class="sec-chev">▾</span>
+                    <div class="seccion-meta">
+                        <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.prestamos|length }}</span>
+                        {% if dia.prestamos %}
+                        <span class="meta-total blue">-${{ dia.total_prestamos }}</span>
+                        {% endif %}
+                        <span class="chevron">▼</span>
                     </div>
                 </div>
-                <div class="sec-rows">
+                <div class="seccion-body">
                     {% for m in dia.prestamos %}
                     <div class="mov-row">
                         <div class="mov-info">
                             <div class="mov-nombre">{{ m.cliente }}</div>
-                            <div class="mov-submeta">
-                                <span class="mov-hora">{{ m.hora|date:"H:i" }}</span>
-                                {% if m.usuario %}<span class="mov-user">👤 {{ m.usuario }}</span>{% endif %}
+                            <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
+                                <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
+                                {% if m.usuario %}
+                                <span class="badge-user">👤 {{ m.usuario }}</span>
+                                {% endif %}
                             </div>
                         </div>
-                        <span class="mov-monto v-prestamo">-${{ m.monto }}</span>
+                        <span class="mov-monto blue">-${{ m.monto }}</span>
                     </div>
                     {% empty %}
-                    <div class="sec-empty">Sin préstamos este día.</div>
+                    <div class="seccion-empty">Sin préstamos este día.</div>
                     {% endfor %}
                 </div>
             </div>
 
             {# 3. RENOVACIONES #}
-            <div class="sec" id="s-rn-{{ forloop.counter }}">
-                <div class="sec-head" onclick="toggleSec('s-rn-{{ forloop.counter }}')">
-                    <div class="sec-label v-renov">
-                        <span class="sec-ico v-renov">🔁</span>
+            <div class="seccion" id="s-rn-{{ forloop.counter }}" style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none;">
+                <div class="seccion-header" onclick="toggleSec('s-rn-{{ forloop.counter }}')">
+                    <div class="seccion-titulo">
+                        <span class="seccion-ico ico-amber">🔁</span>
                         Renovaciones
                     </div>
-                    <div class="sec-right">
-                        <span class="sec-count">{{ dia.renovaciones|length }}</span>
-                        {% if dia.renovaciones %}<span class="sec-monto v-renov">-${{ dia.total_renovaciones }}</span>{% endif %}
-                        <span class="sec-chev">▾</span>
+                    <div class="seccion-meta">
+                        <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.renovaciones|length }}</span>
+                        {% if dia.renovaciones %}
+                        <span class="meta-total amber">-${{ dia.total_renovaciones }}</span>
+                        {% endif %}
+                        <span class="chevron">▼</span>
                     </div>
                 </div>
-                <div class="sec-rows">
+                <div class="seccion-body">
                     {% for m in dia.renovaciones %}
                     <div class="mov-row">
                         <div class="mov-info">
                             <div class="mov-nombre">{{ m.cliente }}</div>
-                            <div class="mov-submeta">
-                                <span class="mov-hora">{{ m.hora|date:"H:i" }}</span>
-                                {% if m.usuario %}<span class="mov-user">👤 {{ m.usuario }}</span>{% endif %}
+                            <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
+                                <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
+                                {% if m.usuario %}
+                                <span class="badge-user">👤 {{ m.usuario }}</span>
+                                {% endif %}
                             </div>
                         </div>
-                        <span class="mov-monto v-renov">-${{ m.monto }}</span>
+                        <span class="mov-monto amber">-${{ m.monto }}</span>
                     </div>
                     {% empty %}
-                    <div class="sec-empty">Sin renovaciones este día.</div>
+                    <div class="seccion-empty">Sin renovaciones este día.</div>
                     {% endfor %}
                 </div>
             </div>
 
             {# 4. GASTOS #}
-            <div class="sec" id="s-gs-{{ forloop.counter }}">
-                <div class="sec-head" onclick="toggleSec('s-gs-{{ forloop.counter }}')">
-                    <div class="sec-label v-gasto">
-                        <span class="sec-ico v-gasto">🧾</span>
+            <div class="seccion" id="s-gs-{{ forloop.counter }}" style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none;">
+                <div class="seccion-header" onclick="toggleSec('s-gs-{{ forloop.counter }}')">
+                    <div class="seccion-titulo">
+                        <span class="seccion-ico ico-red">🧾</span>
                         Gastos y egresos
                     </div>
-                    <div class="sec-right">
-                        <span class="sec-count">{{ dia.gastos|length }}</span>
-                        {% if dia.gastos %}<span class="sec-monto v-gasto">-${{ dia.total_gastos }}</span>{% endif %}
-                        <span class="sec-chev">▾</span>
+                    <div class="seccion-meta">
+                        <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.gastos|length }}</span>
+                        {% if dia.gastos %}
+                        <span class="meta-total red">-${{ dia.total_gastos }}</span>
+                        {% endif %}
+                        <span class="chevron">▼</span>
                     </div>
                 </div>
-                <div class="sec-rows">
+                <div class="seccion-body">
                     {% for m in dia.gastos %}
                     <div class="mov-row">
                         <div class="mov-info">
                             <div class="mov-nombre">{{ m.descripcion }}</div>
-                            <div class="mov-submeta">
-                                <span class="mov-hora">{{ m.hora|date:"H:i" }}</span>
-                                {% if m.usuario %}<span class="mov-user">👤 {{ m.usuario }}</span>{% endif %}
+                            <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
+                                <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
+                                {% if m.usuario %}
+                                <span class="badge-user">👤 {{ m.usuario }}</span>
+                                {% endif %}
                             </div>
                         </div>
-                        <span class="mov-monto v-gasto">-${{ m.monto }}</span>
+                        <span class="mov-monto red">-${{ m.monto }}</span>
                     </div>
                     {% empty %}
-                    <div class="sec-empty">Sin gastos este día.</div>
+                    <div class="seccion-empty">Sin gastos este día.</div>
                     {% endfor %}
                 </div>
             </div>
 
-        </div>{# /dia-body #}
+        </div>{# /dia-detalle #}
     </div>{# /dia-card #}
     {% endfor %}
-    </div>
 
     {% else %}
-    <div class="empty-global">
-        <div class="empty-ico">📭</div>
-        <div class="empty-txt">No hay movimientos para este período.</div>
+    <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <div style="color:#aaa; font-size:.9rem;">No hay movimientos para este período.</div>
     </div>
     {% endif %}
 
-</div>
+</div><!-- /page -->
 
 <script>
-function toggleDia(id) { document.getElementById(id).classList.toggle('open'); }
-function toggleSec(id) { document.getElementById(id).classList.toggle('open'); }
+function toggleDia(id) {
+    document.getElementById(id).classList.toggle('open');
+}
+function toggleSec(id) {
+    document.getElementById(id).classList.toggle('open');
+}
 document.addEventListener('DOMContentLoaded', () => {
     const first = document.querySelector('.dia-card');
-    if (first) first.classList.add('open');
+    if (first) {
+        first.classList.add('open');
+        const firstSec = first.querySelector('.seccion');
+        if (firstSec) firstSec.classList.add('open');
+    }
 });
 </script>
 </body>
