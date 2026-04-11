@@ -194,7 +194,31 @@
         </div>
     </div>
 </div>
+<script>
+    function toggleModal(show) {
+        const modal = document.getElementById('modalGastos');
+        if (show) {
+            modal.style.display = 'block';
+            // Evita que el cuerpo haga scroll cuando el modal está abierto
+            document.body.style.overflow = 'hidden';
+        } else {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    }
 
-<script src="{% static 'js/js.js' %}"></script>
+    // Cerrar si el usuario hace clic fuera de la caja blanca
+    function handleOutsideClick(event) {
+        const modalOverlay = document.getElementById('modalGastos');
+        if (event.target === modalOverlay) {
+            toggleModal(false);
+        }
+    }
+
+    // Opcional: Cerrar con la tecla Esc
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') toggleModal(false);
+    });
+</script>
 </body>
 </html>
