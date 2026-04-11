@@ -843,121 +843,124 @@ def registrar_gasto(request, ruta_id):
 # ================================================================================================================================================
 # CAJAS
 # ================================================================================================================================================
-
 @login_required
 def historial_cajas(request, ruta_id):
     import calendar
+    import datetime
+    from django.db.models import Sum
+    from django.utils.timezone import localdate
+    from django.shortcuts import render, get_object_or_404
 
     ruta = get_object_or_404(Ruta, id=ruta_id)
-
     mes_param = request.GET.get('mes')
-    hoy       = localdate()
+    hoy = localdate()
 
+    # ── Manejo de fechas ──
     try:
         if mes_param:
             anio, mes = int(mes_param.split('-')[0]), int(mes_param.split('-')[1])
         else:
             anio, mes = hoy.year, hoy.month
-    except Exception:
+    except (ValueError, IndexError, AttributeError):
         anio, mes = hoy.year, hoy.month
 
-    primer_dia    = datetime.date(anio, mes, 1)
-    ultimo_dia    = datetime.date(anio, mes, calendar.monthrange(anio, mes)[1])
+    primer_dia = datetime.date(anio, mes, 1)
+    ultimo_dia = datetime.date(anio, mes, calendar.monthrange(anio, mes)[1])
     mes_param_str = f'{anio}-{str(mes).zfill(2)}'
 
-    # ── Días con actividad ────────────────────────────────────────────────────
-    abonos_por_dia_agg = {
-        a['fecha__date']: a['total']
-        for a in Abono.objects
-            .filter(targeta__ruta=ruta, fecha__date__gte=primer_dia, fecha__date__lte=ultimo_dia)
-            .values('fecha__date')
-            .annotate(total=Sum('monto'))
-    }
-    egresos_por_dia_agg = {
-        e['fecha__date']: e['total']
-        for e in MovimientoRuta.objects
-            .filter(ruta=ruta, tipo='EGRESO', fecha__date__gte=primer_dia, fecha__date__lte=ultimo_dia)
-            .values('fecha__date')
-            .annotate(total=Sum('monto'))
-    }
-    dias_con_actividad = sorted(
-        set(list(abonos_por_dia_agg.keys()) + list(egresos_por_dia_agg.keys())),
-        reverse=True
-    )
+    # ── Obtener días con actividad (Mejorado para Producción/Railway) ──
+    # Usamos range para capturar correctamente todos los registros del mes
+    abonos_fechas = Abono.objects.filter(
+        targeta__ruta=ruta, 
+        fecha__date__range=[primer_dia, ultimo_dia]
+    ).values_list('fecha__date', flat=True).distinct()
 
-    # ── Construcción detallada por día ────────────────────────────────────────
+    movimientos_fechas = MovimientoRuta.objects.filter(
+        ruta=ruta, 
+        fecha__date__range=[primer_dia, ultimo_dia]
+    ).values_list('fecha__date', flat=True).distinct()
+
+    dias_con_actividad = sorted(set(list(abonos_fechas) + list(movimientos_fechas)), reverse=True)
+
+    # ── Construcción detallada por día ──
     dias = []
     for dia in dias_con_actividad:
 
         # — Abonos —
-        abonos_qs = (
-            Abono.objects
-            .filter(targeta__ruta=ruta, fecha__date=dia)
-            .select_related('targeta', 'registrado_por')
-            .order_by('fecha')
-        )
-        abonos = [
+        abonos_qs = Abono.objects.filter(
+            targeta__ruta=ruta, 
+            fecha__date=dia
+        ).select_related('targeta', 'registrado_por').order_by('fecha')
+        
+        abonos_lista = [
             {
                 'cliente': a.targeta.nombre_cliente,
-                'monto':   a.monto,
-                'hora':    a.fecha,
+                'monto': a.monto,
+                'hora': a.fecha,
                 'usuario': a.registrado_por.username if a.registrado_por else None,
-            }
-            for a in abonos_qs
+            } for a in abonos_qs
         ]
-        total_abonos = sum(a['monto'] for a in abonos)
+        total_abonos = sum(a['monto'] for a in abonos_lista)
 
-        # — Movimientos de egreso clasificados —
-        prestamos    = []
-        renovaciones = []
-        gastos       = []
+        # — Egresos clasificados —
+        prestamos, renovaciones, gastos = [], [], []
+        egresos_qs = MovimientoRuta.objects.filter(
+            ruta=ruta, 
+            tipo='EGRESO', 
+            fecha__date=dia
+        ).order_by('fecha')
 
-        for mov in MovimientoRuta.objects.filter(ruta=ruta, tipo='EGRESO', fecha__date=dia).order_by('fecha'):
-            desc = mov.descripcion or ''
+        for mov in egresos_qs:
+            desc_upper = (mov.descripcion or '').upper()
             base = {
-                'monto':   mov.monto,
-                'hora':    mov.fecha,
+                'monto': mov.monto,
+                'hora': mov.fecha,
                 'usuario': None,
             }
-            if desc.startswith('Préstamo otorgado'):
-                prestamos.append({**base, 'cliente': desc.replace('Préstamo otorgado a ', '').strip()})
-            elif 'RENOVACIÓN' in desc:
-                renovaciones.append({**base, 'cliente': desc.replace('RENOVACIÓN (Restauración):', '').strip()})
+            
+            # Buscamos coincidencias ignorando tildes y mayúsculas
+            if 'PRÉSTAMO' in desc_upper or 'PRESTAMO' in desc_upper:
+                cliente = mov.descripcion.replace('Préstamo otorgado a ', '').replace('PRESTAMO:', '').strip()
+                prestamos.append({**base, 'cliente': cliente})
+            elif 'RENOVACIÓN' in desc_upper or 'RENOVACION' in desc_upper:
+                cliente = mov.descripcion.replace('RENOVACIÓN (Restauración):', '').replace('RENOVACION:', '').strip()
+                renovaciones.append({**base, 'cliente': cliente})
             else:
-                gastos.append({**base, 'descripcion': desc.replace('GASTO:', '').strip()})
+                desc_final = mov.descripcion.replace('GASTO:', '').strip()
+                gastos.append({**base, 'descripcion': desc_final})
 
-        total_prestamos    = sum(m['monto'] for m in prestamos)
-        total_renovaciones = sum(m['monto'] for m in renovaciones)
-        total_gastos       = sum(m['monto'] for m in gastos)
-        total_egresos_dia  = total_prestamos + total_renovaciones + total_gastos
+        t_prest = sum(m['monto'] for m in prestamos)
+        t_renov = sum(m['monto'] for m in renovaciones)
+        t_gast  = sum(m['monto'] for m in gastos)
+        total_egresos_dia = t_prest + t_renov + t_gast
 
         dias.append({
-            'fecha':              dia,
-            'ingresos':           total_abonos,
-            'egresos':            total_egresos_dia,
-            'neto':               total_abonos - total_egresos_dia,
-            'total_movimientos':  len(abonos) + len(prestamos) + len(renovaciones) + len(gastos),
-            'abonos':             abonos,
-            'prestamos':          prestamos,
-            'renovaciones':       renovaciones,
-            'gastos':             gastos,
-            'total_abonos':       total_abonos,
-            'total_prestamos':    total_prestamos,
-            'total_renovaciones': total_renovaciones,
-            'total_gastos':       total_gastos,
+            'fecha': dia,
+            'ingresos': total_abonos,
+            'egresos': total_egresos_dia,
+            'neto': total_abonos - total_egresos_dia,
+            'total_movimientos': len(abonos_lista) + len(prestamos) + len(renovaciones) + len(gastos),
+            'lista_abonos': abonos_lista,
+            'lista_prestamos': prestamos,
+            'lista_renovaciones': renovaciones,
+            'lista_gastos': gastos,
+            'total_abonos': total_abonos,
+            'total_prestamos': t_prest,
+            'total_renovaciones': t_renov,
+            'total_gastos': t_gast,
         })
 
-    total_ingresos_mes     = sum(d['ingresos'] for d in dias)
-    total_egresos_mes      = sum(d['egresos']  for d in dias)
-    neto_mes               = total_ingresos_mes - total_egresos_mes
+    # ── Totales del mes ──
+    total_ingresos_mes = sum(d['ingresos'] for d in dias)
+    total_egresos_mes = sum(d['egresos'] for d in dias)
+    total_prestamos_mes = sum(d['total_prestamos'] for d in dias)
+    total_renovaciones_mes = sum(d['total_renovaciones'] for d in dias)
+    total_gastos_mes = sum(d['total_gastos'] for d in dias)
+    
+    total_capital_mes = total_prestamos_mes + total_renovaciones_mes
+    total_perdidas_mes = total_egresos_mes - total_capital_mes - total_gastos_mes
 
-    # ── Totales del mes por categoría ─────────────────────────────────────────
-    total_prestamos_mes    = sum(sum(m['monto'] for m in d['prestamos'])    for d in dias)
-    total_renovaciones_mes = sum(sum(m['monto'] for m in d['renovaciones']) for d in dias)
-    total_gastos_mes       = sum(sum(m['monto'] for m in d['gastos'])       for d in dias)
-    total_capital_mes      = total_prestamos_mes + total_renovaciones_mes
-    total_perdidas_mes     = total_egresos_mes - total_capital_mes - total_gastos_mes
-
+    # ── Selector de meses ──
     primer_abono = Abono.objects.filter(targeta__ruta=ruta).order_by('fecha').first()
     meses_disponibles = []
     if primer_abono:
@@ -965,29 +968,27 @@ def historial_cajas(request, ruta_id):
         fin = hoy.replace(day=1)
         while cur <= fin:
             meses_disponibles.append(cur)
-            cur = (
-                cur.replace(month=cur.month + 1)
-                if cur.month < 12
-                else cur.replace(year=cur.year + 1, month=1)
-            )
+            if cur.month == 12:
+                cur = cur.replace(year=cur.year + 1, month=1)
+            else:
+                cur = cur.replace(month=cur.month + 1)
         meses_disponibles.reverse()
 
     return render(request, 'app/historial_cajas.html', {
-        'ruta':                  ruta,
-        'dias':                  dias,
-        'mes_actual':            primer_dia,
-        'total_ingresos_mes':    total_ingresos_mes,
-        'total_egresos_mes':     total_egresos_mes,
-        'total_capital_mes':     total_capital_mes,
-        'total_prestamos_mes':   total_prestamos_mes,
-        'total_renovaciones_mes':total_renovaciones_mes,
-        'total_gastos_mes':      total_gastos_mes,
-        'total_perdidas_mes':    total_perdidas_mes,
-        'neto_mes':              neto_mes,
-        'meses_disponibles':     meses_disponibles,
-        'mes_param':             mes_param_str,
+        'ruta': ruta,
+        'dias': dias,
+        'mes_actual': primer_dia,
+        'total_ingresos_mes': total_ingresos_mes,
+        'total_egresos_mes': total_egresos_mes,
+        'total_capital_mes': total_capital_mes,
+        'total_prestamos_mes': total_prestamos_mes,
+        'total_renovaciones_mes': total_renovaciones_mes,
+        'total_gastos_mes': total_gastos_mes,
+        'total_perdidas_mes': total_perdidas_mes,
+        'neto_mes': total_ingresos_mes - total_egresos_mes,
+        'meses_disponibles': meses_disponibles,
+        'mes_param': mes_param_str,
     })
-
 def cerrar_cajas_anteriores(ruta):
     hoy = localdate()
 
