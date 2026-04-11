@@ -1,6 +1,12 @@
 /* ============================================================
    PRESTAPP — CSS GLOBAL
+   Estructura:
+   1. Reset & Variables
+   2. Base (body, tipografía)
+   3. Componentes reutilizables (nav, botones, alertas)
+   4. Vistas individuales (prefijo por página)
    ============================================================ */
+
 
 /* ============================================================
    1. RESET & VARIABLES
@@ -1518,4 +1524,229 @@ body {
     background: #ea4335;
     color: white;
     border-color: #ea4335;
+}
+
+
+
+/* ============================================================
+   7. RESUMEN MENSUAL
+   ============================================================ */
+
+.mes-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 8px 16px;
+    margin-bottom: 20px;
+}
+
+.mes-selector label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.mes-selector select {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--navy);
+    cursor: pointer;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.badge-live {
+    font-size: 0.65rem;
+    font-weight: 700;
+    background: #dcfce7;
+    color: #16a34a;
+    padding: 3px 8px;
+    border-radius: 50px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.resumen-4 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+
+.r4-card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.r4-card.green { border-left: 4px solid var(--green); }
+.r4-card.red   { border-left: 4px solid var(--red);   }
+.r4-card.blue  { border-left: 4px solid var(--blue);  }
+.r4-card.amber { border-left: 4px solid var(--orange); }
+
+.r4-icon  { font-size: 1.1rem; margin-bottom: 4px; }
+
+.r4-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.r4-val           { font-size: 1.15rem; font-weight: 800; color: var(--navy); }
+.r4-val.green     { color: var(--green); }
+.r4-val.red       { color: var(--red);   }
+.r4-val.blue      { color: var(--blue);  }
+.r4-val.amber     { color: var(--orange); }
+
+.neto-banner {
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+    font-weight: 700;
+}
+
+.neto-banner.positivo { background: #f0fdf4; border: 1px solid #bbf7d0; }
+.neto-banner.negativo { background: #fff5f5; border: 1px solid #fecaca; }
+
+.neto-title {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.neto-num           { font-size: 1.4rem; font-weight: 800; }
+.neto-num.positivo  { color: var(--green); }
+.neto-num.negativo  { color: var(--red);   }
+
+.seccion {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 14px;
+}
+
+.seccion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 18px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+}
+
+.seccion-header:hover { background: var(--bg-alt); }
+
+.seccion-titulo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--navy);
+}
+
+.seccion-ico {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.seccion-ico.ico-green { background: #dcfce7; }
+.seccion-ico.ico-red   { background: #fee2e2; }
+.seccion-ico.ico-blue  { background: #dbeafe; }
+.seccion-ico.ico-amber { background: #fef3c7; }
+
+.seccion-meta { display: flex; align-items: center; gap: 10px; }
+
+.meta-total         { font-size: 0.85rem; font-weight: 700; }
+.meta-total.red     { color: var(--red);    }
+.meta-total.green   { color: var(--green);  }
+.meta-total.blue    { color: var(--blue);   }
+.meta-total.amber   { color: var(--orange); }
+
+.seccion.open .chevron { transform: rotate(180deg); }
+
+.seccion-body {
+    display: none;
+    border-top: 1px solid var(--border);
+}
+
+.seccion.open .seccion-body { display: block; }
+
+.mov-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--bg-alt);
+    gap: 12px;
+}
+
+.mov-row:last-child { border-bottom: none; }
+
+.mov-info { flex: 1; min-width: 0; }
+
+.mov-nombre {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--navy);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mov-fecha { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+
+.mov-monto           { font-size: 0.9rem; font-weight: 800; white-space: nowrap; }
+.mov-monto.red       { color: var(--red);    }
+.mov-monto.green     { color: var(--green);  }
+.mov-monto.blue      { color: var(--blue);   }
+.mov-monto.amber     { color: var(--orange); }
+
+.seccion-empty {
+    padding: 20px 18px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.mes-heading {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--navy);
+    margin-bottom: 4px;
+}
+
+.mes-sub {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 20px;
 }

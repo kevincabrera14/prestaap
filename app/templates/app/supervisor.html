@@ -10,6 +10,75 @@
     <link rel="icon" type="image/png" href="{% static 'img/favicon.ico' %}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        /* ── Estado: pagó hoy ───────────────────────────── */
+        .card-targeta.pago-hoy {
+            background: #f0fdf4;
+            border: 1.5px solid #86efac;
+        }
+        .card-targeta.pago-hoy .card-top-strip {
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+        }
+
+        /* ── Estado: cobro atrasado ─────────────────────── */
+        .card-targeta.cobro-atrasado {
+            background: #fff5f5;
+            border: 1.5px solid #fca5a5;
+        }
+        .card-targeta.cobro-atrasado .card-top-strip {
+            background: linear-gradient(90deg, #ef4444, #b91c1c);
+        }
+
+        /* ── Badge de frecuencia ────────────────────────── */
+        .badge-frecuencia {
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 50px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .badge-frecuencia.diario    { background: #dbeafe; color: #1d4ed8; }
+        .badge-frecuencia.semanal   { background: #fef3c7; color: #92400e; }
+        .badge-frecuencia.quincenal { background: #fce7f3; color: #9d174d; }
+        .badge-frecuencia.mensual   { background: #f3e8ff; color: #6b21a8; }
+
+        /* ── Badge "Pagó hoy" ───────────────────────────── */
+        .badge-pago-hoy {
+            font-size: 0.65rem;
+            font-weight: 700;
+            background: #22c55e;
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: 50px;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        /* ── Banner de atraso ───────────────────────────── */
+        .banner-atraso {
+            background: #fee2e2;
+            border-radius: 8px;
+            padding: 6px 10px;
+            margin-top: 8px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #b91c1c;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* ── Fila de badges (frecuencia + estado) ───────── */
+        .badges-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 4px;
+            flex-wrap: wrap;
+        }
+    </style>
 </head>
 <body>
 
@@ -55,6 +124,9 @@
             <a href="{% url 'mapa_clientes' ruta_sel.id %}" class="panel-item">
                 <div class="panel-ico ico-amber">📍</div> Ver mapa de ruta
             </a>
+            <a href="{% url 'resumen_mensual' ruta_sel.id %}" class="panel-item">
+                <div class="panel-ico ico-indigo">📈</div> Resumen mensual
+            </a>
         </div>
     </div>
 
@@ -82,16 +154,58 @@
 
     <div class="cards-grid">
         {% for t in targetas %}
-        <div class="card-targeta">
+
+        {# ── Clases dinámicas de la tarjeta ────────────────────────────── #}
+        <div class="card-targeta
+            {% if t.abono_hoy %}pago-hoy
+            {% elif t.cobro_atrasado %}cobro-atrasado
+            {% endif %}">
+
             <div class="card-top-strip"></div>
             <div class="card-inner">
+
                 <div class="card-header-row">
                     <div>
                         <div class="client-name">{{ t.nombre_cliente }}</div>
                         <div class="client-id">ID: {{ t.numero_identificacion }}</div>
+
+                        {# ── Fila de badges ─────────────────────────────── #}
+                        <div class="badges-row">
+                            {# Badge de frecuencia #}
+                            {% if t.frecuencia_cobro == 'DIARIO' %}
+                                <span class="badge-frecuencia diario">📅 Diario</span>
+                            {% elif t.frecuencia_cobro == 'SEMANAL' %}
+                                <span class="badge-frecuencia semanal">📆 Semanal</span>
+                            {% elif t.frecuencia_cobro == 'QUINCENAL' %}
+                                <span class="badge-frecuencia quincenal">🗓️ Quincenal</span>
+                            {% elif t.frecuencia_cobro == 'MENSUAL' %}
+                                <span class="badge-frecuencia mensual">🗓️ Mensual</span>
+                            {% endif %}
+
+                            {# Badge "Pagó hoy" #}
+                            {% if t.abono_hoy %}
+                                <span class="badge-pago-hoy">✅ Pagó hoy</span>
+                            {% endif %}
+                        </div>
                     </div>
                     <span class="badge-cuotas">{{ t.cuotas_pagadas }}/{{ t.total_cuotas }} cuotas</span>
                 </div>
+
+                {# ── Banner de atraso ───────────────────────────────────── #}
+                {% if t.cobro_atrasado %}
+                <div class="banner-atraso">
+                    ⚠️
+                    {% if t.frecuencia_cobro == 'DIARIO' %}
+                        {{ t.dias_sin_abono }} día{{ t.dias_sin_abono|pluralize }} sin abono
+                    {% elif t.frecuencia_cobro == 'SEMANAL' %}
+                        {{ t.dias_sin_abono }} días sin abono (cobro semanal)
+                    {% elif t.frecuencia_cobro == 'QUINCENAL' %}
+                        {{ t.dias_sin_abono }} días sin abono (cobro quincenal)
+                    {% elif t.frecuencia_cobro == 'MENSUAL' %}
+                        {{ t.dias_sin_abono }} días sin abono (cobro mensual)
+                    {% endif %}
+                </div>
+                {% endif %}
 
                 <div class="card-divider"></div>
 
@@ -124,6 +238,7 @@
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
         {% empty %}

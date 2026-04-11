@@ -95,6 +95,19 @@ class Targeta(models.Model):
     plazo_dias = models.PositiveIntegerField()
     fecha_creacion = models.DateField(auto_now_add=True)
 
+    FRECUENCIA_CHOICES = (
+        ('DIARIO',    'Diario'),
+        ('SEMANAL',   'Semanal'),
+        ('QUINCENAL', 'Quincenal'),
+        ('MENSUAL',   'Mensual'),
+    )
+ 
+    frecuencia_cobro = models.CharField(
+        max_length=10,
+        choices=FRECUENCIA_CHOICES,
+        default='DIARIO',
+    )
+    
     estado = models.CharField(
         max_length=10,
         choices=ESTADO_CHOICES,

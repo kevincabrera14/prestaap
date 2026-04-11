@@ -1,0 +1,183 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>PrestApp | Resumen Mensual — {{ ruta.nombre }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
+    <link rel="icon" type="image/png" href="{% static 'img/favicon.ico' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+
+<nav class="top-nav">
+    <span class="nav-brand">PrestApp <span class="nav-user">| {{ request.user.username }}</span></span>
+    <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="nav-salir">← Volver</a>
+</nav>
+
+<div class="page">
+
+    <form method="GET" id="formMes">
+        <div class="mes-selector">
+            <label>📅 Mes</label>
+            <select name="mes" onchange="document.getElementById('formMes').submit()">
+                {% for m in meses_disponibles %}
+                <option value="{{ m|date:'Y-m' }}" {% if m|date:'Y-m' == mes_param %}selected{% endif %}>
+                    {{ m|date:"F Y" }}
+                </option>
+                {% empty %}
+                <option value="{{ mes_param }}">{{ mes_actual|date:"F Y" }}</option>
+                {% endfor %}
+            </select>
+            {% if es_mes_actual %}<span class="badge-live">En curso</span>{% endif %}
+        </div>
+    </form>
+
+    <div class="mes-heading">{{ mes_actual|date:"F Y"|capfirst }}</div>
+    <div class="mes-sub">Resumen de actividad · {{ ruta.nombre }}</div>
+
+    <div class="resumen-4">
+        <div class="r4-card green">
+            <div class="r4-icon">💵</div>
+            <div class="r4-label">Cobrado</div>
+            <div class="r4-val green">${{ total_abonos|intcomma }}</div>
+        </div>
+        <div class="r4-card red">
+            <div class="r4-icon">📤</div>
+            <div class="r4-label">Prestado</div>
+            <div class="r4-val red">${{ total_prestamos|intcomma }}</div>
+        </div>
+        <div class="r4-card amber">
+            <div class="r4-icon">🔄</div>
+            <div class="r4-label">Renovaciones</div>
+            <div class="r4-val amber">${{ total_renovaciones|intcomma }}</div>
+        </div>
+        <div class="r4-card blue">
+            <div class="r4-icon">💸</div>
+            <div class="r4-label">Gastos</div>
+            <div class="r4-val blue">${{ total_gastos|intcomma }}</div>
+        </div>
+    </div>
+
+    <div class="neto-banner {% if neto_mes >= 0 %}positivo{% else %}negativo{% endif %}">
+        <div>
+            <div class="neto-title">Neto del mes</div>
+            <div class="mes-sub" style="margin-bottom: 0;">Cobrado − (Préstamos + Renovaciones + Gastos)</div>
+        </div>
+        <div class="neto-num {% if neto_mes >= 0 %}positivo{% else %}negativo{% endif %}">
+            {% if neto_mes >= 0 %}+{% endif %}${{ neto_mes|intcomma }}
+        </div>
+    </div>
+
+    <div class="seccion open" id="sec-prestamos">
+        <div class="seccion-header" onclick="toggleSec('sec-prestamos')">
+            <div class="seccion-titulo">
+                <div class="seccion-ico ico-red">📤</div>
+                Préstamos nuevos
+                <span class="section-label" style="margin: 0;">({{ prestamos|length }})</span>
+            </div>
+            <div class="seccion-meta">
+                <span class="meta-total red">${{ total_prestamos|intcomma }}</span>
+                <span class="chevron">▼</span>
+            </div>
+        </div>
+        <div class="seccion-body">
+            {% for p in prestamos %}
+            <div class="mov-row">
+                <div class="mov-info">
+                    <div class="mov-nombre">{{ p.nombre_cliente }}</div>
+                    <div class="mov-fecha">{{ p.fecha|date:"d M Y, H:i" }}</div>
+                </div>
+                <div class="mov-monto red">−${{ p.monto|intcomma }}</div>
+            </div>
+            {% empty %}
+            <div class="seccion-empty">No hubo préstamos nuevos este mes.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="seccion" id="sec-renovaciones">
+        <div class="seccion-header" onclick="toggleSec('sec-renovaciones')">
+            <div class="seccion-titulo">
+                <div class="seccion-ico ico-amber">🔄</div>
+                Renovaciones
+                <span class="section-label" style="margin: 0;">({{ renovaciones|length }})</span>
+            </div>
+            <div class="seccion-meta">
+                <span class="meta-total amber">${{ total_renovaciones|intcomma }}</span>
+                <span class="chevron">▼</span>
+            </div>
+        </div>
+        <div class="seccion-body">
+            {% for r in renovaciones %}
+            <div class="mov-row">
+                <div class="mov-info">
+                    <div class="mov-nombre">{{ r.nombre_cliente }}</div>
+                    <div class="mov-fecha">{{ r.fecha|date:"d M Y, H:i" }}</div>
+                </div>
+                <div class="mov-monto amber">−${{ r.monto|intcomma }}</div>
+            </div>
+            {% empty %}
+            <div class="seccion-empty">No hubo renovaciones este mes.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="seccion" id="sec-gastos">
+        <div class="seccion-header" onclick="toggleSec('sec-gastos')">
+            <div class="seccion-titulo">
+                <div class="seccion-ico ico-blue">💸</div>
+                Gastos
+                <span class="section-label" style="margin: 0;">({{ gastos|length }})</span>
+            </div>
+            <div class="seccion-meta">
+                <span class="meta-total blue">${{ total_gastos|intcomma }}</span>
+                <span class="chevron">▼</span>
+            </div>
+        </div>
+        <div class="seccion-body">
+            {% for g in gastos %}
+            <div class="mov-row">
+                <div class="mov-info">
+                    <div class="mov-nombre">{{ g.descripcion }}</div>
+                    <div class="mov-fecha">{{ g.fecha|date:"d M Y, H:i" }}</div>
+                </div>
+                <div class="mov-monto blue">−${{ g.monto|intcomma }}</div>
+            </div>
+            {% empty %}
+            <div class="seccion-empty">No hubo gastos registrados este mes.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="seccion" id="sec-cobros">
+        <div class="seccion-header" onclick="toggleSec('sec-cobros')">
+            <div class="seccion-titulo">
+                <div class="seccion-ico ico-green">💵</div>
+                Abonos cobrados
+                <span class="section-label" style="margin: 0;">({{ cobros_count|default:"—" }})</span>
+            </div>
+            <div class="seccion-meta">
+                <span class="meta-total green">${{ total_abonos|intcomma }}</span>
+                <span class="chevron">▼</span>
+            </div>
+        </div>
+        <div class="seccion-body">
+            <div class="seccion-empty" style="text-align: left;">
+                Total cobrado en {{ mes_actual|date:"F Y" }}:
+                <strong style="color: var(--green);">${{ total_abonos|intcomma }}</strong>.
+                Consulta el detalle día por día en
+                <a href="{% url 'historial_cajas' ruta.id %}?mes={{ mes_param }}"
+                   style="color: var(--blue); font-weight: 600;">Historial de cajas</a>.
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="{% static 'js/js.js' %}"></script>
+</body>
+</html>
