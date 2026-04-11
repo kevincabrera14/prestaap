@@ -10,200 +10,13 @@
     <link rel="icon" type="image/png" href="{% static 'img/favicon.ico' %}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    <style>
-        /* Variables locales del reporte */
-        :root {
-            --rpt-navy:   #1a1a2e;
-            --rpt-green:  #2e7d32;
-            --rpt-red:    #c62828;
-            --rpt-gray:   #f8f9fa;
-        }
-
-        /* Nav de impresión */
-        .print-nav {
-            background: var(--rpt-navy);
-            padding: 12px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: white;
-        }
-
-        .print-nav-brand { font-weight: 700; }
-        .print-nav-brand span { font-weight: 400; opacity: 0.6; }
-
-        .print-nav-actions { display: flex; gap: 10px; }
-
-        .btn-volver-rpt {
-            color: white;
-            text-decoration: none;
-            font-size: 0.8rem;
-            border: 1px solid rgba(255,255,255,0.3);
-            padding: 5px 15px;
-            border-radius: 6px;
-        }
-
-        .btn-imprimir {
-            background: white;
-            border: none;
-            padding: 5px 15px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-        }
-
-        /* Hoja del reporte */
-        .report-paper {
-            background: white;
-            padding: 40px;
-            margin: 20px auto;
-            max-width: 900px;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-        }
-
-        /* Cabecera */
-        .report-header {
-            border-bottom: 2px solid var(--rpt-gray);
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-        }
-
-        .report-title h1 {
-            font-size: 1.5rem;
-            font-weight: 800;
-            margin: 0;
-            color: var(--rpt-navy);
-        }
-
-        .report-title p { margin: 0; color: #888; font-size: 0.9rem; }
-
-        .report-meta { text-align: right; }
-        .report-meta-date { margin: 0; font-weight: 700; color: var(--rpt-navy); }
-        .report-meta-gen  { margin: 0; font-size: 0.8rem; color: #aaa; }
-
-        /* Grid de resumen */
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1px;
-            background: #eee;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid #eee;
-            margin-bottom: 40px;
-        }
-
-        .summary-item {
-            background: white;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .summary-item.highlight { background: var(--rpt-gray); }
-
-        .summary-label {
-            font-size: 0.65rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: #999;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-        }
-
-        .summary-value { font-size: 1.25rem; font-weight: 800; }
-        .val-in    { color: var(--rpt-green); }
-        .val-out   { color: var(--rpt-red); }
-        .val-final { color: var(--rpt-navy); }
-
-        /* Secciones de detalle */
-        .detail-section { margin-bottom: 30px; }
-
-        .section-title {
-            font-size: 0.85rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .section-title.ingresos { color: var(--rpt-green); }
-        .section-title.egresos  { color: var(--rpt-red); }
-
-        /* Tablas */
-        .custom-table { width: 100%; border-collapse: collapse; }
-
-        .custom-table th {
-            text-align: left;
-            font-size: 0.75rem;
-            color: #999;
-            border-bottom: 1px solid #eee;
-            padding: 10px;
-        }
-
-        .custom-table th.align-right { text-align: right; }
-
-        .custom-table td {
-            padding: 12px 10px;
-            border-bottom: 1px dotted #f0f0f0;
-            font-size: 0.9rem;
-        }
-
-        .custom-table td.align-right { text-align: right; }
-
-        .td-name   { font-weight: 600; }
-        .time-badge { font-size: 0.7rem; color: #bbb; font-weight: 400; }
-        .td-amount  { font-weight: 700; }
-        .td-empty   { text-align: center; color: #ccc; padding: 30px; }
-
-        /* Footer */
-        .report-footer {
-            margin-top: 50px;
-            border-top: 1px solid #eee;
-            padding-top: 20px;
-            text-align: center;
-            color: #bbb;
-            font-size: 0.7rem;
-        }
-
-        /* Estado vacío */
-        .no-report {
-            text-align: center;
-            padding: 100px 0;
-        }
-
-        .no-report-icon { font-size: 4rem; }
-        .no-report h2   { font-weight: 800; }
-        .no-report p    { color: #888; }
-
-        /* Print */
-        @media print {
-            .no-print { display: none !important; }
-            body { background: white; }
-            .report-paper { box-shadow: none; margin: 0; max-width: 100%; padding: 20px; }
-            .summary-grid, .summary-item { border: 1px solid #ddd; }
-        }
-
-        /* Mobile */
-        @media (max-width: 768px) {
-            .summary-grid  { grid-template-columns: 1fr 1fr; }
-            .report-header { flex-direction: column; align-items: flex-start; gap: 15px; }
-        }
-    </style>
 </head>
 <body>
 
 <nav class="print-nav no-print">
     <div class="print-nav-brand">PrestApp <span>| Supervisor</span></div>
     <div class="print-nav-actions">
-        <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="btn-volver-rpt">Volver</a>
+        <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="btn-volver-rpt">← Volver</a>
         <button onclick="window.print()" class="btn-imprimir">🖨️ Imprimir</button>
     </div>
 </nav>
@@ -225,7 +38,7 @@
             <p>Ruta: <strong>{{ ruta.nombre }}</strong></p>
         </div>
         <div class="report-meta">
-            <p class="report-meta-date">{{ fecha|date:"l, d \d\e F" }}</p>
+            <p class="report-meta-date">{{ fecha|date:"l, d \d\e F \d\e Y" }}</p>
             <p class="report-meta-gen">Generado: {% now "H:i" %}</p>
         </div>
     </header>
@@ -236,21 +49,39 @@
             <div class="summary-value">${{ caja.saldo_inicial|intcomma }}</div>
         </div>
         <div class="summary-item">
-            <div class="summary-label">Ingresos</div>
-            <div class="summary-value val-in">+ ${{ total_ingresos }}</div>
+            <div class="summary-label">Cobros del Día</div>
+            <div class="summary-value val-in">+ ${{ total_ingresos|intcomma }}</div>
         </div>
         <div class="summary-item">
-            <div class="summary-label">Gastos</div>
-            <div class="summary-value val-out">- ${{ total_egresos }}</div>
+            <div class="summary-label">Total Egresos</div>
+            <div class="summary-value val-out">- ${{ total_egresos|intcomma }}</div>
         </div>
         <div class="summary-item highlight">
             <div class="summary-label">Saldo Final</div>
-            <div class="summary-value val-final">${{ saldo_final }}</div>
+            <div class="summary-value val-final">${{ saldo_final|intcomma }}</div>
+        </div>
+    </div>
+
+    <div class="egresos-grid">
+        <div class="egreso-card">
+            <div class="egreso-card-label">💸 Gastos Operativos</div>
+            <div class="egreso-card-value val-out">- ${{ total_gastos|intcomma }}</div>
+            <div class="egreso-card-count">{{ egresos_gastos|length }} registro{{ egresos_gastos|length|pluralize }}</div>
+        </div>
+        <div class="egreso-card">
+            <div class="egreso-card-label">📋 Préstamos Otorgados</div>
+            <div class="egreso-card-value val-blue">- ${{ total_prestamos_dia|intcomma }}</div>
+            <div class="egreso-card-count">{{ egresos_prestamos|length }} préstamo{{ egresos_prestamos|length|pluralize }}</div>
+        </div>
+        <div class="egreso-card">
+            <div class="egreso-card-label">🔄 Renovaciones</div>
+            <div class="egreso-card-value val-orange">- ${{ total_renovaciones_dia|intcomma }}</div>
+            <div class="egreso-card-count">{{ egresos_renovaciones|length }} renovación{{ egresos_renovaciones|length|pluralize:"es" }}</div>
         </div>
     </div>
 
     <div class="detail-section">
-        <h3 class="section-title ingresos">↙ Detalle de Cobros (Abonos)</h3>
+        <h3 class="section-title ingresos">↙ Cobros del día (Abonos)</h3>
         <table class="custom-table">
             <thead>
                 <tr>
@@ -265,39 +96,119 @@
                         <div class="td-name">{{ abono.targeta.nombre_cliente }}</div>
                         <div class="time-badge">{{ abono.fecha|time:"H:i" }}</div>
                     </td>
-                    <td class="align-right td-amount val-in">${{ abono.monto }}</td>
+                    <td class="align-right td-amount val-in">+ ${{ abono.monto|intcomma }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="2" class="td-empty">No se registraron cobros.</td></tr>
+                <tr><td colspan="2" class="td-empty">No se registraron cobros este día.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 
+    <hr class="section-divider">
+
     <div class="detail-section">
-        <h3 class="section-title egresos">↗ Detalle de Egresos (Gastos)</h3>
+        <h3 class="section-title egresos-tit">↗ Gastos Operativos</h3>
         <table class="custom-table">
             <thead>
                 <tr>
                     <th>DESCRIPCIÓN / HORA</th>
-                    <th class="align-right">MONTO PAGADO</th>
+                    <th class="align-right">MONTO</th>
                 </tr>
             </thead>
             <tbody>
-                {% for egreso in egresos %}
+                {% for egreso in egresos_gastos %}
+                <tr>
+                    <td>
+                        <div class="td-name">{{ egreso.descripcion|cut:"GASTO: " }}</div>
+                        <div class="time-badge">{{ egreso.fecha|time:"H:i" }}</div>
+                    </td>
+                    <td class="align-right td-amount val-out">- ${{ egreso.monto|intcomma }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="2" class="td-empty">Sin gastos operativos este día.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <hr class="section-divider">
+
+    <div class="detail-section">
+        <h3 class="section-title prestamos">📋 Préstamos Otorgados</h3>
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>CLIENTE / HORA</th>
+                    <th class="align-right">MONTO</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for egreso in egresos_prestamos %}
+                <tr>
+                    <td>
+                        <div class="td-name">{{ egreso.descripcion|cut:"Préstamo otorgado a " }}</div>
+                        <div class="time-badge">{{ egreso.fecha|time:"H:i" }}</div>
+                    </td>
+                    <td class="align-right td-amount val-blue">- ${{ egreso.monto|intcomma }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="2" class="td-empty">Sin préstamos otorgados este día.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="detail-section" style="margin-top: 20px;">
+        <h3 class="section-title renovacion">🔄 Renovaciones del Día</h3>
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>CLIENTE / HORA</th>
+                    <th class="align-right">MONTO</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for egreso in egresos_renovaciones %}
+                <tr>
+                    <td>
+                        <div class="td-name">{{ egreso.descripcion|cut:"RENOVACIÓN (Restauración): " }}</div>
+                        <div class="time-badge">{{ egreso.fecha|time:"H:i" }}</div>
+                    </td>
+                    <td class="align-right td-amount val-orange">- ${{ egreso.monto|intcomma }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="2" class="td-empty">Sin renovaciones este día.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if egresos_otros %}
+    <hr class="section-divider">
+    <div class="detail-section">
+        <h3 class="section-title egresos-tit">⚠️ Otros Movimientos</h3>
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>DESCRIPCIÓN / HORA</th>
+                    <th class="align-right">MONTO</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for egreso in egresos_otros %}
                 <tr>
                     <td>
                         <div class="td-name">{{ egreso.descripcion }}</div>
                         <div class="time-badge">{{ egreso.fecha|time:"H:i" }}</div>
                     </td>
-                    <td class="align-right td-amount val-out">-${{ egreso.monto }}</td>
+                    <td class="align-right td-amount val-out">- ${{ egreso.monto|intcomma }}</td>
                 </tr>
-                {% empty %}
-                <tr><td colspan="2" class="td-empty">No se registraron gastos.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {% endif %}
 
     <footer class="report-footer">
         Este documento es un resumen oficial de transacciones diarias de PrestApp.

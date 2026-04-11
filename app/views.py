@@ -1067,6 +1067,9 @@ def movimientos_ruta(request, ruta_id):
         "egresos_hoy":  egresos_hoy,
         "saldo_hoy":    saldo_hoy,
     })
+# ================================================================================================================================================
+# REPORTE DIARIO — reemplaza SOLO la función reporte_diario en views.py
+# ================================================================================================================================================
 
 @login_required
 def reporte_diario(request, ruta_id, fecha):
@@ -1090,12 +1093,57 @@ def reporte_diario(request, ruta_id, fecha):
         defaults={'saldo_inicial': ruta.base, 'cerrada': False}
     )
 
-    abonos  = Abono.objects.filter(targeta__ruta=ruta, fecha__range=(inicio_dia, fin_dia)).order_by("fecha")
-    egresos = MovimientoRuta.objects.filter(ruta=ruta, tipo="EGRESO", fecha__range=(inicio_dia, fin_dia)).order_by("fecha")
+    # ── Ingresos: todos los abonos del día ────────────────────────────────────
+    abonos = Abono.objects.filter(
+        targeta__ruta=ruta,
+        fecha__range=(inicio_dia, fin_dia)
+    ).order_by("fecha")
 
-    total_ingresos = abonos.aggregate(total=Sum("monto"))["total"]  or Decimal("0.00")
-    total_egresos  = egresos.aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
+    total_ingresos = abonos.aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
 
+    # ── Egresos desglosados por categoría ─────────────────────────────────────
+    egresos_gastos = MovimientoRuta.objects.filter(
+        ruta=ruta,
+        tipo="EGRESO",
+        descripcion__startswith="GASTO:",
+        fecha__range=(inicio_dia, fin_dia)
+    ).order_by("fecha")
+
+    egresos_prestamos = MovimientoRuta.objects.filter(
+        ruta=ruta,
+        tipo="EGRESO",
+        descripcion__startswith="Préstamo otorgado",
+        fecha__range=(inicio_dia, fin_dia)
+    ).order_by("fecha")
+
+    egresos_renovaciones = MovimientoRuta.objects.filter(
+        ruta=ruta,
+        tipo="EGRESO",
+        descripcion__startswith="RENOVACIÓN",
+        fecha__range=(inicio_dia, fin_dia)
+    ).order_by("fecha")
+
+    # Otros egresos: anulaciones, eliminaciones, retiros, etc.
+    egresos_otros = MovimientoRuta.objects.filter(
+        ruta=ruta,
+        tipo="EGRESO",
+        fecha__range=(inicio_dia, fin_dia)
+    ).exclude(
+        descripcion__startswith="GASTO:"
+    ).exclude(
+        descripcion__startswith="Préstamo otorgado"
+    ).exclude(
+        descripcion__startswith="RENOVACIÓN"
+    ).order_by("fecha")
+
+    total_gastos          = egresos_gastos.aggregate(total=Sum("monto"))["total"]         or Decimal("0.00")
+    total_prestamos_dia   = egresos_prestamos.aggregate(total=Sum("monto"))["total"]      or Decimal("0.00")
+    total_renovaciones_dia = egresos_renovaciones.aggregate(total=Sum("monto"))["total"]  or Decimal("0.00")
+    total_otros           = egresos_otros.aggregate(total=Sum("monto"))["total"]          or Decimal("0.00")
+
+    total_egresos = total_gastos + total_prestamos_dia + total_renovaciones_dia + total_otros
+
+    # ── Actualizar y guardar la caja ──────────────────────────────────────────
     caja.ingresos    = total_ingresos
     caja.egresos     = total_egresos
     caja.saldo_final = caja.saldo_inicial + total_ingresos - total_egresos
@@ -1104,15 +1152,24 @@ def reporte_diario(request, ruta_id, fecha):
     caja.save()
 
     return render(request, "app/reporte_diario.html", {
-        "ruta":           ruta,
-        "fecha":          fecha_reporte,
-        "caja":           caja,
-        "abonos":         abonos,
-        "egresos":        egresos,
-        "total_ingresos": total_ingresos,
-        "total_egresos":  total_egresos,
-        "saldo_inicial":  caja.saldo_inicial,
-        "saldo_final":    caja.saldo_final,
+        "ruta":                  ruta,
+        "fecha":                 fecha_reporte,
+        "caja":                  caja,
+        # ingresos
+        "abonos":                abonos,
+        "total_ingresos":        total_ingresos,
+        # egresos desglosados
+        "egresos_gastos":        egresos_gastos,
+        "egresos_prestamos":     egresos_prestamos,
+        "egresos_renovaciones":  egresos_renovaciones,
+        "egresos_otros":         egresos_otros,
+        "total_gastos":          total_gastos,
+        "total_prestamos_dia":   total_prestamos_dia,
+        "total_renovaciones_dia": total_renovaciones_dia,
+        # totales generales
+        "total_egresos":         total_egresos,
+        "saldo_inicial":         caja.saldo_inicial,
+        "saldo_final":           caja.saldo_final,
     })
 
 def historial_cierres(request, ruta_id):

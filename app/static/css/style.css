@@ -1961,3 +1961,207 @@ body {
 }
 
 .btn-renovar-confirm:hover { background: #0d47a1; }
+
+
+/* ============================================================
+   10. REPORTE DIARIO (versión extendida)
+   ============================================================ */
+
+.print-nav {
+    background: var(--navy);
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: white;
+}
+
+.print-nav-brand { font-weight: 700; }
+.print-nav-brand span { font-weight: 400; opacity: 0.6; }
+.print-nav-actions { display: flex; gap: 10px; }
+
+.btn-volver-rpt {
+    color: white;
+    text-decoration: none;
+    font-size: 0.8rem;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 5px 15px;
+    border-radius: 6px;
+}
+
+.btn-imprimir {
+    background: white;
+    border: none;
+    padding: 5px 15px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.report-paper {
+    background: white;
+    padding: 40px;
+    margin: 20px auto;
+    max-width: 960px;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+
+.report-header {
+    border-bottom: 2px solid var(--bg-alt);
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.report-title h1 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0;
+    color: var(--navy);
+}
+
+.report-title p { margin: 0; color: #888; font-size: 0.9rem; }
+
+.report-meta { text-align: right; }
+.report-meta-date { margin: 0; font-weight: 700; color: var(--navy); }
+.report-meta-gen  { margin: 0; font-size: 0.8rem; color: #aaa; }
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: #eee;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid #eee;
+    margin-bottom: 30px;
+}
+
+.summary-item { background: white; padding: 20px; text-align: center; }
+.summary-item.highlight { background: var(--bg-alt); }
+
+.summary-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+.summary-value { font-size: 1.25rem; font-weight: 800; }
+.val-in     { color: var(--green); }
+.val-out    { color: var(--red);   }
+.val-blue   { color: var(--blue);  }
+.val-orange { color: var(--orange); }
+.val-final  { color: var(--navy);  }
+
+.egresos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: #eee;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid #eee;
+    margin-bottom: 40px;
+}
+
+.egreso-card { background: white; padding: 18px 20px; text-align: center; }
+
+.egreso-card-label {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.egreso-card-value { font-size: 1.1rem; font-weight: 800; }
+.egreso-card-count { font-size: 0.72rem; color: #bbb; margin-top: 3px; }
+
+.detail-section { margin-bottom: 30px; }
+
+.section-title {
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-title.ingresos    { color: var(--green);  }
+.section-title.egresos-tit { color: var(--red);    }
+.section-title.prestamos   { color: var(--blue);   }
+.section-title.renovacion  { color: var(--orange); }
+
+.custom-table { width: 100%; border-collapse: collapse; }
+
+.custom-table th {
+    text-align: left;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    border-bottom: 1px solid #eee;
+    padding: 8px 10px;
+}
+
+.custom-table th.align-right { text-align: right; }
+
+.custom-table td {
+    padding: 11px 10px;
+    border-bottom: 1px dotted #f0f0f0;
+    font-size: 0.88rem;
+}
+
+.custom-table td.align-right { text-align: right; }
+
+.td-name    { font-weight: 600; }
+.time-badge { font-size: 0.7rem; color: #bbb; font-weight: 400; }
+.td-amount  { font-weight: 700; }
+.td-empty   { text-align: center; color: #ccc; padding: 24px; }
+
+.section-divider {
+    border: none;
+    border-top: 2px dashed #f0f0f0;
+    margin: 30px 0;
+}
+
+.report-footer {
+    margin-top: 50px;
+    border-top: 1px solid #eee;
+    padding-top: 20px;
+    text-align: center;
+    color: #bbb;
+    font-size: 0.7rem;
+}
+
+.no-report { text-align: center; padding: 100px 0; }
+.no-report-icon { font-size: 4rem; }
+.no-report h2   { font-weight: 800; }
+.no-report p    { color: #888; }
+
+@media print {
+    .no-print { display: none !important; }
+    body { background: white; }
+    .report-paper {
+        box-shadow: none;
+        margin: 0;
+        max-width: 100%;
+        padding: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .summary-grid  { grid-template-columns: 1fr 1fr; }
+    .egresos-grid  { grid-template-columns: 1fr; }
+    .report-header { flex-direction: column; align-items: flex-start; gap: 15px; }
+    .report-paper  { padding: 20px; }
+}
