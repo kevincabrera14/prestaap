@@ -184,30 +184,66 @@ def dashboard_supervisor(request):
 @login_required
 def dashboard_trabajador(request):
     rutas = Ruta.objects.filter(trabajadores=request.user)
-    targetas = Targeta.objects.filter(ruta__in=rutas)
+    targetas_qs = Targeta.objects.filter(ruta__in=rutas).exclude(estado='PAGADA')
 
     q       = request.GET.get("q")
     estado  = request.GET.get("estado")
     ruta_id = request.GET.get("ruta")
 
     if q:
-        targetas = targetas.filter(nombre_cliente__icontains=q)
+        targetas_qs = targetas_qs.filter(nombre_cliente__icontains=q)
     if estado:
-        targetas = targetas.filter(estado=estado)
+        targetas_qs = targetas_qs.filter(estado=estado)
     if ruta_id:
-        targetas = targetas.filter(ruta_id=ruta_id)
+        targetas_qs = targetas_qs.filter(ruta_id=ruta_id)
 
-    targetas = targetas.prefetch_related('cuotas')
+    targetas_qs = targetas_qs.prefetch_related('cuotas', 'abonos')
 
-    for t in targetas:
+    # Rangos de hoy para detectar abono_hoy
+    hoy_fecha        = localdate()
+    hoy_inicio_aware = make_aware(datetime.datetime.combine(hoy_fecha, datetime.time.min))
+    hoy_fin_aware    = make_aware(datetime.datetime.combine(hoy_fecha, datetime.time.max))
+
+    targetas = []
+    for t in targetas_qs:
+        if t.saldo_restante <= 0:
+            continue
+
         todas_las_cuotas = t.cuotas.all()
         t.cuotas_pagadas = sum(1 for c in todas_las_cuotas if c.estado == 'PAGADA')
         t.total_cuotas   = len(todas_las_cuotas)
 
+        # ¿Pagó hoy?
+        t.abono_hoy = t.abonos.filter(
+            fecha__gte=hoy_inicio_aware,
+            fecha__lte=hoy_fin_aware,
+        ).exists()
+
+        # Dias desde el ultimo abono
+        ultimo_abono = t.abonos.order_by('-fecha').first()
+        if ultimo_abono:
+            t.dias_sin_abono = (hoy_fecha - ultimo_abono.fecha.date()).days
+        else:
+            t.dias_sin_abono = (hoy_fecha - t.fecha_creacion).days
+
+        # ¿Cobro atrasado segun frecuencia?
+        if t.frecuencia_cobro == 'DIARIO':
+            t.cobro_atrasado = (not t.abono_hoy) and (t.dias_sin_abono > 1)
+        elif t.frecuencia_cobro == 'SEMANAL':
+            t.cobro_atrasado = (not t.abono_hoy) and (t.dias_sin_abono > 7)
+        elif t.frecuencia_cobro == 'QUINCENAL':
+            t.cobro_atrasado = (not t.abono_hoy) and (t.dias_sin_abono > 15)
+        elif t.frecuencia_cobro == 'MENSUAL':
+            t.cobro_atrasado = (not t.abono_hoy) and (t.dias_sin_abono > 30)
+        else:
+            t.cobro_atrasado = False
+
+        targetas.append(t)
+
     resumen = {
-        "total_clientes": targetas.count(),
-        "en_mora":        targetas.filter(estado="MORA").count(),
-        "total_saldo":    sum([t.saldo_restante for t in targetas]),
+        "total_clientes": len(targetas),
+        "en_mora":        sum(1 for t in targetas if t.estado == "MORA"),
+        "total_saldo":    sum(t.saldo_restante for t in targetas),
     }
 
     return render(request, "app/trabajador.html", {
