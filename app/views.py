@@ -504,7 +504,6 @@ def renovar_targeta(request, targeta_id):
 
     return render(request, "app/renovar_targeta.html", {"targeta": targeta})
 
-
 @login_required
 @supervisor_required
 def clientes_finalizados(request):
@@ -539,7 +538,6 @@ def lista_abonos(request, targeta_id):
         'targeta': targeta,
         'abonos':  abonos
     })
-
 
 @login_required
 def crear_abono(request, targeta_id=None):
@@ -665,7 +663,6 @@ def crear_abono(request, targeta_id=None):
         "cuotas":  cuotas_pendientes,
     })
 
-
 def crear_cuotas(targeta):
     """
     Genera cuotas con fecha de vencimiento.
@@ -701,7 +698,6 @@ def crear_cuotas(targeta):
     # Actualizar estado con las cuotas ya creadas
     targeta.refresh_from_db()
     targeta.actualizar_estado()
-
 
 @login_required
 def historial_abonos(request, targeta_id):
@@ -996,58 +992,86 @@ def historial_cajas(request, ruta_id):
     ultimo_dia    = datetime.date(anio, mes, calendar.monthrange(anio, mes)[1])
     mes_param_str = f'{anio}-{str(mes).zfill(2)}'
 
-    abonos_mes = (
-        Abono.objects
-        .filter(targeta__ruta=ruta, fecha__date__gte=primer_dia, fecha__date__lte=ultimo_dia)
-        .values('fecha__date')
-        .annotate(total=Sum('monto'))
-    )
-    abonos_por_dia = {a['fecha__date']: a['total'] for a in abonos_mes}
-
-    egresos_mes = (
-        MovimientoRuta.objects
-        .filter(ruta=ruta, tipo='EGRESO', fecha__date__gte=primer_dia, fecha__date__lte=ultimo_dia)
-        .values('fecha__date')
-        .annotate(total=Sum('monto'))
-    )
-    egresos_por_dia = {e['fecha__date']: e['total'] for e in egresos_mes}
-
+    # ── Días con actividad ────────────────────────────────────────────────────
+    abonos_por_dia_agg = {
+        a['fecha__date']: a['total']
+        for a in Abono.objects
+            .filter(targeta__ruta=ruta, fecha__date__gte=primer_dia, fecha__date__lte=ultimo_dia)
+            .values('fecha__date')
+            .annotate(total=Sum('monto'))
+    }
+    egresos_por_dia_agg = {
+        e['fecha__date']: e['total']
+        for e in MovimientoRuta.objects
+            .filter(ruta=ruta, tipo='EGRESO', fecha__date__gte=primer_dia, fecha__date__lte=ultimo_dia)
+            .values('fecha__date')
+            .annotate(total=Sum('monto'))
+    }
     dias_con_actividad = sorted(
-        set(list(abonos_por_dia.keys()) + list(egresos_por_dia.keys())),
+        set(list(abonos_por_dia_agg.keys()) + list(egresos_por_dia_agg.keys())),
         reverse=True
     )
 
+    # ── Construcción detallada por día ────────────────────────────────────────
     dias = []
     for dia in dias_con_actividad:
-        ingresos_dia = abonos_por_dia.get(dia, Decimal('0.00'))
-        egresos_dia  = egresos_por_dia.get(dia, Decimal('0.00'))
 
-        movimientos = []
+        # — Abonos —
+        abonos_qs = (
+            Abono.objects
+            .filter(targeta__ruta=ruta, fecha__date=dia)
+            .select_related('targeta', 'registrado_por')
+            .order_by('fecha')
+        )
+        abonos = [
+            {
+                'cliente': a.targeta.nombre_cliente,
+                'monto':   a.monto,
+                'hora':    a.fecha,
+                'usuario': a.registrado_por.username if a.registrado_por else None,
+            }
+            for a in abonos_qs
+        ]
+        total_abonos = sum(a['monto'] for a in abonos)
 
-        for a in Abono.objects.filter(targeta__ruta=ruta, fecha__date=dia).select_related('targeta').order_by('fecha'):
-            movimientos.append({
-                'tipo':        'INGRESO',
-                'descripcion': f'Abono — {a.targeta.nombre_cliente}',
-                'monto':       a.monto,
-                'hora':        a.fecha,
-            })
+        # — Movimientos de egreso clasificados —
+        prestamos    = []
+        renovaciones = []
+        gastos       = []
 
-        for e in MovimientoRuta.objects.filter(ruta=ruta, tipo='EGRESO', fecha__date=dia).order_by('fecha'):
-            movimientos.append({
-                'tipo':        'EGRESO',
-                'descripcion': e.descripcion,
-                'monto':       e.monto,
-                'hora':        e.fecha,
-            })
+        for mov in MovimientoRuta.objects.filter(ruta=ruta, tipo='EGRESO', fecha__date=dia).order_by('fecha'):
+            desc  = mov.descripcion or ''
+            base  = {
+                'monto':       mov.monto,
+                'hora':        mov.fecha,
+                'usuario':     None,  # MovimientoRuta no guarda usuario aún
+            }
+            if desc.startswith('Préstamo otorgado'):
+                prestamos.append({**base, 'cliente': desc.replace('Préstamo otorgado a ', '').strip()})
+            elif 'RENOVACIÓN' in desc:
+                renovaciones.append({**base, 'cliente': desc.replace('RENOVACIÓN (Restauración):', '').strip()})
+            else:
+                gastos.append({**base, 'descripcion': desc.replace('GASTO:', '').strip()})
 
-        movimientos.sort(key=lambda x: x['hora'])
+        total_prestamos    = sum(m['monto'] for m in prestamos)
+        total_renovaciones = sum(m['monto'] for m in renovaciones)
+        total_gastos       = sum(m['monto'] for m in gastos)
+        total_egresos_dia  = total_prestamos + total_renovaciones + total_gastos
 
         dias.append({
-            'fecha':      dia,
-            'ingresos':   ingresos_dia,
-            'egresos':    egresos_dia,
-            'neto':       ingresos_dia - egresos_dia,
-            'movimientos': movimientos,
+            'fecha':              dia,
+            'ingresos':           total_abonos,
+            'egresos':            total_egresos_dia,
+            'neto':               total_abonos - total_egresos_dia,
+            'total_movimientos':  len(abonos) + len(prestamos) + len(renovaciones) + len(gastos),
+            'abonos':             abonos,
+            'prestamos':          prestamos,
+            'renovaciones':       renovaciones,
+            'gastos':             gastos,
+            'total_abonos':       total_abonos,
+            'total_prestamos':    total_prestamos,
+            'total_renovaciones': total_renovaciones,
+            'total_gastos':       total_gastos,
         })
 
     total_ingresos_mes = sum(d['ingresos'] for d in dias)
@@ -1061,7 +1085,11 @@ def historial_cajas(request, ruta_id):
         fin = hoy.replace(day=1)
         while cur <= fin:
             meses_disponibles.append(cur)
-            cur = cur.replace(month=cur.month + 1) if cur.month < 12 else cur.replace(year=cur.year + 1, month=1)
+            cur = (
+                cur.replace(month=cur.month + 1)
+                if cur.month < 12
+                else cur.replace(year=cur.year + 1, month=1)
+            )
         meses_disponibles.reverse()
 
     return render(request, 'app/historial_cajas.html', {
@@ -1074,7 +1102,6 @@ def historial_cajas(request, ruta_id):
         'meses_disponibles':  meses_disponibles,
         'mes_param':          mes_param_str,
     })
-
 
 def cerrar_cajas_anteriores(ruta):
     hoy = localdate()
