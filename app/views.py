@@ -844,7 +844,6 @@ def registrar_gasto(request, ruta_id):
 # CAJAS
 # ================================================================================================================================================
 
-
 @login_required
 def historial_cajas(request, ruta_id):
     import calendar
@@ -914,11 +913,11 @@ def historial_cajas(request, ruta_id):
         gastos       = []
 
         for mov in MovimientoRuta.objects.filter(ruta=ruta, tipo='EGRESO', fecha__date=dia).order_by('fecha'):
-            desc  = mov.descripcion or ''
-            base  = {
-                'monto':       mov.monto,
-                'hora':        mov.fecha,
-                'usuario':     None,  # MovimientoRuta no guarda usuario aún
+            desc = mov.descripcion or ''
+            base = {
+                'monto':   mov.monto,
+                'hora':    mov.fecha,
+                'usuario': None,
             }
             if desc.startswith('Préstamo otorgado'):
                 prestamos.append({**base, 'cliente': desc.replace('Préstamo otorgado a ', '').strip()})
@@ -948,9 +947,16 @@ def historial_cajas(request, ruta_id):
             'total_gastos':       total_gastos,
         })
 
-    total_ingresos_mes = sum(d['ingresos'] for d in dias)
-    total_egresos_mes  = sum(d['egresos']  for d in dias)
-    neto_mes           = total_ingresos_mes - total_egresos_mes
+    total_ingresos_mes     = sum(d['ingresos'] for d in dias)
+    total_egresos_mes      = sum(d['egresos']  for d in dias)
+    neto_mes               = total_ingresos_mes - total_egresos_mes
+
+    # ── Totales del mes por categoría ─────────────────────────────────────────
+    total_prestamos_mes    = sum(sum(m['monto'] for m in d['prestamos'])    for d in dias)
+    total_renovaciones_mes = sum(sum(m['monto'] for m in d['renovaciones']) for d in dias)
+    total_gastos_mes       = sum(sum(m['monto'] for m in d['gastos'])       for d in dias)
+    total_capital_mes      = total_prestamos_mes + total_renovaciones_mes
+    total_perdidas_mes     = total_egresos_mes - total_capital_mes - total_gastos_mes
 
     primer_abono = Abono.objects.filter(targeta__ruta=ruta).order_by('fecha').first()
     meses_disponibles = []
@@ -967,14 +973,19 @@ def historial_cajas(request, ruta_id):
         meses_disponibles.reverse()
 
     return render(request, 'app/historial_cajas.html', {
-        'ruta':               ruta,
-        'dias':               dias,
-        'mes_actual':         primer_dia,
-        'total_ingresos_mes': total_ingresos_mes,
-        'total_egresos_mes':  total_egresos_mes,
-        'neto_mes':           neto_mes,
-        'meses_disponibles':  meses_disponibles,
-        'mes_param':          mes_param_str,
+        'ruta':                  ruta,
+        'dias':                  dias,
+        'mes_actual':            primer_dia,
+        'total_ingresos_mes':    total_ingresos_mes,
+        'total_egresos_mes':     total_egresos_mes,
+        'total_capital_mes':     total_capital_mes,
+        'total_prestamos_mes':   total_prestamos_mes,
+        'total_renovaciones_mes':total_renovaciones_mes,
+        'total_gastos_mes':      total_gastos_mes,
+        'total_perdidas_mes':    total_perdidas_mes,
+        'neto_mes':              neto_mes,
+        'meses_disponibles':     meses_disponibles,
+        'mes_param':             mes_param_str,
     })
 
 def cerrar_cajas_anteriores(ruta):

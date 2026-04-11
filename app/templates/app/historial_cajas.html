@@ -1,4 +1,5 @@
 {% load static %}
+{% load humanize %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -8,6 +9,16 @@
     <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        /* Estilos necesarios para la interactividad del historial */
+        .dia-detalle { display: none; padding: 10px; background: #fff; }
+        .dia-card.open .dia-detalle { display: block; }
+        .dia-card.open .chevron { transform: rotate(180deg); }
+        .seccion-contenido { display: none; padding: 10px; }
+        .seccion.open .seccion-contenido { display: block; }
+        .dia-header { cursor: pointer; transition: background 0.2s; }
+        .dia-header:hover { background: #f8f9fa; }
+    </style>
 </head>
 <body>
 
@@ -44,223 +55,155 @@
     </div>
     {% endif %}
 
-    {# ── KPIs ── #}
+    {# ── ENCABEZADO ── #}
     <div class="mes-heading">{{ mes_actual|date:"F Y" }}</div>
     <div class="mes-sub">{{ dias|length }} día{{ dias|length|pluralize:"s" }} con movimientos</div>
 
+    {# ── RESUMEN DEL MES ── #}
     <div class="resumen-mes">
-        <div class="resumen-titulo">Resumen del mes</div>
+        <div class="resumen-titulo">Flujo de caja</div>
         <div class="resumen-grid-cajas">
             <div class="res-item ingreso">
-                <div class="res-num-caja">${{ total_ingresos_mes }}</div>
-                <div class="res-lbl">Ingresos</div>
+                <div class="res-num-caja">${{ total_ingresos_mes|intcomma }}</div>
+                <div class="res-lbl">Cobrado</div>
             </div>
             <div class="res-item egreso">
-                <div class="res-num-caja">${{ total_egresos_mes }}</div>
-                <div class="res-lbl">Egresos</div>
+                <div class="res-num-caja">${{ total_capital_mes|intcomma }}</div>
+                <div class="res-lbl">Prestado</div>
             </div>
             <div class="res-item neto">
-                <div class="res-num-caja">${{ neto_mes }}</div>
+                <div class="res-num-caja">${{ neto_mes|intcomma }}</div>
                 <div class="res-lbl">Neto</div>
+            </div>
+        </div>
+
+        <div style="margin-top:14px; border-top:1px solid rgba(255,255,255,.12); padding-top:14px;">
+            <div class="resumen-titulo" style="margin-bottom:10px;">Egresos operativos</div>
+            <div class="resumen-grid-cajas">
+                <div class="res-item egreso">
+                    <div class="res-num-caja">${{ total_gastos_mes|intcomma }}</div>
+                    <div class="res-lbl">Gastos</div>
+                </div>
+                <div class="res-item egreso">
+                    <div class="res-num-caja">${{ total_perdidas_mes|intcomma }}</div>
+                    <div class="res-lbl">Pérdidas</div>
+                </div>
+                <div class="res-item egreso">
+                    <div class="res-num-caja">${{ total_egresos_mes|intcomma }}</div>
+                    <div class="res-lbl">Total egresado</div>
+                </div>
             </div>
         </div>
     </div>
 
     {# ── DÍAS ── #}
     {% if dias %}
-
-    {% for dia in dias %}
-    <div class="dia-card" id="d{{ forloop.counter }}">
-
-        {# Cabecera del día #}
-        <div class="dia-header" onclick="toggleDia('d{{ forloop.counter }}')">
-            <div>
-                <div class="dia-fecha">{{ dia.fecha|date:"l d \d\e F" }}</div>
-                <div class="dia-nums">
-                    <span class="dia-num-item ing">↑ ${{ dia.ingresos }}</span>
-                    <span class="dia-num-item egr">↓ ${{ dia.egresos }}</span>
+        {% for dia in dias %}
+        <div class="dia-card" id="d{{ forloop.counter }}">
+            <div class="dia-header" onclick="toggleDia('d{{ forloop.counter }}')">
+                <div>
+                    <div class="dia-fecha">{{ dia.fecha|date:"l d \d\e F" }}</div>
+                    <div class="dia-nums">
+                        <span class="dia-num-item ing">↑ ${{ dia.ingresos|intcomma }}</span>
+                        <span class="dia-num-item egr">↓ ${{ dia.egresos|intcomma }}</span>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div style="text-align:right;">
+                        <div class="neto-val {% if dia.neto >= 0 %}pos{% else %}neg{% endif %}">${{ dia.neto|intcomma }}</div>
+                        <div class="neto-lbl">Neto</div>
+                    </div>
+                    <span class="chevron">▼</span>
                 </div>
             </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-                <div style="text-align:right;">
-                    <div class="neto-val {% if dia.neto >= 0 %}pos{% else %}neg{% endif %}">${{ dia.neto }}</div>
-                    <div class="neto-lbl">Neto</div>
+
+            <div class="dia-detalle">
+                {# 1. ABONOS #}
+                <div class="seccion" id="s-ab-{{ forloop.counter }}">
+                    <div class="seccion-header" onclick="toggleSec('s-ab-{{ forloop.counter }}')">
+                        <div class="seccion-titulo">
+                            <span class="seccion-ico ico-green">💵</span>
+                            Abonos cobrados ({{ dia.lista_abonos|length }})
+                        </div>
+                    </div>
+                    <div class="seccion-contenido">
+                        {% for abono in dia.lista_abonos %}
+                        <div class="gasto-item">
+                            <div class="gasto-desc">{{ abono.targeta.cliente.nombre }}</div>
+                            <div class="gasto-monto" style="color:var(--green)">+${{ abono.monto|intcomma }}</div>
+                        </div>
+                        {% empty %}
+                        <div class="modal-empty">Sin abonos este día.</div>
+                        {% endfor %}
+                    </div>
                 </div>
-                <span class="chevron">▼</span>
+
+                {# 2. PRÉSTAMOS #}
+                <div class="seccion" id="s-pr-{{ forloop.counter }}">
+                    <div class="seccion-header" onclick="toggleSec('s-pr-{{ forloop.counter }}')">
+                        <div class="seccion-titulo">
+                            <span class="seccion-ico ico-blue">📝</span>
+                            Préstamos nuevos
+                        </div>
+                    </div>
+                    <div class="seccion-contenido">
+                        {% for prestamo in dia.lista_prestamos %}
+                        <div class="gasto-item">
+                            <div class="gasto-desc">{{ prestamo.cliente.nombre }}</div>
+                            <div class="gasto-monto">- ${{ prestamo.monto_prestado|intcomma }}</div>
+                        </div>
+                        {% empty %}
+                        <div class="modal-empty">No hubo préstamos.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {# 3. GASTOS #}
+                <div class="seccion" id="s-ga-{{ forloop.counter }}">
+                    <div class="seccion-header" onclick="toggleSec('s-ga-{{ forloop.counter }}')">
+                        <div class="seccion-titulo">
+                            <span class="seccion-ico ico-red">💸</span>
+                            Gastos y Salidas
+                        </div>
+                    </div>
+                    <div class="seccion-contenido">
+                        {% for gasto in dia.lista_gastos %}
+                        <div class="gasto-item">
+                            <div>
+                                <div class="gasto-desc">{{ gasto.descripcion }}</div>
+                                <div class="gasto-fecha">{{ gasto.fecha|date:"H:i" }}</div>
+                            </div>
+                            <div class="gasto-monto">- ${{ gasto.monto|intcomma }}</div>
+                        </div>
+                        {% empty %}
+                        <div class="modal-empty">Sin gastos registrados.</div>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
         </div>
-
-        {# Body expandible #}
-        <div class="dia-detalle">
-
-            {# 1. ABONOS #}
-            <div class="seccion {% if dia.abonos %}open{% endif %}" id="s-ab-{{ forloop.counter }}" style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none;">
-                <div class="seccion-header" onclick="toggleSec('s-ab-{{ forloop.counter }}')">
-                    <div class="seccion-titulo">
-                        <span class="seccion-ico ico-green">💵</span>
-                        Abonos cobrados
-                    </div>
-                    <div class="seccion-meta">
-                        <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.abonos|length }}</span>
-                        {% if dia.abonos %}
-                        <span class="meta-total green">+${{ dia.total_abonos }}</span>
-                        {% endif %}
-                        <span class="chevron">▼</span>
-                    </div>
-                </div>
-                <div class="seccion-body">
-                    {% for m in dia.abonos %}
-                    <div class="mov-row">
-                        <div class="mov-info">
-                            <div class="mov-nombre">{{ m.cliente }}</div>
-                            <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
-                                <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
-                                {% if m.usuario %}
-                                <span class="badge-user">👤 {{ m.usuario }}</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <span class="mov-monto green">+${{ m.monto }}</span>
-                    </div>
-                    {% empty %}
-                    <div class="seccion-empty">Sin abonos este día.</div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            {# 2. PRÉSTAMOS #}
-            <div class="seccion" id="s-pr-{{ forloop.counter }}" style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none;">
-                <div class="seccion-header" onclick="toggleSec('s-pr-{{ forloop.counter }}')">
-                    <div class="seccion-titulo">
-                        <span class="seccion-ico ico-blue">📋</span>
-                        Préstamos otorgados
-                    </div>
-                    <div class="seccion-meta">
-                        <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.prestamos|length }}</span>
-                        {% if dia.prestamos %}
-                        <span class="meta-total blue">-${{ dia.total_prestamos }}</span>
-                        {% endif %}
-                        <span class="chevron">▼</span>
-                    </div>
-                </div>
-                <div class="seccion-body">
-                    {% for m in dia.prestamos %}
-                    <div class="mov-row">
-                        <div class="mov-info">
-                            <div class="mov-nombre">{{ m.cliente }}</div>
-                            <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
-                                <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
-                                {% if m.usuario %}
-                                <span class="badge-user">👤 {{ m.usuario }}</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <span class="mov-monto blue">-${{ m.monto }}</span>
-                    </div>
-                    {% empty %}
-                    <div class="seccion-empty">Sin préstamos este día.</div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            {# 3. RENOVACIONES #}
-            <div class="seccion" id="s-rn-{{ forloop.counter }}" style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none;">
-                <div class="seccion-header" onclick="toggleSec('s-rn-{{ forloop.counter }}')">
-                    <div class="seccion-titulo">
-                        <span class="seccion-ico ico-amber">🔁</span>
-                        Renovaciones
-                    </div>
-                    <div class="seccion-meta">
-                        <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.renovaciones|length }}</span>
-                        {% if dia.renovaciones %}
-                        <span class="meta-total amber">-${{ dia.total_renovaciones }}</span>
-                        {% endif %}
-                        <span class="chevron">▼</span>
-                    </div>
-                </div>
-                <div class="seccion-body">
-                    {% for m in dia.renovaciones %}
-                    <div class="mov-row">
-                        <div class="mov-info">
-                            <div class="mov-nombre">{{ m.cliente }}</div>
-                            <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
-                                <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
-                                {% if m.usuario %}
-                                <span class="badge-user">👤 {{ m.usuario }}</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <span class="mov-monto amber">-${{ m.monto }}</span>
-                    </div>
-                    {% empty %}
-                    <div class="seccion-empty">Sin renovaciones este día.</div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            {# 4. GASTOS #}
-            <div class="seccion" id="s-gs-{{ forloop.counter }}" style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none;">
-                <div class="seccion-header" onclick="toggleSec('s-gs-{{ forloop.counter }}')">
-                    <div class="seccion-titulo">
-                        <span class="seccion-ico ico-red">🧾</span>
-                        Gastos y egresos
-                    </div>
-                    <div class="seccion-meta">
-                        <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.gastos|length }}</span>
-                        {% if dia.gastos %}
-                        <span class="meta-total red">-${{ dia.total_gastos }}</span>
-                        {% endif %}
-                        <span class="chevron">▼</span>
-                    </div>
-                </div>
-                <div class="seccion-body">
-                    {% for m in dia.gastos %}
-                    <div class="mov-row">
-                        <div class="mov-info">
-                            <div class="mov-nombre">{{ m.descripcion }}</div>
-                            <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
-                                <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
-                                {% if m.usuario %}
-                                <span class="badge-user">👤 {{ m.usuario }}</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <span class="mov-monto red">-${{ m.monto }}</span>
-                    </div>
-                    {% empty %}
-                    <div class="seccion-empty">Sin gastos este día.</div>
-                    {% endfor %}
-                </div>
-            </div>
-
-        </div>{# /dia-detalle #}
-    </div>{# /dia-card #}
-    {% endfor %}
-
+        {% endfor %}
     {% else %}
-    <div class="empty-state">
-        <div class="empty-icon">📭</div>
-        <div style="color:#aaa; font-size:.9rem;">No hay movimientos para este período.</div>
-    </div>
+        <div style="text-align:center; padding:40px; color:#999;">
+            No hay movimientos registrados para este período.
+        </div>
     {% endif %}
 
-</div><!-- /page -->
+</div>
 
 <script>
-function toggleDia(id) {
-    document.getElementById(id).classList.toggle('open');
-}
-function toggleSec(id) {
-    document.getElementById(id).classList.toggle('open');
-}
-document.addEventListener('DOMContentLoaded', () => {
-    const first = document.querySelector('.dia-card');
-    if (first) {
-        first.classList.add('open');
-        const firstSec = first.querySelector('.seccion');
-        if (firstSec) firstSec.classList.add('open');
+    function toggleDia(id) {
+        const el = document.getElementById(id);
+        el.classList.toggle('open');
     }
-});
+
+    function toggleSec(id) {
+        // Evita que el clic en la sección cierre también el día
+        event.stopPropagation();
+        const el = document.getElementById(id);
+        el.classList.toggle('open');
+    }
 </script>
+
 </body>
 </html>
