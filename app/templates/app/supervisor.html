@@ -2,6 +2,7 @@
 {% load humanize %}
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>PrestApp | Panel Supervisor</title>
@@ -16,6 +17,7 @@
             background: #f0fdf4;
             border: 1.5px solid #86efac;
         }
+
         .card-targeta.pago-hoy .card-top-strip {
             background: linear-gradient(90deg, #22c55e, #16a34a);
         }
@@ -25,6 +27,7 @@
             background: #fff5f5;
             border: 1.5px solid #fca5a5;
         }
+
         .card-targeta.cobro-atrasado .card-top-strip {
             background: linear-gradient(90deg, #ef4444, #b91c1c);
         }
@@ -38,10 +41,26 @@
             text-transform: uppercase;
             letter-spacing: 0.04em;
         }
-        .badge-frecuencia.diario    { background: #dbeafe; color: #1d4ed8; }
-        .badge-frecuencia.semanal   { background: #fef3c7; color: #92400e; }
-        .badge-frecuencia.quincenal { background: #fce7f3; color: #9d174d; }
-        .badge-frecuencia.mensual   { background: #f3e8ff; color: #6b21a8; }
+
+        .badge-frecuencia.diario {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .badge-frecuencia.semanal {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-frecuencia.quincenal {
+            background: #fce7f3;
+            color: #9d174d;
+        }
+
+        .badge-frecuencia.mensual {
+            background: #f3e8ff;
+            color: #6b21a8;
+        }
 
         /* ── Badge "Pagó hoy" ───────────────────────────── */
         .badge-pago-hoy {
@@ -80,205 +99,209 @@
         }
     </style>
 </head>
+
 <body>
 
-<nav class="top-nav">
-    <span class="nav-brand">PrestApp <span class="nav-user">| {{ request.user.username }}</span></span>
-    <a href="{% url 'logout' %}" class="nav-salir">Salir</a>
-</nav>
+    <nav class="top-nav">
+        <span class="nav-brand">PrestApp <span class="nav-user">| {{ request.user.username }}</span></span>
+        <a href="{% url 'logout' %}" class="nav-salir">Salir</a>
+    </nav>
 
-<div class="page">
+    <div class="page">
 
-    <div class="section-label">Rutas disponibles</div>
-    <div class="rutas-scroll">
-        {% for r in rutas %}
-        <a href="?ruta={{ r.id }}" class="btn-ruta {% if ruta_sel and r.id == ruta_sel.id %}active{% endif %}">
-            📍 {{ r.nombre }}
-        </a>
-        {% endfor %}
-    </div>
-
-    {% if ruta_sel %}
-
-    <div class="panel-menu-wrap">
-        <button class="panel-menu-trigger" onclick="togglePanel(this)">
-            ⚡ Acciones de ruta <span class="arrow">▾</span>
-        </button>
-        <div class="panel-dropdown">
-            <a href="{% url 'crear_targeta' %}?ruta={{ ruta_sel.id }}" class="panel-item">
-                <div class="panel-ico ico-green">➕</div> Nueva targeta
+        <div class="section-label">Rutas disponibles</div>
+        <div class="rutas-scroll">
+            {% for r in rutas %}
+            <a href="?ruta={{ r.id }}" class="btn-ruta {% if ruta_sel and r.id == ruta_sel.id %}active{% endif %}">
+                📍 {{ r.nombre }}
             </a>
-            <a href="{% url 'registrar_gasto' ruta_sel.id %}" class="panel-item">
-                <div class="panel-ico ico-red">💸</div> Registrar gasto
-            </a>
-            {% now "Y-m-d" as hoy %}
-            <a href="{% url 'reporte_diario' ruta_sel.id hoy %}" class="panel-item">
-                <div class="panel-ico ico-indigo">📊</div> Reporte diario
-            </a>
-            <a href="{% url 'historial_cajas' ruta_sel.id %}" class="panel-item">
-                <div class="panel-ico ico-gray">💰</div> Historial cajas
-            </a>
-            <a href="{% url 'clientes_finalizados' %}" class="panel-item">
-                <div class="panel-ico ico-blue">📂</div> Ver finalizados
-            </a>
-            <a href="{% url 'mapa_clientes' ruta_sel.id %}" class="panel-item">
-                <div class="panel-ico ico-amber">📍</div> Ver mapa de ruta
-            </a>
+            {% endfor %}
         </div>
-    </div>
 
-    <div class="resumen-grid">
-        <div class="res-card">
-            <div class="res-num">{{ resumen.total_clientes }}</div>
-            <div class="res-label">Clientes</div>
+        {% if ruta_sel %}
+
+        <div class="panel-menu-wrap">
+            <button class="panel-menu-trigger" onclick="togglePanel(this)">
+                ⚡ Acciones de ruta <span class="arrow">▾</span>
+            </button>
+            <div class="panel-dropdown">
+                <a href="{% url 'crear_targeta' %}?ruta={{ ruta_sel.id }}" class="panel-item">
+                    <div class="panel-ico ico-green">➕</div> Nueva targeta
+                </a>
+                <a href="{% url 'registrar_gasto' ruta_sel.id %}" class="panel-item">
+                    <div class="panel-ico ico-red">💸</div> Registrar gasto
+                </a>
+                {% now "Y-m-d" as hoy %}
+                <a href="{% url 'reporte_diario' ruta_sel.id hoy %}" class="panel-item">
+                    <div class="panel-ico ico-indigo">📊</div> Reporte diario
+                </a>
+                <a href="{% url 'historial_cajas' ruta_sel.id %}" class="panel-item">
+                    <div class="panel-ico ico-gray">💰</div> Historial cajas
+                </a>
+                <a href="{% url 'clientes_finalizados' %}" class="panel-item">
+                    <div class="panel-ico ico-blue">📂</div> Ver finalizados
+                </a>
+                <a href="{% url 'mapa_clientes' ruta_sel.id %}" class="panel-item">
+                    <div class="panel-ico ico-amber">📍</div> Ver mapa de ruta
+                </a>
+                <a href="{% url 'reporte_rango' ruta_sel.id %}" class="panel-item">
+                    <div class="panel-ico ico-teal">📅</div> Reporte por rango
+                </a>
+            </div>
         </div>
-        <div class="res-card green">
-            <div class="res-num">$ {{ resumen.base|floatformat:0|intcomma }}</div>
-            <div class="res-label">Base</div>
+
+        <div class="resumen-grid">
+            <div class="res-card">
+                <div class="res-num">{{ resumen.total_clientes }}</div>
+                <div class="res-label">Clientes</div>
+            </div>
+            <div class="res-card green">
+                <div class="res-num">$ {{ resumen.base|floatformat:0|intcomma }}</div>
+                <div class="res-label">Base</div>
+            </div>
+            <div class="res-card blue">
+                <div class="res-num">${{ resumen.dinero_en_ruta|intcomma }}</div>
+                <div class="res-label">En ruta</div>
+            </div>
         </div>
-        <div class="res-card blue">
-            <div class="res-num">${{ resumen.dinero_en_ruta|intcomma }}</div>
-            <div class="res-label">En ruta</div>
-        </div>
-    </div>
 
-    <form method="GET">
-        <input type="hidden" name="ruta" value="{{ ruta_sel.id }}">
-        <input type="text" name="q" class="search-bar"
-               placeholder="🔍 Buscar cliente..."
-               value="{{ request.GET.q|default:'' }}">
-    </form>
+        <form method="GET">
+            <input type="hidden" name="ruta" value="{{ ruta_sel.id }}">
+            <input type="text" name="q" class="search-bar" placeholder="🔍 Buscar cliente..."
+                value="{{ request.GET.q|default:'' }}">
+        </form>
 
-    <div class="cards-grid">
-        {% for t in targetas %}
+        <div class="cards-grid">
+            {% for t in targetas %}
 
-        {# ── Clases dinámicas de la tarjeta ────────────────────────────── #}
-        <div class="card-targeta
+            {# ── Clases dinámicas de la tarjeta ────────────────────────────── #}
+            <div class="card-targeta
             {% if t.abono_hoy %}pago-hoy
             {% elif t.cobro_atrasado %}cobro-atrasado
             {% endif %}">
 
-            <div class="card-top-strip"></div>
-            <div class="card-inner">
+                <div class="card-top-strip"></div>
+                <div class="card-inner">
 
-                <div class="card-header-row">
-                    <div>
-                        <div class="client-name">{{ t.nombre_cliente }}</div>
-                        <div class="client-id">ID: {{ t.numero_identificacion }}</div>
+                    <div class="card-header-row">
+                        <div>
+                            <div class="client-name">{{ t.nombre_cliente }}</div>
+                            <div class="client-id">ID: {{ t.numero_identificacion }}</div>
 
-                        {# ── Fila de badges ─────────────────────────────── #}
-                        <div class="badges-row">
-                            {# Badge de frecuencia #}
-                            {% if t.frecuencia_cobro == 'DIARIO' %}
+                            {# ── Fila de badges ─────────────────────────────── #}
+                            <div class="badges-row">
+                                {# Badge de frecuencia #}
+                                {% if t.frecuencia_cobro == 'DIARIO' %}
                                 <span class="badge-frecuencia diario">📅 Diario</span>
-                            {% elif t.frecuencia_cobro == 'SEMANAL' %}
+                                {% elif t.frecuencia_cobro == 'SEMANAL' %}
                                 <span class="badge-frecuencia semanal">📆 Semanal</span>
-                            {% elif t.frecuencia_cobro == 'QUINCENAL' %}
+                                {% elif t.frecuencia_cobro == 'QUINCENAL' %}
                                 <span class="badge-frecuencia quincenal">🗓️ Quincenal</span>
-                            {% elif t.frecuencia_cobro == 'MENSUAL' %}
+                                {% elif t.frecuencia_cobro == 'MENSUAL' %}
                                 <span class="badge-frecuencia mensual">🗓️ Mensual</span>
-                            {% endif %}
+                                {% endif %}
 
-                            {# Badge "Pagó hoy" #}
-                            {% if t.abono_hoy %}
+                                {# Badge "Pagó hoy" #}
+                                {% if t.abono_hoy %}
                                 <span class="badge-pago-hoy">✅ Pagó hoy</span>
-                            {% endif %}
+                                {% endif %}
+                            </div>
                         </div>
+                        <span class="badge-cuotas">{{ t.cuotas_pagadas }}/{{ t.total_cuotas }} cuotas</span>
                     </div>
-                    <span class="badge-cuotas">{{ t.cuotas_pagadas }}/{{ t.total_cuotas }} cuotas</span>
-                </div>
 
-                {# ── Banner de atraso ───────────────────────────────────── #}
-                {% if t.cobro_atrasado %}
-                <div class="banner-atraso">
-                    ⚠️
-                    {% if t.frecuencia_cobro == 'DIARIO' %}
+                    {# ── Banner de atraso ───────────────────────────────────── #}
+                    {% if t.cobro_atrasado %}
+                    <div class="banner-atraso">
+                        ⚠️
+                        {% if t.frecuencia_cobro == 'DIARIO' %}
                         {{ t.dias_sin_abono }} día{{ t.dias_sin_abono|pluralize }} sin abono
-                    {% elif t.frecuencia_cobro == 'SEMANAL' %}
+                        {% elif t.frecuencia_cobro == 'SEMANAL' %}
                         {{ t.dias_sin_abono }} días sin abono (cobro semanal)
-                    {% elif t.frecuencia_cobro == 'QUINCENAL' %}
+                        {% elif t.frecuencia_cobro == 'QUINCENAL' %}
                         {{ t.dias_sin_abono }} días sin abono (cobro quincenal)
-                    {% elif t.frecuencia_cobro == 'MENSUAL' %}
+                        {% elif t.frecuencia_cobro == 'MENSUAL' %}
                         {{ t.dias_sin_abono }} días sin abono (cobro mensual)
+                        {% endif %}
+                    </div>
                     {% endif %}
-                </div>
-                {% endif %}
 
-                <div class="card-divider"></div>
+                    <div class="card-divider"></div>
 
-                <div class="info-row">
-                    <div>
-                        <div class="info-label-sm">📞 Teléfono</div>
-                        <div class="info-val">{{ t.telefono }}</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div class="info-label-sm">💰 Saldo</div>
-                        <div class="info-val saldo">${{ t.saldo_restante }}</div>
-                    </div>
-                </div>
-
-                <div class="card-actions">
-                    <a href="{% url 'crear_abono' t.id %}" class="btn-abonar">💵 Abonar</a>
-                    <div class="menu-wrap">
-                        <button class="btn-menu" onclick="toggleMenu(this)">⋮</button>
-                        <div class="menu-dropdown">
-                            <a href="{% url 'historial_abonos' t.id %}" class="menu-item">
-                                <span class="dot dot-gray"></span> 🕒 Historial
-                            </a>
-                            <a href="{% url 'editar_targeta' t.id %}" class="menu-item">
-                                <span class="dot dot-orange"></span> 📝 Editar
-                            </a>
-                            <a href="{% url 'eliminar_targeta' t.id %}" class="menu-item danger"
-                               onclick="return confirm('¿Eliminar a {{ t.nombre_cliente }}?')">
-                                <span class="dot dot-red"></span> 🗑️ Eliminar
-                            </a>
+                    <div class="info-row">
+                        <div>
+                            <div class="info-label-sm">📞 Teléfono</div>
+                            <div class="info-val">{{ t.telefono }}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="info-label-sm">💰 Saldo</div>
+                            <div class="info-val saldo">${{ t.saldo_restante }}</div>
                         </div>
                     </div>
+
+                    <div class="card-actions">
+                        <a href="{% url 'crear_abono' t.id %}" class="btn-abonar">💵 Abonar</a>
+                        <div class="menu-wrap">
+                            <button class="btn-menu" onclick="toggleMenu(this)">⋮</button>
+                            <div class="menu-dropdown">
+                                <a href="{% url 'historial_abonos' t.id %}" class="menu-item">
+                                    <span class="dot dot-gray"></span> 🕒 Historial
+                                </a>
+                                <a href="{% url 'editar_targeta' t.id %}" class="menu-item">
+                                    <span class="dot dot-orange"></span> 📝 Editar
+                                </a>
+                                <a href="{% url 'eliminar_targeta' t.id %}" class="menu-item danger"
+                                    onclick="return confirm('¿Eliminar a {{ t.nombre_cliente }}?')">
+                                    <span class="dot dot-red"></span> 🗑️ Eliminar
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
-
             </div>
+            {% empty %}
+            <div class="empty-state">
+                <div class="empty-icon">📋</div>
+                <div class="empty-title">No hay targetas activas</div>
+                <div class="empty-sub">Crea una nueva targeta usando el menú de acciones.</div>
+            </div>
+            {% endfor %}
         </div>
-        {% empty %}
-        <div class="empty-state">
-            <div class="empty-icon">📋</div>
-            <div class="empty-title">No hay targetas activas</div>
-            <div class="empty-sub">Crea una nueva targeta usando el menú de acciones.</div>
+
+        {% else %}
+        <div class="empty-state" style="margin-top: 40px;">
+            <div class="empty-icon">📍</div>
+            <div class="empty-title">Selecciona una ruta</div>
+            <div class="empty-sub">Elige una ruta arriba para ver los movimientos.</div>
         </div>
-        {% endfor %}
+        {% endif %}
+
     </div>
 
-    {% else %}
-    <div class="empty-state" style="margin-top: 40px;">
-        <div class="empty-icon">📍</div>
-        <div class="empty-title">Selecciona una ruta</div>
-        <div class="empty-sub">Elige una ruta arriba para ver los movimientos.</div>
-    </div>
-    {% endif %}
-
-</div>
-
-<script>
-    function togglePanel(btn) {
-        const dd = btn.nextElementSibling;
-        dd.classList.toggle('open');
-        btn.querySelector('.arrow').textContent = dd.classList.contains('open') ? '▴' : '▾';
-    }
-
-    function toggleMenu(btn) {
-        const dd = btn.nextElementSibling;
-        document.querySelectorAll('.menu-dropdown.open').forEach(d => { if (d !== dd) d.classList.remove('open'); });
-        dd.classList.toggle('open');
-    }
-
-    document.addEventListener('click', function (e) {
-        if (!e.target.closest('.menu-wrap')) {
-            document.querySelectorAll('.menu-dropdown.open').forEach(d => d.classList.remove('open'));
+    <script>
+        function togglePanel(btn) {
+            const dd = btn.nextElementSibling;
+            dd.classList.toggle('open');
+            btn.querySelector('.arrow').textContent = dd.classList.contains('open') ? '▴' : '▾';
         }
-        if (!e.target.closest('.panel-menu-wrap')) {
-            document.querySelectorAll('.panel-dropdown.open').forEach(d => d.classList.remove('open'));
+
+        function toggleMenu(btn) {
+            const dd = btn.nextElementSibling;
+            document.querySelectorAll('.menu-dropdown.open').forEach(d => { if (d !== dd) d.classList.remove('open'); });
+            dd.classList.toggle('open');
         }
-    });
-</script>
+
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.menu-wrap')) {
+                document.querySelectorAll('.menu-dropdown.open').forEach(d => d.classList.remove('open'));
+            }
+            if (!e.target.closest('.panel-menu-wrap')) {
+                document.querySelectorAll('.panel-dropdown.open').forEach(d => d.classList.remove('open'));
+            }
+        });
+    </script>
 
 </body>
+
 </html>

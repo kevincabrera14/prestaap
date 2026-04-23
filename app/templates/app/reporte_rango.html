@@ -1,0 +1,328 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte por Rango | {{ ruta.nombre }}</title>
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+
+<nav class="top-nav">
+    <div style="display:flex; align-items:center; gap:10px;">
+        <span class="nav-brand">PrestApp</span>
+        <span style="background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.1);
+                     color:rgba(255,255,255,.6); font-size:.7rem; font-weight:600;
+                     padding:3px 9px; border-radius:20px;">{{ ruta.nombre }}</span>
+    </div>
+    <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="nav-back">← Panel</a>
+</nav>
+
+<div class="page" style="max-width:780px;">
+
+    {# ── TÍTULO ── #}
+    <div class="mes-heading">Reporte por Rango de Fechas</div>
+    <div class="mes-sub">{{ ruta.nombre }}</div>
+
+    {# ── FORMULARIO DE FECHAS ── #}
+    <div class="resumen-mes" style="margin-bottom:24px;">
+        <div class="resumen-titulo">Seleccionar Período</div>
+        <form id="formRango" method="get" action="{% url 'reporte_rango' ruta.id %}" style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;">
+            <div style="display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size:.72rem; color:rgba(255,255,255,.5); font-weight:600; text-transform:uppercase;">Fecha Inicio</label>
+                <input type="date" name="fecha_inicio" id="fechaInicio" required
+                       value="{{ fecha_inicio|date:'Y-m-d' }}"
+                       style="background:#1e1e2e; border:1px solid rgba(255,255,255,.15);
+                              color:#fff; padding:8px 12px; border-radius:8px; font-size:.9rem;">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size:.72rem; color:rgba(255,255,255,.5); font-weight:600; text-transform:uppercase;">Fecha Fin</label>
+                <input type="date" name="fecha_fin" id="fechaFin" required
+                       value="{{ fecha_fin|date:'Y-m-d' }}"
+                       style="background:#1e1e2e; border:1px solid rgba(255,255,255,.15);
+                              color:#fff; padding:8px 12px; border-radius:8px; font-size:.9rem;">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:4px;">
+                <label style="font-size:.72rem; color:rgba(255,255,255,.5); font-weight:600; text-transform:uppercase;">Días</label>
+                <span id="diasRango" style="color:#fff; font-size:.9rem; padding:8px 0;">—</span>
+            </div>
+            <button type="submit" class="btn-nav" style="padding:10px 20px;">Ver reporte</button>
+        </form>
+    </div>
+
+    {# ── SI HAY DATOS ── #}
+    {% if fecha_inicio and fecha_fin and dias %}
+
+        {# ── TARJETAS DE RESUMEN ── #}
+        <div class="summary-grid" style="margin-bottom:24px;">
+            <div class="summary-item" style="border-left:3px solid #22c55e;">
+                <div class="summary-label">Abonos Cobrados</div>
+                <div class="summary-value val-in">+ ${{ total_abonos|intcomma }}</div>
+            </div>
+            <div class="summary-item" style="border-left:3px solid #3b82f6;">
+                <div class="summary-label">Préstamos Otorgados</div>
+                <div class="summary-value" style="color:#3b82f6;">- ${{ total_prestamos|intcomma }}</div>
+            </div>
+            <div class="summary-item" style="border-left:3px solid #6366f1;">
+                <div class="summary-label">Renovaciones</div>
+                <div class="summary-value" style="color:#6366f1;">- ${{ total_renovaciones|intcomma }}</div>
+            </div>
+            <div class="summary-item" style="border-left:3px solid #ef4444;">
+                <div class="summary-label">Gastos</div>
+                <div class="summary-value val-out">- ${{ total_gastos|intcomma }}</div>
+            </div>
+            <div class="summary-item {% if neto >= 0 %}highlight-pos{% else %}highlight-neg{% endif %}" style="border-left:3px solid {% if neto >= 0 %}#22c55e{% else %}#ef4444{% endif %};">
+                <div class="summary-label">Neto del Período</div>
+                <div class="summary-value {% if neto >= 0 %}val-in{% else %}val-out{% endif %}">
+                    {% if neto >= 0 %}+{% else %}-{% endif %} ${{ neto|intcomma }}
+                </div>
+            </div>
+        </div>
+
+        {# ── TABLA DE DESGLOSE POR DÍA ── #}
+        <div class="section-label">Desglose por Día</div>
+        {% for dia in dias %}
+        <div class="dia-card" id="d{{ forloop.counter }}">
+
+            <div class="dia-header" onclick="toggleDia('d{{ forloop.counter }}')">
+                <div>
+                    <div class="dia-fecha">{{ dia.fecha|date:"l d \d\e F" }}</div>
+                    <div class="dia-nums">
+                        <span class="dia-num-item ing">↑ ${{ dia.ingresos|intcomma }}</span>
+                        <span class="dia-num-item egr">↓ ${{ dia.egresos|intcomma }}</span>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div style="text-align:right;">
+                        <div class="neto-val {% if dia.neto >= 0 %}pos{% else %}neg{% endif %}">${{ dia.neto|intcomma }}</div>
+                        <div class="neto-lbl">Neto</div>
+                    </div>
+                    <span class="chevron">▼</span>
+                </div>
+            </div>
+
+            <div class="dia-detalle">
+
+                {# ABONOS #}
+                <div class="seccion {% if dia.abonos %}open{% endif %}" id="s-ab-{{ forloop.counter }}"
+                     style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none;">
+                    <div class="seccion-header" onclick="toggleSec('s-ab-{{ forloop.counter }}')">
+                        <div class="seccion-titulo">
+                            <span class="seccion-ico ico-green">💵</span>
+                            Abonos cobrados
+                        </div>
+                        <div class="seccion-meta">
+                            <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.abonos|length }}</span>
+                            {% if dia.abonos %}
+                            <span class="meta-total green">+${{ dia.total_abonos|intcomma }}</span>
+                            {% endif %}
+                            <span class="chevron">▼</span>
+                        </div>
+                    </div>
+                    <div class="seccion-body">
+                        {% for m in dia.abonos %}
+                        <div class="mov-row">
+                            <div class="mov-info">
+                                <div class="mov-nombre">{{ m.cliente }}</div>
+                                <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
+                                    <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
+                                    {% if m.usuario %}
+                                    <span class="badge-user">👤 {{ m.usuario }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <span class="mov-monto green">+${{ m.monto|intcomma }}</span>
+                        </div>
+                        {% empty %}
+                        <div class="seccion-empty">Sin abonos este día.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {# PRÉSTAMOS #}
+                <div class="seccion" id="s-pr-{{ forloop.counter }}"
+                     style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none;">
+                    <div class="seccion-header" onclick="toggleSec('s-pr-{{ forloop.counter }}')">
+                        <div class="seccion-titulo">
+                            <span class="seccion-ico ico-blue">📋</span>
+                            Préstamos otorgados
+                        </div>
+                        <div class="seccion-meta">
+                            <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.prestamos|length }}</span>
+                            {% if dia.prestamos %}
+                            <span class="meta-total blue">-${{ dia.total_prestamos|intcomma }}</span>
+                            {% endif %}
+                            <span class="chevron">▼</span>
+                        </div>
+                    </div>
+                    <div class="seccion-body">
+                        {% for m in dia.prestamos %}
+                        <div class="mov-row">
+                            <div class="mov-info">
+                                <div class="mov-nombre">{{ m.cliente }}</div>
+                                <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
+                                    <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
+                                    {% if m.usuario %}
+                                    <span class="badge-user">👤 {{ m.usuario }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <span class="mov-monto blue">-${{ m.monto|intcomma }}</span>
+                        </div>
+                        {% empty %}
+                        <div class="seccion-empty">Sin préstamos este día.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {# RENOVACIONES #}
+                <div class="seccion" id="s-rn-{{ forloop.counter }}"
+                     style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none;">
+                    <div class="seccion-header" onclick="toggleSec('s-rn-{{ forloop.counter }}')">
+                        <div class="seccion-titulo">
+                            <span class="seccion-ico ico-amber">🔁</span>
+                            Renovaciones
+                        </div>
+                        <div class="seccion-meta">
+                            <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.renovaciones|length }}</span>
+                            {% if dia.renovaciones %}
+                            <span class="meta-total amber">-${{ dia.total_renovaciones|intcomma }}</span>
+                            {% endif %}
+                            <span class="chevron">▼</span>
+                        </div>
+                    </div>
+                    <div class="seccion-body">
+                        {% for m in dia.renovaciones %}
+                        <div class="mov-row">
+                            <div class="mov-info">
+                                <div class="mov-nombre">{{ m.cliente }}</div>
+                                <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
+                                    <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
+                                    {% if m.usuario %}
+                                    <span class="badge-user">👤 {{ m.usuario }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <span class="mov-monto amber">-${{ m.monto|intcomma }}</span>
+                        </div>
+                        {% empty %}
+                        <div class="seccion-empty">Sin renovaciones este día.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {# GASTOS #}
+                <div class="seccion" id="s-gs-{{ forloop.counter }}"
+                     style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none;">
+                    <div class="seccion-header" onclick="toggleSec('s-gs-{{ forloop.counter }}')">
+                        <div class="seccion-titulo">
+                            <span class="seccion-ico ico-red">🧾</span>
+                            Gastos y egresos
+                        </div>
+                        <div class="seccion-meta">
+                            <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.gastos|length }}</span>
+                            {% if dia.gastos %}
+                            <span class="meta-total red">-${{ dia.total_gastos|intcomma }}</span>
+                            {% endif %}
+                            <span class="chevron">▼</span>
+                        </div>
+                    </div>
+                    <div class="seccion-body">
+                        {% for m in dia.gastos %}
+                        <div class="mov-row">
+                            <div class="mov-info">
+                                <div class="mov-nombre">{{ m.descripcion }}</div>
+                                <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
+                                    <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
+                                    {% if m.usuario %}
+                                    <span class="badge-user">👤 {{ m.usuario }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <span class="mov-monto red">-${{ m.monto|intcomma }}</span>
+                        </div>
+                        {% empty %}
+                        <div class="seccion-empty">Sin gastos este día.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        {% endfor %}
+
+    {% elif fecha_inicio and fecha_fin and not dias %}
+        <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <div style="color:#aaa; font-size:.9rem;">No se encontraron movimientos en este período.</div>
+        </div>
+    {% endif %}
+
+</div>
+
+<script>
+function toggleDia(id) {
+    document.getElementById(id).classList.toggle('open');
+}
+function toggleSec(id) {
+    document.getElementById(id).classList.toggle('open');
+}
+document.addEventListener('DOMContentLoaded', function() {
+    var first = document.querySelector('.dia-card');
+    if (first) {
+        first.classList.add('open');
+        var firstSec = first.querySelector('.seccion');
+        if (firstSec) firstSec.classList.add('open');
+    }
+
+    // Establecer fecha_fin como hoy por defecto si está vacía
+    var fechaFin = document.getElementById('fechaFin');
+    if (fechaFin && !fechaFin.value) {
+        var hoy = new Date();
+        var yyyy = hoy.getFullYear();
+        var mm = ('0' + (hoy.getMonth() + 1)).slice(-2);
+        var dd = ('0' + hoy.getDate()).slice(-2);
+        fechaFin.value = yyyy + '-' + mm + '-' + dd;
+    }
+
+    // Calcular días en tiempo real
+    function actualizarDias() {
+        var inicio = document.getElementById('fechaInicio').value;
+        var fin = document.getElementById('fechaFin').value;
+        var span = document.getElementById('diasRango');
+        if (inicio && fin) {
+            var d1 = new Date(inicio);
+            var d2 = new Date(fin);
+            if (d2 >= d1) {
+                var diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+                span.textContent = diff + ' día' + (diff !== 1 ? 's' : '');
+            } else {
+                span.textContent = '—';
+            }
+        } else {
+            span.textContent = '—';
+        }
+    }
+
+    document.getElementById('fechaInicio').addEventListener('change', actualizarDias);
+    document.getElementById('fechaFin').addEventListener('change', actualizarDias);
+    actualizarDias();
+
+    // Validación antes de enviar
+    document.getElementById('formRango').addEventListener('submit', function(e) {
+        var inicio = document.getElementById('fechaInicio').value;
+        var fin = document.getElementById('fechaFin').value;
+        if (inicio && fin && inicio > fin) {
+            e.preventDefault();
+            alert('La fecha de inicio no puede ser posterior a la fecha de fin.');
+        }
+    });
+});
+</script>
+
+</body>
+</html>

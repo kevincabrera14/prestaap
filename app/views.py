@@ -1201,6 +1201,168 @@ def mapa_clientes(request, ruta_id):
         'clientes': clientes
     })
 
+def reporte_rango(request, ruta_id):
+    ruta = get_object_or_404(Ruta, id=ruta_id)
+
+    if ruta.supervisor != request.user:
+        return redirect('dashboard')
+
+    fecha_inicio_str = request.GET.get('fecha_inicio')
+    fecha_fin_str    = request.GET.get('fecha_fin')
+
+    if not fecha_inicio_str or not fecha_fin_str:
+        return render(request, 'app/reporte_rango.html', {
+            'ruta': ruta,
+            'fecha_inicio': None,
+            'fecha_fin': None,
+        })
+
+    try:
+        fecha_inicio = datetime.datetime.strptime(fecha_inicio_str, "%Y-%m-%d").date()
+        fecha_fin    = datetime.datetime.strptime(fecha_fin_str,    "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return redirect('dashboard')
+
+    inicio_dia = make_aware(datetime.datetime.combine(fecha_inicio, datetime.time.min))
+    fin_dia    = make_aware(datetime.datetime.combine(fecha_fin,    datetime.time.max))
+
+    # ── Ingresos: abonos ───────────────────────────────────────────────────────
+    total_abonos = Abono.objects.filter(
+        targeta__ruta=ruta,
+        fecha__range=(inicio_dia, fin_dia)
+    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+    # ── Egresos desglosados ─────────────────────────────────────────────────────
+    total_prestamos = MovimientoRuta.objects.filter(
+        ruta=ruta,
+        tipo='EGRESO',
+        descripcion__startswith='Préstamo otorgado',
+        fecha__range=(inicio_dia, fin_dia)
+    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+    total_renovaciones = MovimientoRuta.objects.filter(
+        ruta=ruta,
+        tipo='EGRESO',
+        descripcion__startswith='RENOVACIÓN',
+        fecha__range=(inicio_dia, fin_dia)
+    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+    total_gastos = MovimientoRuta.objects.filter(
+        ruta=ruta,
+        tipo='EGRESO',
+        descripcion__startswith='GASTO:',
+        fecha__range=(inicio_dia, fin_dia)
+    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+    total_otros = MovimientoRuta.objects.filter(
+        ruta=ruta,
+        tipo='EGRESO',
+        fecha__range=(inicio_dia, fin_dia)
+    ).exclude(
+        descripcion__startswith='Préstamo otorgado'
+    ).exclude(
+        descripcion__startswith='RENOVACIÓN'
+    ).exclude(
+        descripcion__startswith='GASTO:'
+    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+    total_egresos = total_prestamos + total_renovaciones + total_gastos + total_otros
+    neto = total_abonos - total_egresos
+
+    # ── Desglose por día ────────────────────────────────────────────────────────
+    abonos_por_dia_agg = {
+        a['fecha__date']: a['total']
+        for a in Abono.objects
+            .filter(targeta__ruta=ruta, fecha__range=(inicio_dia, fin_dia))
+            .values('fecha__date')
+            .annotate(total=Sum('monto'))
+    }
+    egresos_por_dia_agg = {
+        e['fecha__date']: e['total']
+        for e in MovimientoRuta.objects
+            .filter(ruta=ruta, tipo='EGRESO', fecha__range=(inicio_dia, fin_dia))
+            .values('fecha__date')
+            .annotate(total=Sum('monto'))
+    }
+    dias_con_actividad = sorted(
+        set(list(abonos_por_dia_agg.keys()) + list(egresos_por_dia_agg.keys())),
+        reverse=True
+    )
+
+    dias = []
+    for dia in dias_con_actividad:
+        abonos_qs = (
+            Abono.objects
+            .filter(targeta__ruta=ruta, fecha__date=dia)
+            .select_related('targeta', 'registrado_por')
+            .order_by('fecha')
+        )
+        abonos = [
+            {
+                'cliente': a.targeta.nombre_cliente,
+                'monto':   a.monto,
+                'hora':    a.fecha,
+                'usuario': a.registrado_por.username if a.registrado_por else None,
+            }
+            for a in abonos_qs
+        ]
+        total_abonos_dia = sum(a['monto'] for a in abonos)
+
+        prestamos    = []
+        renovaciones = []
+        gastos       = []
+
+        for mov in MovimientoRuta.objects.filter(ruta=ruta, tipo='EGRESO', fecha__date=dia).order_by('fecha'):
+            desc = mov.descripcion or ''
+            base = {
+                'monto':   mov.monto,
+                'hora':    mov.fecha,
+                'usuario': None,
+            }
+            if desc.startswith('Préstamo otorgado'):
+                prestamos.append({**base, 'cliente': desc.replace('Préstamo otorgado a ', '').strip()})
+            elif 'RENOVACIÓN' in desc:
+                renovaciones.append({**base, 'cliente': desc.replace('RENOVACIÓN (Restauración):', '').strip()})
+            elif desc.startswith('GASTO:'):
+                gastos.append({**base, 'descripcion': desc.replace('GASTO:', '').strip()})
+            else:
+                gastos.append({**base, 'descripcion': desc})
+
+        total_prestamos_dia    = sum(m['monto'] for m in prestamos)
+        total_renovaciones_dia  = sum(m['monto'] for m in renovaciones)
+        total_gastos_dia        = sum(m['monto'] for m in gastos)
+        total_egresos_dia       = total_prestamos_dia + total_renovaciones_dia + total_gastos_dia
+
+        dias.append({
+            'fecha':               dia,
+            'ingresos':            total_abonos_dia,
+            'egresos':             total_egresos_dia,
+            'neto':                total_abonos_dia - total_egresos_dia,
+            'total_movimientos':   len(abonos) + len(prestamos) + len(renovaciones) + len(gastos),
+            'abonos':              abonos,
+            'prestamos':           prestamos,
+            'renovaciones':        renovaciones,
+            'gastos':             gastos,
+            'total_abonos':        total_abonos_dia,
+            'total_prestamos':     total_prestamos_dia,
+            'total_renovaciones':  total_renovaciones_dia,
+            'total_gastos':        total_gastos_dia,
+        })
+
+    return render(request, 'app/reporte_rango.html', {
+        'ruta':                 ruta,
+        'fecha_inicio':         fecha_inicio,
+        'fecha_fin':            fecha_fin,
+        'total_abonos':         total_abonos,
+        'total_prestamos':      total_prestamos,
+        'total_renovaciones':   total_renovaciones,
+        'total_gastos':         total_gastos,
+        'total_otros':           total_otros,
+        'total_egresos':        total_egresos,
+        'neto':                 neto,
+        'dias':                 dias,
+    })
+
 def guardar_gps_cliente(request, targeta_id):
     targeta = get_object_or_404(Targeta, id=targeta_id)
 

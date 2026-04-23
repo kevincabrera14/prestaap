@@ -69,5 +69,6 @@ urlpatterns = [
 
     path('validar/<int:pk>/', views.validar_gps_cliente, name='validar_gps_cliente'),
 
-   
+    path('reporte-rango/<int:ruta_id>/', views.reporte_rango, name='reporte_rango'),
+
 ]
