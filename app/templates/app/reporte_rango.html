@@ -57,14 +57,14 @@
     {# ── SI HAY DATOS ── #}
     {% if fecha_inicio and fecha_fin and dias %}
 
-        {# ── TARJETAS DE RESUMEN ── #}
+        {# ── TARJETAS DE RESUMEN ACTUALIZADAS ── #}
         <div class="summary-grid" style="margin-bottom:24px;">
             <div class="summary-item" style="border-left:3px solid #22c55e;">
-                <div class="summary-label">Abonos Cobrados</div>
-                <div class="summary-value val-in">+ ${{ total_abonos|intcomma }}</div>
+                <div class="summary-label">Ingresos Totales</div>
+                <div class="summary-value val-in">+ ${{ total_ingresos|intcomma }}</div>
             </div>
             <div class="summary-item" style="border-left:3px solid #3b82f6;">
-                <div class="summary-label">Préstamos Otorgados</div>
+                <div class="summary-label">Préstamos</div>
                 <div class="summary-value" style="color:#3b82f6;">- ${{ total_prestamos|intcomma }}</div>
             </div>
             <div class="summary-item" style="border-left:3px solid #6366f1;">
@@ -76,7 +76,7 @@
                 <div class="summary-value val-out">- ${{ total_gastos|intcomma }}</div>
             </div>
             <div class="summary-item {% if neto >= 0 %}highlight-pos{% else %}highlight-neg{% endif %}" style="border-left:3px solid {% if neto >= 0 %}#22c55e{% else %}#ef4444{% endif %};">
-                <div class="summary-label">Neto del Período</div>
+                <div class="summary-label">Neto Período</div>
                 <div class="summary-value {% if neto >= 0 %}val-in{% else %}val-out{% endif %}">
                     {% if neto >= 0 %}+{% else %}-{% endif %} ${{ neto|intcomma }}
                 </div>
@@ -92,8 +92,8 @@
                 <div>
                     <div class="dia-fecha">{{ dia.fecha|date:"l d \d\e F" }}</div>
                     <div class="dia-nums">
-                        <span class="dia-num-item ing">↑ ${{ dia.ingresos|intcomma }}</span>
-                        <span class="dia-num-item egr">↓ ${{ dia.egresos|intcomma }}</span>
+                        <span class="dia-num-item ing">↑ ${{ dia.total_ingresos_dia|intcomma }}</span>
+                        <span class="dia-num-item egr">↓ ${{ dia.total_egresos_dia|intcomma }}</span>
                     </div>
                 </div>
                 <div style="display:flex; align-items:center; gap:8px;">
@@ -107,7 +107,7 @@
 
             <div class="dia-detalle">
 
-                {# ABONOS #}
+                {# SECCIÓN: ABONOS #}
                 <div class="seccion {% if dia.abonos %}open{% endif %}" id="s-ab-{{ forloop.counter }}"
                      style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none;">
                     <div class="seccion-header" onclick="toggleSec('s-ab-{{ forloop.counter }}')">
@@ -130,18 +130,44 @@
                                 <div class="mov-nombre">{{ m.cliente }}</div>
                                 <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
                                     <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
-                                    {% if m.usuario %}
-                                    <span class="badge-user">👤 {{ m.usuario }}</span>
-                                    {% endif %}
+                                    {% if m.usuario %}<span class="badge-user">👤 {{ m.usuario }}</span>{% endif %}
                                 </div>
                             </div>
                             <span class="mov-monto green">+${{ m.monto|intcomma }}</span>
                         </div>
                         {% empty %}
-                        <div class="seccion-empty">Sin abonos este día.</div>
+                        <div class="seccion-empty">Sin abonos.</div>
                         {% endfor %}
                     </div>
                 </div>
+
+                {# SECCIÓN NUEVA: INYECCIONES DE CAPITAL (Aumentos de Base) #}
+                {% if dia.inyecciones %}
+                <div class="seccion open" id="s-iy-{{ forloop.counter }}"
+                     style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none;">
+                    <div class="seccion-header" onclick="toggleSec('s-iy-{{ forloop.counter }}')">
+                        <div class="seccion-titulo">
+                            <span class="seccion-ico ico-green">➕</span>
+                            Inyecciones de Capital
+                        </div>
+                        <div class="seccion-meta">
+                            <span class="meta-total green">+${{ dia.total_inyecciones|intcomma }}</span>
+                            <span class="chevron">▼</span>
+                        </div>
+                    </div>
+                    <div class="seccion-body">
+                        {% for m in dia.inyecciones %}
+                        <div class="mov-row">
+                            <div class="mov-info">
+                                <div class="mov-nombre">{{ m.descripcion|cut:"AUMENTO BASE: " }}</div>
+                                <div class="mov-fecha">{{ m.hora|date:"H:i" }}</div>
+                            </div>
+                            <span class="mov-monto green">+${{ m.monto|intcomma }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
 
                 {# PRÉSTAMOS #}
                 <div class="seccion" id="s-pr-{{ forloop.counter }}"
@@ -166,15 +192,13 @@
                                 <div class="mov-nombre">{{ m.cliente }}</div>
                                 <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
                                     <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
-                                    {% if m.usuario %}
-                                    <span class="badge-user">👤 {{ m.usuario }}</span>
-                                    {% endif %}
+                                    {% if m.usuario %}<span class="badge-user">👤 {{ m.usuario }}</span>{% endif %}
                                 </div>
                             </div>
                             <span class="mov-monto blue">-${{ m.monto|intcomma }}</span>
                         </div>
                         {% empty %}
-                        <div class="seccion-empty">Sin préstamos este día.</div>
+                        <div class="seccion-empty">Sin préstamos.</div>
                         {% endfor %}
                     </div>
                 </div>
@@ -200,17 +224,12 @@
                         <div class="mov-row">
                             <div class="mov-info">
                                 <div class="mov-nombre">{{ m.cliente }}</div>
-                                <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
-                                    <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
-                                    {% if m.usuario %}
-                                    <span class="badge-user">👤 {{ m.usuario }}</span>
-                                    {% endif %}
-                                </div>
+                                <div class="mov-fecha">{{ m.hora|date:"H:i" }}</div>
                             </div>
                             <span class="mov-monto amber">-${{ m.monto|intcomma }}</span>
                         </div>
                         {% empty %}
-                        <div class="seccion-empty">Sin renovaciones este día.</div>
+                        <div class="seccion-empty">Sin renovaciones.</div>
                         {% endfor %}
                     </div>
                 </div>
@@ -236,17 +255,12 @@
                         <div class="mov-row">
                             <div class="mov-info">
                                 <div class="mov-nombre">{{ m.descripcion }}</div>
-                                <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
-                                    <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
-                                    {% if m.usuario %}
-                                    <span class="badge-user">👤 {{ m.usuario }}</span>
-                                    {% endif %}
-                                </div>
+                                <div class="mov-fecha">{{ m.hora|date:"H:i" }}</div>
                             </div>
                             <span class="mov-monto red">-${{ m.monto|intcomma }}</span>
                         </div>
                         {% empty %}
-                        <div class="seccion-empty">Sin gastos este día.</div>
+                        <div class="seccion-empty">Sin gastos.</div>
                         {% endfor %}
                     </div>
                 </div>
@@ -279,7 +293,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (firstSec) firstSec.classList.add('open');
     }
 
-    // Establecer fecha_fin como hoy por defecto si está vacía
     var fechaFin = document.getElementById('fechaFin');
     if (fechaFin && !fechaFin.value) {
         var hoy = new Date();
@@ -289,7 +302,6 @@ document.addEventListener('DOMContentLoaded', function() {
         fechaFin.value = yyyy + '-' + mm + '-' + dd;
     }
 
-    // Calcular días en tiempo real
     function actualizarDias() {
         var inicio = document.getElementById('fechaInicio').value;
         var fin = document.getElementById('fechaFin').value;
@@ -312,7 +324,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('fechaFin').addEventListener('change', actualizarDias);
     actualizarDias();
 
-    // Validación antes de enviar
     document.getElementById('formRango').addEventListener('submit', function(e) {
         var inicio = document.getElementById('fechaInicio').value;
         var fin = document.getElementById('fechaFin').value;

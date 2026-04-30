@@ -54,17 +54,26 @@
     <div class="resumen-grid-cajas">
         <div class="res-item ingreso">
             <div class="res-num-caja">${{ total_ingresos_mes|intcomma }}</div>
-            <div class="res-lbl">Cobrado</div>
+            <div class="res-lbl">Total Ingresos</div>
         </div>
         <div class="res-item egreso">
             <div class="res-num-caja">${{ total_capital_mes|intcomma }}</div>
-            <div class="res-lbl">Prestado</div>
+            <div class="res-lbl">Capital Prestado</div>
         </div>
         <div class="res-item neto">
             <div class="res-num-caja">${{ neto_mes|intcomma }}</div>
-            <div class="res-lbl">Neto</div>
+            <div class="res-lbl">Flujo Neto</div>
         </div>
     </div>
+
+    {# Fila extra: Desglose de ingresos si hubo inyecciones manuales #}
+    {% if total_otros_ing_mes > 0 %}
+    <div style="margin-top:10px; font-size: 0.75rem; color: rgba(255,255,255,0.5); display: flex; gap: 15px; justify-content: center;">
+        <span>Cobros: ${{ total_abonos_mes|default:0|intcomma }}</span>
+        <span>|</span>
+        <span>Aumentos Base: ${{ total_otros_ing_mes|intcomma }}</span>
+    </div>
+    {% endif %}
 
     {# Segunda fila: gastos operativos #}
     <div style="margin-top:14px; border-top:1px solid rgba(255,255,255,.1); padding-top:14px;">
@@ -76,14 +85,13 @@
             </div>
             <div class="res-item egreso">
                 <div class="res-num-caja">
-                    {# Otros/Pérdidas: Muestra descuadres o egresos no clasificados #}
                     ${{ total_perdidas_mes|intcomma }}
                 </div>
                 <div class="res-lbl">Otros</div>
             </div>
             <div class="res-item neto">
                 <div class="res-num-caja">${{ total_egresos_mes|intcomma }}</div>
-                <div class="res-lbl">Total egresado</div>
+                <div class="res-lbl">Total Salidas</div>
             </div>
         </div>
     </div>
@@ -150,6 +158,33 @@
                     {% endfor %}
                 </div>
             </div>
+
+            {# 1.5 OTROS INGRESOS (Aumentos de capital) #}
+            {% if dia.otros_ingresos %}
+            <div class="seccion open" id="s-oi-{{ forloop.counter }}" style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none; background: rgba(0, 200, 0, 0.03);">
+                <div class="seccion-header" onclick="toggleSec('s-oi-{{ forloop.counter }}')">
+                    <div class="seccion-titulo">
+                        <span class="seccion-ico ico-green">➕</span>
+                        Inyección de Capital
+                    </div>
+                    <div class="seccion-meta">
+                        <span class="meta-total green">+${{ dia.total_otros_ingresos|intcomma }}</span>
+                        <span class="chevron">▼</span>
+                    </div>
+                </div>
+                <div class="seccion-body">
+                    {% for m in dia.otros_ingresos %}
+                    <div class="mov-row">
+                        <div class="mov-info">
+                            <div class="mov-nombre">{{ m.descripcion }}</div>
+                            <div class="mov-fecha">{{ m.hora|date:"H:i" }}</div>
+                        </div>
+                        <span class="mov-monto green">+${{ m.monto|intcomma }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
 
             {# 2. PRÉSTAMOS #}
             <div class="seccion" id="s-pr-{{ forloop.counter }}" style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none;">

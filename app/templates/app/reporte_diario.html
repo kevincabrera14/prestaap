@@ -49,7 +49,7 @@
             <div class="summary-value">${{ caja.saldo_inicial|intcomma }}</div>
         </div>
         <div class="summary-item">
-            <div class="summary-label">Cobros del Día</div>
+            <div class="summary-label">Ingresos Totales</div>
             <div class="summary-value val-in">+ ${{ total_ingresos|intcomma }}</div>
         </div>
         <div class="summary-item">
@@ -62,24 +62,7 @@
         </div>
     </div>
 
-    <div class="egresos-grid">
-        <div class="egreso-card">
-            <div class="egreso-card-label">💸 Gastos Operativos</div>
-            <div class="egreso-card-value val-out">- ${{ total_gastos|intcomma }}</div>
-            <div class="egreso-card-count">{{ egresos_gastos|length }} registro{{ egresos_gastos|length|pluralize }}</div>
-        </div>
-        <div class="egreso-card">
-            <div class="egreso-card-label">📋 Préstamos Otorgados</div>
-            <div class="egreso-card-value val-blue">- ${{ total_prestamos_dia|intcomma }}</div>
-            <div class="egreso-card-count">{{ egresos_prestamos|length }} préstamo{{ egresos_prestamos|length|pluralize }}</div>
-        </div>
-        <div class="egreso-card">
-            <div class="egreso-card-label">🔄 Renovaciones</div>
-            <div class="egreso-card-value val-orange">- ${{ total_renovaciones_dia|intcomma }}</div>
-            <div class="egreso-card-count">{{ egresos_renovaciones|length }} renovación{{ egresos_renovaciones|length|pluralize:"es" }}</div>
-        </div>
-    </div>
-
+    {# SECCIÓN: COBROS #}
     <div class="detail-section">
         <h3 class="section-title ingresos">↙ Cobros del día (Abonos)</h3>
         <table class="custom-table">
@@ -105,8 +88,35 @@
         </table>
     </div>
 
+    {# SECCIÓN NUEVA: INYECCIONES DE CAPITAL #}
+    {% if ingresos_otros %}
+    <div class="detail-section" style="margin-top: 20px;">
+        <h3 class="section-title ingresos">➕ Inyecciones de Capital (Aumentos de Base)</h3>
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>DESCRIPCIÓN / HORA</th>
+                    <th class="align-right">MONTO</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ingreso in ingresos_otros %}
+                <tr>
+                    <td>
+                        <div class="td-name">{{ ingreso.descripcion|cut:"AUMENTO BASE: " }}</div>
+                        <div class="time-badge">{{ ingreso.fecha|time:"H:i" }}</div>
+                    </td>
+                    <td class="align-right td-amount val-in">+ ${{ ingreso.monto|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
     <hr class="section-divider">
 
+    {# SECCIÓN: GASTOS #}
     <div class="detail-section">
         <h3 class="section-title egresos-tit">↗ Gastos Operativos</h3>
         <table class="custom-table">
@@ -134,6 +144,7 @@
 
     <hr class="section-divider">
 
+    {# SECCIÓN: PRÉSTAMOS #}
     <div class="detail-section">
         <h3 class="section-title prestamos">📋 Préstamos Otorgados</h3>
         <table class="custom-table">
@@ -159,6 +170,7 @@
         </table>
     </div>
 
+    {# SECCIÓN: RENOVACIONES #}
     <div class="detail-section" style="margin-top: 20px;">
         <h3 class="section-title renovacion">🔄 Renovaciones del Día</h3>
         <table class="custom-table">

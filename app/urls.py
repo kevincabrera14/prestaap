@@ -71,4 +71,7 @@ urlpatterns = [
 
     path('reporte-rango/<int:ruta_id>/', views.reporte_rango, name='reporte_rango'),
 
+    # Dentro de urlpatterns:
+    path('ruta/<int:ruta_id>/agregar-base/', views.agregar_monto_base, name='agregar_monto_base'),
+
 ]

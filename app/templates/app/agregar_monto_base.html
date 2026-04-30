@@ -1,0 +1,42 @@
+{% extends 'app/base.html' %}
+
+{% block content %}
+<nav class="top-nav">
+    <a href="/dashboard/supervisor/?ruta={{ ruta.id }}" class="nav-back">← Volver</a>
+    <div class="nav-title">Aumentar Base</div>
+    <div style="width: 70px;"></div>
+</nav>
+
+<div class="page">
+    <div class="main-card">
+        <div class="client-header" style="background: var(--green);">
+            <div class="client-avatar">💰</div>
+            <div class="client-name-hdr">Ruta: {{ ruta.nombre }}</div>
+            <div class="client-sub">Ingreso de Capital a la Base</div>
+        </div>
+
+        <div class="card-body" style="padding: 20px;">
+            <div class="alert alert-warning">
+                Esta acción sumará el monto directamente al saldo disponible de la ruta.
+            </div>
+
+            <form method="POST">
+                {% csrf_token %}
+                <div style="margin-bottom: 20px;">
+                    <label class="info-label-sm">MONTO A AGREGAR</label>
+                    <input type="number" step="0.01" name="monto" class="field-input" placeholder="0.00" required autofocus>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label class="info-label-sm">JUSTIFICACIÓN / DESCRIPCIÓN</label>
+                    <input type="text" name="descripcion" class="field-input" placeholder="Ej: Inyección de capital, Ajuste de caja..." required>
+                </div>
+
+                <button type="submit" class="btn-abonar" style="width: 100%; font-size: 1rem;">
+                    Confirmar Ingreso
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
