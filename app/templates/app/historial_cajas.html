@@ -50,52 +50,43 @@
     <div class="mes-sub">{{ dias|length }} día{{ dias|length|pluralize:"s" }} con movimientos</div>
 
     <div class="resumen-mes">
-    <div class="resumen-titulo">Resumen del mes</div>
-    <div class="resumen-grid-cajas">
-        <div class="res-item ingreso">
-            <div class="res-num-caja">${{ total_ingresos_mes|intcomma }}</div>
-            <div class="res-lbl">Total Ingresos</div>
-        </div>
-        <div class="res-item egreso">
-            <div class="res-num-caja">${{ total_capital_mes|intcomma }}</div>
-            <div class="res-lbl">Capital Prestado</div>
-        </div>
-        <div class="res-item neto">
-            <div class="res-num-caja">${{ neto_mes|intcomma }}</div>
-            <div class="res-lbl">Flujo Neto</div>
-        </div>
-    </div>
+        <div class="resumen-titulo">Resumen del mes</div>
 
-    {# Fila extra: Desglose de ingresos si hubo inyecciones manuales #}
-    {% if total_otros_ing_mes > 0 %}
-    <div style="margin-top:10px; font-size: 0.75rem; color: rgba(255,255,255,0.5); display: flex; gap: 15px; justify-content: center;">
-        <span>Cobros: ${{ total_abonos_mes|default:0|intcomma }}</span>
-        <span>|</span>
-        <span>Aumentos Base: ${{ total_otros_ing_mes|intcomma }}</span>
-    </div>
-    {% endif %}
-
-    {# Segunda fila: gastos operativos #}
-    <div style="margin-top:14px; border-top:1px solid rgba(255,255,255,.1); padding-top:14px;">
-        <div class="resumen-titulo" style="margin-bottom:10px;">Egresos operativos</div>
+        {# Fila 1: Cobros de clientes (abonos) #}
         <div class="resumen-grid-cajas">
-            <div class="res-item egreso">
-                <div class="res-num-caja">${{ total_gastos_mes|intcomma }}</div>
-                <div class="res-lbl">Gastos</div>
+            <div class="res-item ingreso">
+                <div class="res-num-caja">${{ total_ingresos_mes|intcomma }}</div>
+                <div class="res-lbl">Cobrado a clientes</div>
             </div>
-            <div class="res-item egreso">
-                <div class="res-num-caja">
-                    ${{ total_perdidas_mes|intcomma }}
-                </div>
-                <div class="res-lbl">Otros</div>
+            <div class="res-item ingreso" style="background:rgba(99,102,241,.12);">
+                <div class="res-num-caja" style="color:#818cf8;">${{ total_capital_mes|intcomma }}</div>
+                <div class="res-lbl">Capital inyectado</div>
             </div>
             <div class="res-item neto">
-                <div class="res-num-caja">${{ total_egresos_mes|intcomma }}</div>
-                <div class="res-lbl">Total Salidas</div>
+                <div class="res-num-caja">${{ neto_mes|intcomma }}</div>
+                <div class="res-lbl">Neto del mes</div>
+            </div>
+        </div>
+
+        {# Fila 2: Egresos operativos #}
+        <div style="margin-top:14px; border-top:1px solid rgba(255,255,255,.1); padding-top:14px;">
+            <div class="resumen-titulo" style="margin-bottom:10px;">Capital prestado y gastos</div>
+            <div class="resumen-grid-cajas">
+                <div class="res-item egreso">
+                    <div class="res-num-caja">${{ total_capital_total|intcomma }}</div>
+                    <div class="res-lbl">Capital prestado</div>
+                </div>
+                <div class="res-item egreso">
+                    <div class="res-num-caja">${{ total_gastos_mes|intcomma }}</div>
+                    <div class="res-lbl">Gastos operativos</div>
+                </div>
+                <div class="res-item neto">
+                    <div class="res-num-caja">${{ total_egresos_mes|intcomma }}</div>
+                    <div class="res-lbl">Total egresado</div>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
     {# ── DÍAS ── #}
     {% if dias %}
@@ -108,7 +99,11 @@
             <div>
                 <div class="dia-fecha">{{ dia.fecha|date:"l d \d\e F" }}</div>
                 <div class="dia-nums">
-                    <span class="dia-num-item ing">↑ ${{ dia.ingresos|intcomma }}</span>
+                    {# Mostrar cobros + capital por separado en la cabecera #}
+                    <span class="dia-num-item ing">↑ cobros ${{ dia.total_abonos|intcomma }}</span>
+                    {% if dia.total_capital_dia > 0 %}
+                    <span class="dia-num-item" style="color:#818cf8;">↑ capital ${{ dia.total_capital_dia|intcomma }}</span>
+                    {% endif %}
                     <span class="dia-num-item egr">↓ ${{ dia.egresos|intcomma }}</span>
                 </div>
             </div>
@@ -124,15 +119,18 @@
         {# Body expandible #}
         <div class="dia-detalle">
 
-            {# 1. ABONOS #}
-            <div class="seccion {% if dia.abonos %}open{% endif %}" id="s-ab-{{ forloop.counter }}" style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none;">
+            {# 1. ABONOS DE CLIENTES #}
+            <div class="seccion {% if dia.abonos %}open{% endif %}" id="s-ab-{{ forloop.counter }}"
+                 style="margin-bottom:0; border-radius:0; border-left:none; border-right:none;
+                        border-top:1px solid var(--border); border-bottom:none;">
                 <div class="seccion-header" onclick="toggleSec('s-ab-{{ forloop.counter }}')">
                     <div class="seccion-titulo">
                         <span class="seccion-ico ico-green">💵</span>
                         Abonos cobrados
                     </div>
                     <div class="seccion-meta">
-                        <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.abonos|length }}</span>
+                        <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600;
+                                     padding:2px 8px; border-radius:10px;">{{ dia.abonos|length }}</span>
                         {% if dia.abonos %}
                         <span class="meta-total green">+${{ dia.total_abonos|intcomma }}</span>
                         {% endif %}
@@ -159,42 +157,51 @@
                 </div>
             </div>
 
-            {# 1.5 OTROS INGRESOS (Aumentos de capital) #}
-            {% if dia.otros_ingresos %}
-            <div class="seccion open" id="s-oi-{{ forloop.counter }}" style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none; background: rgba(0, 200, 0, 0.03);">
-                <div class="seccion-header" onclick="toggleSec('s-oi-{{ forloop.counter }}')">
+            {# 2. INYECCIÓN DE CAPITAL (solo si hubo ese día) #}
+            {% if dia.capital %}
+            <div class="seccion open" id="s-cap-{{ forloop.counter }}"
+                 style="margin-bottom:0; border-radius:0; border-left:none; border-right:none;
+                        border-top:1px solid var(--border); border-bottom:none;">
+                <div class="seccion-header" onclick="toggleSec('s-cap-{{ forloop.counter }}')">
                     <div class="seccion-titulo">
-                        <span class="seccion-ico ico-green">➕</span>
-                        Inyección de Capital
+                        <span class="seccion-ico" style="background:#ede9fe; color:#7c3aed;">💰</span>
+                        Inyección de capital
                     </div>
                     <div class="seccion-meta">
-                        <span class="meta-total green">+${{ dia.total_otros_ingresos|intcomma }}</span>
+                        <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600;
+                                     padding:2px 8px; border-radius:10px;">{{ dia.capital|length }}</span>
+                        <span class="meta-total" style="color:#7c3aed;">+${{ dia.total_capital_dia|intcomma }}</span>
                         <span class="chevron">▼</span>
                     </div>
                 </div>
                 <div class="seccion-body">
-                    {% for m in dia.otros_ingresos %}
+                    {% for m in dia.capital %}
                     <div class="mov-row">
                         <div class="mov-info">
                             <div class="mov-nombre">{{ m.descripcion }}</div>
-                            <div class="mov-fecha">{{ m.hora|date:"H:i" }}</div>
+                            <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+                                <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
+                            </div>
                         </div>
-                        <span class="mov-monto green">+${{ m.monto|intcomma }}</span>
+                        <span class="mov-monto" style="color:#7c3aed;">+${{ m.monto|intcomma }}</span>
                     </div>
                     {% endfor %}
                 </div>
             </div>
             {% endif %}
 
-            {# 2. PRÉSTAMOS #}
-            <div class="seccion" id="s-pr-{{ forloop.counter }}" style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none;">
+            {# 3. PRÉSTAMOS #}
+            <div class="seccion" id="s-pr-{{ forloop.counter }}"
+                 style="margin-bottom:0; border-radius:0; border-left:none; border-right:none;
+                        border-top:1px solid var(--border); border-bottom:none;">
                 <div class="seccion-header" onclick="toggleSec('s-pr-{{ forloop.counter }}')">
                     <div class="seccion-titulo">
                         <span class="seccion-ico ico-blue">📋</span>
                         Préstamos otorgados
                     </div>
                     <div class="seccion-meta">
-                        <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.prestamos|length }}</span>
+                        <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600;
+                                     padding:2px 8px; border-radius:10px;">{{ dia.prestamos|length }}</span>
                         {% if dia.prestamos %}
                         <span class="meta-total blue">-${{ dia.total_prestamos|intcomma }}</span>
                         {% endif %}
@@ -208,9 +215,6 @@
                             <div class="mov-nombre">{{ m.cliente }}</div>
                             <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
                                 <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
-                                {% if m.usuario %}
-                                <span class="badge-user">👤 {{ m.usuario }}</span>
-                                {% endif %}
                             </div>
                         </div>
                         <span class="mov-monto blue">-${{ m.monto|intcomma }}</span>
@@ -221,15 +225,18 @@
                 </div>
             </div>
 
-            {# 3. RENOVACIONES #}
-            <div class="seccion" id="s-rn-{{ forloop.counter }}" style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none;">
+            {# 4. RENOVACIONES #}
+            <div class="seccion" id="s-rn-{{ forloop.counter }}"
+                 style="margin-bottom:0; border-radius:0; border-left:none; border-right:none;
+                        border-top:1px solid var(--border); border-bottom:none;">
                 <div class="seccion-header" onclick="toggleSec('s-rn-{{ forloop.counter }}')">
                     <div class="seccion-titulo">
                         <span class="seccion-ico ico-amber">🔁</span>
                         Renovaciones
                     </div>
                     <div class="seccion-meta">
-                        <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.renovaciones|length }}</span>
+                        <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600;
+                                     padding:2px 8px; border-radius:10px;">{{ dia.renovaciones|length }}</span>
                         {% if dia.renovaciones %}
                         <span class="meta-total amber">-${{ dia.total_renovaciones|intcomma }}</span>
                         {% endif %}
@@ -243,9 +250,6 @@
                             <div class="mov-nombre">{{ m.cliente }}</div>
                             <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
                                 <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
-                                {% if m.usuario %}
-                                <span class="badge-user">👤 {{ m.usuario }}</span>
-                                {% endif %}
                             </div>
                         </div>
                         <span class="mov-monto amber">-${{ m.monto|intcomma }}</span>
@@ -256,15 +260,18 @@
                 </div>
             </div>
 
-            {# 4. GASTOS #}
-            <div class="seccion" id="s-gs-{{ forloop.counter }}" style="margin-bottom:0; border-radius:0; border-left:none; border-right:none; border-top:1px solid var(--border); border-bottom:none;">
+            {# 5. GASTOS #}
+            <div class="seccion" id="s-gs-{{ forloop.counter }}"
+                 style="margin-bottom:0; border-radius:0; border-left:none; border-right:none;
+                        border-top:1px solid var(--border); border-bottom:none;">
                 <div class="seccion-header" onclick="toggleSec('s-gs-{{ forloop.counter }}')">
                     <div class="seccion-titulo">
                         <span class="seccion-ico ico-red">🧾</span>
                         Gastos y egresos
                     </div>
                     <div class="seccion-meta">
-                        <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600; padding:2px 8px; border-radius:10px;">{{ dia.gastos|length }}</span>
+                        <span style="background:#f0f0f0; color:#555; font-size:.68rem; font-weight:600;
+                                     padding:2px 8px; border-radius:10px;">{{ dia.gastos|length }}</span>
                         {% if dia.gastos %}
                         <span class="meta-total red">-${{ dia.total_gastos|intcomma }}</span>
                         {% endif %}
@@ -278,9 +285,6 @@
                             <div class="mov-nombre">{{ m.descripcion }}</div>
                             <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
                                 <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
-                                {% if m.usuario %}
-                                <span class="badge-user">👤 {{ m.usuario }}</span>
-                                {% endif %}
                             </div>
                         </div>
                         <span class="mov-monto red">-${{ m.monto|intcomma }}</span>

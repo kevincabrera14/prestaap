@@ -1,0 +1,130 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agregar Capital | {{ ruta.nombre }}</title>
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+
+<nav class="top-nav">
+    <span class="nav-brand">PrestApp <span class="nav-user">| {{ request.user.username }}</span></span>
+    <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}" class="nav-salir">← Volver</a>
+</nav>
+
+<div class="page" style="max-width:520px;">
+
+    {% if messages %}
+        {% for msg in messages %}
+        <div class="alert {% if 'success' in msg.tags %}alert-success{% else %}alert-error{% endif %}">
+            {{ msg }}
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="section-label">Agregar Capital a la Ruta</div>
+
+    <div class="form-card" style="background:var(--card-bg, #1e1e2e); border-radius:16px;
+         border:1px solid rgba(255,255,255,.08); padding:24px; margin-bottom:20px;">
+
+        <div style="margin-bottom:20px; padding:16px; background:rgba(99,102,241,.1);
+                    border-radius:12px; border:1px solid rgba(99,102,241,.2);">
+            <div style="font-size:.72rem; color:rgba(255,255,255,.5); font-weight:600;
+                        text-transform:uppercase; margin-bottom:4px;">Ruta</div>
+            <div style="font-size:1.1rem; font-weight:700; color:#fff;">{{ ruta.nombre }}</div>
+            <div style="font-size:.8rem; color:rgba(255,255,255,.5); margin-top:4px;">
+                Base actual:
+                <span style="color:#22c55e; font-weight:700;">${{ ruta.base|intcomma }}</span>
+            </div>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <div style="margin-bottom:18px;">
+                <label style="display:block; font-size:.75rem; font-weight:600; color:rgba(255,255,255,.5);
+                               text-transform:uppercase; margin-bottom:8px;">
+                    Monto a agregar *
+                </label>
+                <input
+                    type="number"
+                    name="monto"
+                    step="0.01"
+                    min="0.01"
+                    placeholder="0.00"
+                    required
+                    style="width:100%; box-sizing:border-box; background:#13131f;
+                           border:1px solid rgba(255,255,255,.12); color:#fff;
+                           padding:12px 16px; border-radius:10px; font-size:1.1rem;
+                           font-weight:600; outline:none;"
+                >
+            </div>
+
+            <div style="margin-bottom:24px;">
+                <label style="display:block; font-size:.75rem; font-weight:600; color:rgba(255,255,255,.5);
+                               text-transform:uppercase; margin-bottom:8px;">
+                    Observación
+                </label>
+                <input
+                    type="text"
+                    name="observacion"
+                    maxlength="200"
+                    placeholder="Ej: Recarga de capital, Inversión inicial..."
+                    style="width:100%; box-sizing:border-box; background:#13131f;
+                           border:1px solid rgba(255,255,255,.12); color:#fff;
+                           padding:12px 16px; border-radius:10px; font-size:.9rem; outline:none;"
+                >
+            </div>
+
+            <div style="display:flex; gap:12px;">
+                <button type="submit"
+                    style="flex:1; background:linear-gradient(135deg,#22c55e,#16a34a);
+                           color:#fff; border:none; padding:14px; border-radius:10px;
+                           font-size:.95rem; font-weight:700; cursor:pointer;">
+                    💵 Agregar Capital
+                </button>
+                <a href="{% url 'dashboard_supervisor' %}?ruta={{ ruta.id }}"
+                   style="flex:1; background:rgba(255,255,255,.06); color:rgba(255,255,255,.7);
+                          border:1px solid rgba(255,255,255,.1); padding:14px; border-radius:10px;
+                          font-size:.95rem; font-weight:600; cursor:pointer; text-align:center;
+                          text-decoration:none; display:flex; align-items:center; justify-content:center;">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+
+    {# Historial reciente de inyecciones de capital #}
+    {% if capital_reciente %}
+    <div class="section-label">Últimas inyecciones de capital</div>
+    <div style="background:var(--card-bg, #1e1e2e); border-radius:16px;
+                border:1px solid rgba(255,255,255,.08); overflow:hidden;">
+        {% for mov in capital_reciente %}
+        <div style="display:flex; justify-content:space-between; align-items:center;
+                    padding:14px 18px;
+                    border-bottom:{% if not forloop.last %}1px solid rgba(255,255,255,.06){% else %}none{% endif %};">
+            <div>
+                <div style="font-size:.85rem; font-weight:600; color:#fff;">
+                    {{ mov.descripcion|cut:"CAPITAL: " }}
+                </div>
+                <div style="font-size:.72rem; color:rgba(255,255,255,.4); margin-top:2px;">
+                    {{ mov.fecha|date:"d M Y" }} · {{ mov.fecha|date:"H:i" }}
+                </div>
+            </div>
+            <div style="font-size:1rem; font-weight:700; color:#818cf8;">
+                +${{ mov.monto|intcomma }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+</div>
+
+</body>
+</html>
