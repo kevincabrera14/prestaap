@@ -54,6 +54,23 @@ body {
    3. COMPONENTES REUTILIZABLES
    ============================================================ */
 
+/* ----- Detalle collapsible ----- */
+details > summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+details[open] > summary {
+    /* optional styling when open */
+}
+
+details {
+    margin-bottom: 12px; /* space between sections */
+}
+
+
 /* --- Navegación superior --- */
 .top-nav {
     background: var(--navy);
