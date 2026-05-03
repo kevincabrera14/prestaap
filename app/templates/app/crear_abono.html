@@ -1,4 +1,5 @@
 {% load static %}
+{% load humanize %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -38,7 +39,7 @@
 
         <div class="saldo-strip">
             <span class="saldo-label">Saldo pendiente</span>
-            <span class="saldo-val">${{ targeta.saldo_restante }}</span>
+            <span class="saldo-val">${{ targeta.saldo_restante|intcomma }}</span>
         </div>
 
         <div class="form-body">
@@ -51,7 +52,7 @@
                         <option value="">— Empezar desde la más antigua —</option>
                         {% for c in cuotas %}
                         <option value="{{ c.id }}" data-saldo="{{ c.saldo_cuota }}">
-                            Cuota #{{ c.numero }} — Saldo: ${{ c.saldo_cuota }}
+                            Cuota #{{ c.numero }} — Saldo: ${{ c.saldo_cuota|intcomma }}
                         </option>
                         {% endfor %}
                     </select>
@@ -69,7 +70,7 @@
                                placeholder="0.00">
                     </div>
                     <p class="help-text" id="help-text">
-                        Saldo total: <strong>${{ targeta.saldo_restante }}</strong>
+                        Saldo total: <strong>${{ targeta.saldo_restante|intcomma }}</strong>
                     </p>
                 </div>
 

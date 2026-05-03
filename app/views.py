@@ -1141,40 +1141,47 @@ def reporte_diario(request, ruta_id, fecha):
     ruta = get_object_or_404(Ruta, id=ruta_id)
 
     if request.user != ruta.supervisor:
-        return redirect("dashboard")
+        return redirect('dashboard')
 
     try:
         fecha_reporte = datetime.datetime.strptime(fecha, "%Y-%m-%d").date()
     except (ValueError, TypeError):
-        return redirect("dashboard_supervisor")
+        return redirect('dashboard_supervisor')
 
     inicio_dia = make_aware(datetime.datetime.combine(fecha_reporte, datetime.time.min))
     fin_dia    = make_aware(datetime.datetime.combine(fecha_reporte, datetime.time.max))
     hoy        = localdate()
 
-    # 1. Calcular Ingresos (Abonos)
+    # ── Abonos del día ──────────────────────────────────────────────────────
     abonos = Abono.objects.filter(
         targeta__ruta=ruta,
         fecha__range=(inicio_dia, fin_dia)
     ).order_by("fecha")
     total_ingresos = abonos.aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
 
-    # 2. Calcular Capital Inyectado
+    # ── Capital inyectado del día ────────────────────────────────────────────
     capital_ingresos = MovimientoRuta.objects.filter(
         ruta=ruta,
-        tipo="INGRESO",
-        descripcion__startswith="CAPITAL:",
+        tipo='INGRESO',
+        descripcion__startswith='CAPITAL:',
         fecha__range=(inicio_dia, fin_dia)
     ).order_by("fecha")
     total_capital_dia = capital_ingresos.aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
 
-    # 3. Calcular Egresos (Gastos, Préstamos, Renovaciones, Otros)
-    egresos_qs = MovimientoRuta.objects.filter(ruta=ruta, tipo="EGRESO", fecha__range=(inicio_dia, fin_dia))
-    
-    egresos_gastos = egresos_qs.filter(descripcion__startswith="GASTO:").order_by("fecha")
-    egresos_prestamos = egresos_qs.filter(descripcion__startswith="Préstamo otorgado").order_by("fecha")
+    # ── Egresos del día clasificados ─────────────────────────────────────────
+    egresos_qs = MovimientoRuta.objects.filter(
+        ruta=ruta, tipo="EGRESO", fecha__range=(inicio_dia, fin_dia)
+    )
+    egresos_gastos       = egresos_qs.filter(descripcion__startswith="GASTO:").order_by("fecha")
+    egresos_prestamos    = egresos_qs.filter(descripcion__startswith="Préstamo otorgado").order_by("fecha")
     egresos_renovaciones = egresos_qs.filter(descripcion__startswith="RENOVACIÓN").order_by("fecha")
-    egresos_otros = egresos_qs.exclude(descripcion__startswith="GASTO:").exclude(descripcion__startswith="Préstamo otorgado").exclude(descripcion__startswith="RENOVACIÓN").order_by("fecha")
+    egresos_otros        = egresos_qs.exclude(
+        descripcion__startswith="GASTO:"
+    ).exclude(
+        descripcion__startswith="Préstamo otorgado"
+    ).exclude(
+        descripcion__startswith="RENOVACIÓN"
+    ).order_by("fecha")
 
     total_gastos           = egresos_gastos.aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
     total_prestamos_dia    = egresos_prestamos.aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
@@ -1182,56 +1189,79 @@ def reporte_diario(request, ruta_id, fecha):
     total_otros            = egresos_otros.aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
     total_egresos          = total_gastos + total_prestamos_dia + total_renovaciones_dia + total_otros
 
-    # ── LÓGICA DE SALDO INICIAL CORREGIDA ──
-    # Buscamos la caja del último día que tuvo actividad antes de hoy
-    caja_anterior = CajaRuta.objects.filter(ruta=ruta, fecha__lt=fecha_reporte).order_by('-fecha').first()
-    
-    if caja_anterior:
-        saldo_inicial_real = caja_anterior.saldo_final
-    else:
-        # Si es el primer reporte de la historia, calculamos hacia atrás desde la base actual
-        # Saldo Inicial = Base Actual - Ingresos de hoy + Egresos de hoy
-        saldo_inicial_real = ruta.base - (total_ingresos + total_capital_dia) + total_egresos
+    # ── LÓGICA DE SALDO FINAL Y SALDO INICIAL — siempre anclados a ruta.base ─────────
+    # Paso 1: Calcular la suma neta de todos los movimientos DESPUÉS de esta fecha
+    # Abonos cobrados después de esta fecha (suman a base)
+    abonos_posteriores = Abono.objects.filter(
+        targeta__ruta=ruta,
+        fecha__gt=fin_dia
+    ).aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
 
-    # Obtener o crear el registro de caja
+    # MovimientosRuta después de esta fecha
+    mov_ingresos_posteriores = MovimientoRuta.objects.filter(
+        ruta=ruta,
+        tipo='INGRESO',
+        fecha__gt=fin_dia
+    ).aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
+
+    mov_egresos_posteriores = MovimientoRuta.objects.filter(
+        ruta=ruta,
+        tipo='EGRESO',
+        fecha__gt=fin_dia
+    ).aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
+
+    # Saldo final del día = base actual menos lo que cambió después de ese día
+    saldo_final = (
+        ruta.base
+        - abonos_posteriores
+        - mov_ingresos_posteriores
+        + mov_egresos_posteriores
+    )
+
+    # Saldo inicial del día = saldo final menos el neto de ese día
+    neto_dia = (total_ingresos + total_capital_dia) - total_egresos
+    saldo_inicial = saldo_final - neto_dia
+
+    # ── Guardar / actualizar CajaRuta ────────────────────────────────────────
     caja, created = CajaRuta.objects.get_or_create(
         ruta=ruta,
         fecha=fecha_reporte,
-        defaults={'saldo_inicial': saldo_inicial_real}
+        defaults={
+            "saldo_inicial": saldo_inicial,
+            "ingresos":      total_ingresos + total_capital_dia,
+            "egresos":       total_egresos,
+            "saldo_final":   saldo_final,
+        }
     )
 
-    # Si la caja no está cerrada, actualizamos el saldo inicial por si hubo cambios ayer
-    if not caja.cerrada:
-        caja.saldo_inicial = saldo_inicial_real
-
-    # Actualizar totales
-    caja.ingresos = total_ingresos + total_capital_dia
-    caja.egresos = total_egresos
-    caja.saldo_final = caja.saldo_inicial + caja.ingresos - caja.egresos
-    
-    if fecha_reporte < hoy:
-        caja.cerrada = True
-    
-    caja.save()
+    if not created:
+        caja.saldo_inicial = saldo_inicial
+        caja.ingresos      = total_ingresos + total_capital_dia
+        caja.egresos       = total_egresos
+        caja.saldo_final   = saldo_final
+        if fecha_reporte < hoy:
+            caja.cerrada = True
+        caja.save()
 
     return render(request, "app/reporte_diario.html", {
-        "ruta": ruta,
-        "fecha": fecha_reporte,
-        "caja": caja,
-        "abonos": abonos,
-        "total_ingresos": total_ingresos,
-        "capital_ingresos": capital_ingresos,
-        "total_capital_dia": total_capital_dia,
-        "egresos_gastos": egresos_gastos,
-        "egresos_prestamos": egresos_prestamos,
+        "ruta":                  ruta,
+        "fecha":                 fecha_reporte,
+        "caja":                  caja,
+        "abonos":                abonos,
+        "total_ingresos":        total_ingresos,
+        "capital_ingresos":      capital_ingresos,
+        "total_capital_dia":     total_capital_dia,
+        "egresos_gastos":        egresos_gastos,
+        "egresos_prestamos":     egresos_prestamos,
         "egresos_renovaciones": egresos_renovaciones,
-        "egresos_otros": egresos_otros,
-        "total_gastos": total_gastos,
-        "total_prestamos_dia": total_prestamos_dia,
-        "total_renovaciones_dia": total_renovaciones_dia,
-        "total_egresos": total_egresos,
-        "saldo_inicial": caja.saldo_inicial,
-        "saldo_final": caja.saldo_final,
+        "egresos_otros":         egresos_otros,
+        "total_gastos":          total_gastos,
+        "total_prestamos_dia":   total_prestamos_dia,
+        "total_renovaciones_dia":total_renovaciones_dia,
+        "total_egresos":         total_egresos,
+        "saldo_inicial":         saldo_inicial,
+        "saldo_final":           saldo_final,
+        "no_hay_caja":           False,
     })
 
 def historial_cierres(request, ruta_id):

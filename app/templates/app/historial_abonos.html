@@ -46,15 +46,15 @@
             <div class="row text-center text-md-start">
                 <div class="col-md-4" style="padding: 10px; border-right: 1px solid #eee;">
                     <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.5px;">Monto del Crédito</div>
-                    <div style="font-size: 1.4rem; font-weight: 800; color: var(--navy);">${{ targeta.monto_total }}</div>
+                    <div style="font-size: 1.4rem; font-weight: 800; color: var(--navy);">${{ targeta.monto_total|intcomma }}</div>
                 </div>
                 <div class="col-md-4" style="padding: 10px; border-right: 1px solid #eee;">
                     <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.5px;">Total Cobrado</div>
-                    <div style="font-size: 1.4rem; font-weight: 800; color: var(--green);">${{ total_abonado }}</div>
+                    <div style="font-size: 1.4rem; font-weight: 800; color: var(--green);">${{ total_abonado|intcomma }}</div>
                 </div>
                 <div class="col-md-4" style="padding: 10px;">
                     <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.5px;">Saldo Pendiente</div>
-                    <div style="font-size: 1.4rem; font-weight: 800; color: var(--red);">${{ targeta.saldo_restante }}</div>
+                    <div style="font-size: 1.4rem; font-weight: 800; color: var(--red);">${{ targeta.saldo_restante|intcomma }}</div>
                 </div>
             </div>
         </div>

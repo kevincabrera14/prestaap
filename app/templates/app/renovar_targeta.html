@@ -1,4 +1,5 @@
 {% load static %}
+{% load humanize %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -29,7 +30,7 @@
         <div class="renovar-body">
 
             <div class="renovar-alert">
-                Deuda pendiente actual: <strong>${{ saldo_pendiente }}</strong>
+                Deuda pendiente actual: <strong>${{ saldo_pendiente|intcomma }}</strong>
                 — se descontará automáticamente.
             </div>
 

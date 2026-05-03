@@ -1,4 +1,5 @@
 {% load static %}
+{% load humanize %}
 <!DOCTYPE html>
 <html lang="es">
 
@@ -40,7 +41,7 @@
                                     <option value="">Seleccione ruta</option>
                                     {% for r in rutas %}
                                     <option value="{{ r.id }}" {% if request.GET.ruta|add:"0" == r.id %}selected{% endif %}>
-                                        {{ r.nombre }} (Saldo: ${{ r.base }})
+                                        {{ r.nombre }} (Saldo: ${{ r.base|intcomma }})
                                     </option>
                                     {% endfor %}
                                 </select>
