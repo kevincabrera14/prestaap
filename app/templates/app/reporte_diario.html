@@ -6,10 +6,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reporte Diario | {{ ruta.nombre }}</title>
-    <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
-    <link rel="icon" type="image/png" href="{% static 'img/favicon.ico' %}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -22,14 +20,11 @@
 </nav>
 
 <div class="report-paper">
-
     {% if no_hay_caja %}
     <div class="no-report">
-        <div class="no-report-icon">📅</div>
         <h2>Reporte no disponible</h2>
-        <p>No se encontró cierre de caja para la ruta <strong>{{ ruta.nombre }}</strong> en esta fecha.</p>
+        <p>No se encontró cierre de caja para la ruta <strong>{{ ruta.nombre }}</strong>.</p>
     </div>
-
     {% else %}
 
     <header class="report-header">
@@ -43,14 +38,13 @@
         </div>
     </header>
 
-    {# ── Resumen principal ── #}
     <div class="summary-grid">
         <div class="summary-item">
             <div class="summary-label">Base Inicial</div>
-            <div class="summary-value">${{ caja.saldo_inicial|intcomma }}</div>
+            <div class="summary-value">${{ saldo_inicial|intcomma }}</div>
         </div>
         <div class="summary-item">
-            <div class="summary-label">Cobros del Día</div>
+            <div class="summary-label">Cobros Clientes</div>
             <div class="summary-value val-in">+ ${{ total_ingresos|intcomma }}</div>
         </div>
         {% if total_capital_dia > 0 %}
@@ -64,76 +58,54 @@
             <div class="summary-value val-out">- ${{ total_egresos|intcomma }}</div>
         </div>
         <div class="summary-item highlight">
-            <div class="summary-label">Saldo Final</div>
+            <div class="summary-label">Saldo Final (Base Actual)</div>
             <div class="summary-value val-final">${{ saldo_final|intcomma }}</div>
         </div>
     </div>
 
-    {# ── Detalle de egresos ── #}
     <div class="egresos-grid">
         <div class="egreso-card">
-            <div class="egreso-card-label">💸 Gastos Operativos</div>
+            <div class="egreso-card-label">💸 Gastos</div>
             <div class="egreso-card-value val-out">- ${{ total_gastos|intcomma }}</div>
-            <div class="egreso-card-count">{{ egresos_gastos|length }} registro{{ egresos_gastos|length|pluralize }}</div>
         </div>
         <div class="egreso-card">
-            <div class="egreso-card-label">📋 Préstamos Otorgados</div>
+            <div class="egreso-card-label">📋 Préstamos</div>
             <div class="egreso-card-value val-blue">- ${{ total_prestamos_dia|intcomma }}</div>
-            <div class="egreso-card-count">{{ egresos_prestamos|length }} préstamo{{ egresos_prestamos|length|pluralize }}</div>
         </div>
         <div class="egreso-card">
             <div class="egreso-card-label">🔄 Renovaciones</div>
             <div class="egreso-card-value val-orange">- ${{ total_renovaciones_dia|intcomma }}</div>
-            <div class="egreso-card-count">{{ egresos_renovaciones|length }} renovación{{ egresos_renovaciones|length|pluralize:"es" }}</div>
         </div>
     </div>
 
-    {# ── Cobros del día ── #}
     <div class="detail-section">
-        <h3 class="section-title ingresos">↙ Cobros del día (Abonos de clientes)</h3>
+        <h3 class="section-title ingresos">↙ Cobros del día</h3>
         <table class="custom-table">
             <thead>
-                <tr>
-                    <th>CLIENTE / HORA</th>
-                    <th class="align-right">MONTO RECIBIDO</th>
-                </tr>
+                <tr><th>CLIENTE / HORA</th><th class="align-right">MONTO</th></tr>
             </thead>
             <tbody>
                 {% for abono in abonos %}
                 <tr>
-                    <td>
-                        <div class="td-name">{{ abono.targeta.nombre_cliente }}</div>
-                        <div class="time-badge">{{ abono.fecha|time:"H:i" }}</div>
-                    </td>
-                    <td class="align-right td-amount val-in">+ ${{ abono.monto|intcomma }}</td>
+                    <td>{{ abono.targeta.nombre_cliente }} <span class="time-badge">{{ abono.fecha|time:"H:i" }}</span></td>
+                    <td class="align-right val-in">+ ${{ abono.monto|intcomma }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="2" class="td-empty">No se registraron cobros este día.</td></tr>
+                <tr><td colspan="2" class="td-empty">No hubo cobros.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 
-    {# ── Capital inyectado (solo si hubo ese día) ── #}
     {% if capital_ingresos %}
-    <hr class="section-divider">
     <div class="detail-section">
         <h3 class="section-title" style="color:#818cf8;">💰 Capital Inyectado</h3>
         <table class="custom-table">
-            <thead>
-                <tr>
-                    <th>OBSERVACIÓN / HORA</th>
-                    <th class="align-right">MONTO</th>
-                </tr>
-            </thead>
             <tbody>
                 {% for mov in capital_ingresos %}
                 <tr>
-                    <td>
-                        <div class="td-name">{{ mov.descripcion|cut:"CAPITAL: " }}</div>
-                        <div class="time-badge">{{ mov.fecha|time:"H:i" }}</div>
-                    </td>
-                    <td class="align-right td-amount" style="color:#818cf8;">+ ${{ mov.monto|intcomma }}</td>
+                    <td>{{ mov.descripcion|cut:"CAPITAL: " }} <span class="time-badge">{{ mov.fecha|time:"H:i" }}</span></td>
+                    <td class="align-right" style="color:#818cf8;">+ ${{ mov.monto|intcomma }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -141,121 +113,36 @@
     </div>
     {% endif %}
 
-    <hr class="section-divider">
-
-    {# ── Gastos operativos ── #}
     <div class="detail-section">
-        <h3 class="section-title egresos-tit">↗ Gastos Operativos</h3>
+        <h3 class="section-title egresos-tit">↗ Gastos y Salidas</h3>
         <table class="custom-table">
-            <thead>
-                <tr>
-                    <th>DESCRIPCIÓN / HORA</th>
-                    <th class="align-right">MONTO</th>
-                </tr>
-            </thead>
             <tbody>
                 {% for egreso in egresos_gastos %}
                 <tr>
-                    <td>
-                        <div class="td-name">{{ egreso.descripcion|cut:"GASTO: " }}</div>
-                        <div class="time-badge">{{ egreso.fecha|time:"H:i" }}</div>
-                    </td>
-                    <td class="align-right td-amount val-out">- ${{ egreso.monto|intcomma }}</td>
+                    <td>{{ egreso.descripcion|cut:"GASTO: " }} <span class="time-badge">{{ egreso.fecha|time:"H:i" }}</span></td>
+                    <td class="align-right val-out">- ${{ egreso.monto|intcomma }}</td>
                 </tr>
-                {% empty %}
-                <tr><td colspan="2" class="td-empty">Sin gastos operativos este día.</td></tr>
                 {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <hr class="section-divider">
-
-    {# ── Préstamos ── #}
-    <div class="detail-section">
-        <h3 class="section-title prestamos">📋 Préstamos Otorgados</h3>
-        <table class="custom-table">
-            <thead>
-                <tr>
-                    <th>CLIENTE / HORA</th>
-                    <th class="align-right">MONTO</th>
-                </tr>
-            </thead>
-            <tbody>
                 {% for egreso in egresos_prestamos %}
                 <tr>
-                    <td>
-                        <div class="td-name">{{ egreso.descripcion|cut:"Préstamo otorgado a " }}</div>
-                        <div class="time-badge">{{ egreso.fecha|time:"H:i" }}</div>
-                    </td>
-                    <td class="align-right td-amount val-blue">- ${{ egreso.monto|intcomma }}</td>
+                    <td>{{ egreso.descripcion }} <span class="time-badge">{{ egreso.fecha|time:"H:i" }}</span></td>
+                    <td class="align-right val-blue">- ${{ egreso.monto|intcomma }}</td>
                 </tr>
-                {% empty %}
-                <tr><td colspan="2" class="td-empty">Sin préstamos otorgados este día.</td></tr>
                 {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    {# ── Renovaciones ── #}
-    <div class="detail-section" style="margin-top: 20px;">
-        <h3 class="section-title renovacion">🔄 Renovaciones del Día</h3>
-        <table class="custom-table">
-            <thead>
-                <tr>
-                    <th>CLIENTE / HORA</th>
-                    <th class="align-right">MONTO</th>
-                </tr>
-            </thead>
-            <tbody>
                 {% for egreso in egresos_renovaciones %}
                 <tr>
-                    <td>
-                        <div class="td-name">{{ egreso.descripcion|cut:"RENOVACIÓN (Restauración): " }}</div>
-                        <div class="time-badge">{{ egreso.fecha|time:"H:i" }}</div>
-                    </td>
-                    <td class="align-right td-amount val-orange">- ${{ egreso.monto|intcomma }}</td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="2" class="td-empty">Sin renovaciones este día.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    {# ── Otros movimientos ── #}
-    {% if egresos_otros %}
-    <hr class="section-divider">
-    <div class="detail-section">
-        <h3 class="section-title egresos-tit">⚠️ Otros Movimientos</h3>
-        <table class="custom-table">
-            <thead>
-                <tr>
-                    <th>DESCRIPCIÓN / HORA</th>
-                    <th class="align-right">MONTO</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for egreso in egresos_otros %}
-                <tr>
-                    <td>
-                        <div class="td-name">{{ egreso.descripcion }}</div>
-                        <div class="time-badge">{{ egreso.fecha|time:"H:i" }}</div>
-                    </td>
-                    <td class="align-right td-amount val-out">- ${{ egreso.monto|intcomma }}</td>
+                    <td>{{ egreso.descripcion }} <span class="time-badge">{{ egreso.fecha|time:"H:i" }}</span></td>
+                    <td class="align-right val-orange">- ${{ egreso.monto|intcomma }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-    {% endif %}
 
     <footer class="report-footer">
-        Este documento es un resumen oficial de transacciones diarias de PrestApp.
+        Resumen oficial de transacciones - PrestApp.
     </footer>
-
     {% endif %}
 </div>
-
 </body>
 </html>
