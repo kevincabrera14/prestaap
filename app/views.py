@@ -1247,6 +1247,7 @@ def reporte_diario(request, ruta_id, fecha):
         "egresos_gastos":        egresos_gastos,
         "egresos_prestamos":     egresos_prestamos,
         "egresos_renovaciones": egresos_renovaciones,
+        "renovaciones": egresos_renovaciones,
         "egresos_otros":         egresos_otros,
         "total_gastos":          total_gastos,
         "total_prestamos_dia":   total_prestamos_dia,
