@@ -245,7 +245,7 @@
         {% for ren in renovaciones %}
         <div class="data-row">
             <div class="data-info">
-                <b>{{ ren.cliente }}</b>
+                <b>{{ ren.descripcion|cut:"RENOVACIÓN (Restauración): " }}</b>
                 <span>Monto: ${{ ren.monto|intcomma }}</span>
             </div>
             <span class="data-monto" style="color: var(--warning);">RE-P</span>
