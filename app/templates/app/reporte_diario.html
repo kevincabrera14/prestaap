@@ -232,28 +232,27 @@
         </div>
     </details>
 
-    <!-- RENOVACIONES -->
-    <details>
-        <summary>
-            <div class="summary-left">
-                <div class="icon-box bg-warning">♻️</div>
-                <b>Renovaciones</b>
-            </div>
-            <span class="badge">{{ renovaciones|length }}</span>
-        </summary>
-        <div class="detail-content">
-            {% for ren in renovaciones %}
-            <div class="data-row">
-                <div class="data-info">
-                    <b>{{ ren.nombre_cliente }}</b>
-                    <span>Base: {{ ren.monto_base|intcomma }}</span>
-                </div>
-                <span class="data-monto" style="color: var(--warning);">RE-P</span>
-            </div>
-            {% endfor %}
+   <!-- RENOVACIONES -->
+<details>
+    <summary>
+        <div class="summary-left">
+            <div class="icon-box bg-warning">♻️</div>
+            <b>Renovaciones</b>
         </div>
-    </details>
-
+        <span class="badge">{{ renovaciones|length }}</span>
+    </summary>
+    <div class="detail-content">
+        {% for ren in renovaciones %}
+        <div class="data-row">
+            <div class="data-info">
+                <b>{{ ren.cliente }}</b>
+                <span>Monto: ${{ ren.monto|intcomma }}</span>
+            </div>
+            <span class="data-monto" style="color: var(--warning);">RE-P</span>
+        </div>
+        {% endfor %}
+    </div>
+</details>
     <!-- PRÉSTAMOS -->
     <details>
         <summary>
