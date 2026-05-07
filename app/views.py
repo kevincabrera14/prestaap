@@ -864,6 +864,7 @@ def agregar_capital(request, ruta_id):
 # ================================================================================================================================================
 
 @login_required
+@login_required
 def historial_cajas(request, ruta_id):
     import calendar
 
@@ -884,7 +885,6 @@ def historial_cajas(request, ruta_id):
     ultimo_dia    = datetime.date(anio, mes, calendar.monthrange(anio, mes)[1])
     mes_param_str = f'{anio}-{str(mes).zfill(2)}'
 
-    # ── Días con actividad ────────────────────────────────────────────────────
     abonos_por_dia_agg = {
         a['fecha__date']: a['total']
         for a in Abono.objects
@@ -899,7 +899,6 @@ def historial_cajas(request, ruta_id):
             .values('fecha__date')
             .annotate(total=Sum('monto'))
     }
-    # ── Capital ingresado por día (tipo INGRESO, descripción CAPITAL:) ────────
     capital_por_dia_agg = {
         c['fecha__date']: c['total']
         for c in MovimientoRuta.objects
@@ -923,11 +922,9 @@ def historial_cajas(request, ruta_id):
         reverse=True
     )
 
-    # ── Construcción detallada por día ────────────────────────────────────────
     dias = []
     for dia in dias_con_actividad:
 
-        # — Abonos —
         abonos_qs = (
             Abono.objects
             .filter(targeta__ruta=ruta, fecha__date=dia)
@@ -945,7 +942,6 @@ def historial_cajas(request, ruta_id):
         ]
         total_abonos = sum(a['monto'] for a in abonos)
 
-        # — Capital del día —
         capital_qs = MovimientoRuta.objects.filter(
             ruta=ruta,
             tipo='INGRESO',
@@ -962,7 +958,6 @@ def historial_cajas(request, ruta_id):
         ]
         total_capital_dia = sum(m['monto'] for m in capital_list)
 
-        # — Movimientos de egreso clasificados —
         prestamos    = []
         renovaciones = []
         gastos       = []
@@ -970,23 +965,22 @@ def historial_cajas(request, ruta_id):
         for mov in MovimientoRuta.objects.filter(ruta=ruta, tipo='EGRESO', fecha__date=dia).order_by('fecha'):
             desc = mov.descripcion or ''
             base = {
-                'monto':   mov.monto,
-                'hora':    mov.fecha,
-                'usuario': None,
+                'monto_base': mov.monto,   # ← renombrado de 'monto'
+                'hora':       mov.fecha,
+                'usuario':    None,
             }
             if desc.startswith('Préstamo otorgado'):
-                prestamos.append({**base, 'cliente': desc.replace('Préstamo otorgado a ', '').strip()})
+                prestamos.append({**base, 'nombre_cliente': desc.replace('Préstamo otorgado a ', '').strip()})  # ← renombrado de 'cliente'
             elif 'RENOVACIÓN' in desc:
-                renovaciones.append({**base, 'cliente': desc.replace('RENOVACIÓN (Restauración):', '').strip()})
+                renovaciones.append({**base, 'nombre_cliente': desc.replace('RENOVACIÓN (Restauración):', '').strip()})  # ← renombrado de 'cliente'
             else:
                 gastos.append({**base, 'descripcion': desc.replace('GASTO:', '').strip()})
 
-        total_prestamos    = sum(m['monto'] for m in prestamos)
-        total_renovaciones = sum(m['monto'] for m in renovaciones)
-        total_gastos       = sum(m['monto'] for m in gastos)
+        total_prestamos    = sum(m['monto_base'] for m in prestamos)
+        total_renovaciones = sum(m['monto_base'] for m in renovaciones)
+        total_gastos       = sum(m['monto_base'] for m in gastos)
         total_egresos_dia  = total_prestamos + total_renovaciones + total_gastos
 
-        # El neto incluye tanto abonos cobrados como capital ingresado
         neto_dia = total_abonos + total_capital_dia - total_egresos_dia
 
         dias.append({
@@ -1012,10 +1006,9 @@ def historial_cajas(request, ruta_id):
     total_egresos_mes      = sum(d['egresos']  for d in dias)
     neto_mes               = total_ingresos_mes + total_capital_mes - total_egresos_mes
 
-    # ── Totales del mes por categoría ─────────────────────────────────────────
-    total_prestamos_mes    = sum(sum(m['monto'] for m in d['prestamos'])    for d in dias)
-    total_renovaciones_mes = sum(sum(m['monto'] for m in d['renovaciones']) for d in dias)
-    total_gastos_mes       = sum(sum(m['monto'] for m in d['gastos'])       for d in dias)
+    total_prestamos_mes    = sum(sum(m['monto_base'] for m in d['prestamos'])    for d in dias)
+    total_renovaciones_mes = sum(sum(m['monto_base'] for m in d['renovaciones']) for d in dias)
+    total_gastos_mes       = sum(sum(m['monto_base'] for m in d['gastos'])       for d in dias)
     total_capital_total    = total_prestamos_mes + total_renovaciones_mes
     total_perdidas_mes     = total_egresos_mes - total_capital_total - total_gastos_mes
 
