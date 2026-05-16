@@ -32,7 +32,6 @@
     {% for dia in dias %}
     <div class="dia-card" id="d{{ forloop.counter }}">
 
-        {# Cabecera del día #}
         <div class="dia-header" onclick="toggleDia('d{{ forloop.counter }}')">
             <div>
                 <div class="dia-fecha">{{ dia.fecha|date:"l d \d\e F" }}</div>
@@ -47,18 +46,52 @@
                 </div>
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
-                {% with neto=dia.total_abonos|add:"-"|add:dia.total_gastos %}
                 <div style="text-align:right;">
-                    <div class="neto-val pos">${{ dia.total_abonos|intcomma }}</div>
-                    <div class="neto-lbl">Cobrado</div>
+                    <div class="neto-val {% if dia.neto_dia >= 0 %}pos{% else %}neg{% endif %}">${{ dia.neto_dia|intcomma }}</div>
+                    <div class="neto-lbl">Neto</div>
                 </div>
-                {% endwith %}
                 <span class="chevron">▼</span>
             </div>
         </div>
 
-        {# Body expandible #}
         <div class="dia-detalle">
+
+            {# ── KPIs del día (igual que reporte_diario) ── #}
+            <div class="resumen-mes" style="margin:12px 0; border-radius:8px;">
+                <div class="resumen-titulo">Resumen del día</div>
+                <div class="resumen-grid-cajas">
+                    <div class="res-item ingreso">
+                        <div class="res-num-caja">${{ dia.total_abonos|intcomma }}</div>
+                        <div class="res-lbl">Cobrado</div>
+                    </div>
+                    <div class="res-item egreso">
+                        <div class="res-num-caja">${{ dia.total_gastos|intcomma }}</div>
+                        <div class="res-lbl">Gastos</div>
+                    </div>
+                    <div class="res-item neto">
+                        <div class="res-num-caja">${{ dia.neto_dia|intcomma }}</div>
+                        <div class="res-lbl">Neto</div>
+                    </div>
+                </div>
+
+                <div style="margin-top:14px; border-top:1px solid rgba(255,255,255,.1); padding-top:14px;">
+                    <div class="resumen-titulo" style="margin-bottom:10px;">Saldos de caja</div>
+                    <div class="resumen-grid-cajas">
+                        <div class="res-item" style="text-align:center;">
+                            <div class="res-num-caja" style="color:rgba(255,255,255,.7);">${{ dia.saldo_inicial|intcomma }}</div>
+                            <div class="res-lbl">Saldo inicial</div>
+                        </div>
+                        <div class="res-item egreso">
+                            <div class="res-num-caja">${{ dia.total_prestamos|intcomma }}</div>
+                            <div class="res-lbl">Préstamos</div>
+                        </div>
+                        <div class="res-item ingreso">
+                            <div class="res-num-caja">${{ dia.saldo_final|intcomma }}</div>
+                            <div class="res-lbl">Saldo final</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {# 1. ABONOS #}
             <div class="seccion {% if dia.abonos %}open{% endif %}" id="s-ab-{{ forloop.counter }}"
@@ -84,8 +117,10 @@
                         <div class="mov-info">
                             <div class="mov-nombre">{{ a.cliente }}</div>
                             <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
-                                {# a.hora es DateTimeField → H:i es correcto #}
                                 <span class="mov-fecha">{{ a.hora|date:"H:i" }}</span>
+                                {% if a.usuario %}
+                                <span class="badge-user">👤 {{ a.usuario }}</span>
+                                {% endif %}
                             </div>
                         </div>
                         <span class="mov-monto green">+${{ a.monto|intcomma }}</span>
@@ -120,7 +155,6 @@
                         <div class="mov-info">
                             <div class="mov-nombre">{{ p.nombre_cliente }}</div>
                             <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
-                                {# p.hora es fecha_creacion → DateField, solo muestra la fecha #}
                                 <span class="mov-fecha">{{ p.hora|date:"d/m/Y" }}</span>
                             </div>
                         </div>
@@ -156,7 +190,6 @@
                         <div class="mov-info">
                             <div class="mov-nombre">{{ g.descripcion }}</div>
                             <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
-                                {# g.hora es DateTimeField → H:i es correcto #}
                                 <span class="mov-fecha">{{ g.hora|date:"H:i" }}</span>
                             </div>
                         </div>

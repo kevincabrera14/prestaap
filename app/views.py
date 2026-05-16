@@ -369,8 +369,47 @@ def historial_ruta(request, ruta_id):
         entry['total_prestamos'] += p.monto_base
         entry['count_prestamos'] += 1
 
-    # Convert dict to sorted list (most recent first)
+# Convert dict to sorted list (most recent first)
     dias = sorted(dias_dict.values(), key=lambda x: x['fecha'], reverse=True)
+
+    # Calcular saldo inicial y final por día basado en ruta.base actual
+    # y los movimientos posteriores a cada día
+    for dia_entry in dias:
+        fecha_dia = dia_entry['fecha']
+        inicio_dia_dt = make_aware(datetime.datetime.combine(fecha_dia, datetime.time.min))
+        fin_dia_dt    = make_aware(datetime.datetime.combine(fecha_dia, datetime.time.max))
+
+        # Abonos posteriores a este día
+        abonos_post = Abono.objects.filter(
+            targeta__ruta__in=rutas_trabajador,
+            fecha__gt=fin_dia_dt
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+        # Movimientos posteriores
+        mov_ing_post = MovimientoRuta.objects.filter(
+            ruta__in=rutas_trabajador,
+            tipo='INGRESO',
+            fecha__gt=fin_dia_dt
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+        mov_egr_post = MovimientoRuta.objects.filter(
+            ruta__in=rutas_trabajador,
+            tipo='EGRESO',
+            fecha__gt=fin_dia_dt
+        ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+        # Saldo final del día = base actual menos lo que cambió después
+        saldo_final_dia = ruta.base - abonos_post - mov_ing_post + mov_egr_post
+
+        # Neto del día
+        neto_dia = dia_entry['total_abonos'] - dia_entry['total_gastos'] - dia_entry['total_prestamos']
+
+        # Saldo inicial = saldo final menos el neto
+        saldo_inicial_dia = saldo_final_dia - neto_dia
+
+        dia_entry['saldo_inicial'] = saldo_inicial_dia
+        dia_entry['saldo_final']   = saldo_final_dia
+        dia_entry['neto_dia']      = neto_dia
 
     context = {
         'ruta': ruta,

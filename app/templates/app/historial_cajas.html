@@ -114,6 +114,43 @@
 
         <div class="dia-detalle">
 
+            {# ── RESUMEN DEL DÍA + SALDOS DE CAJA ── #}
+            <div class="resumen-mes" style="margin:12px 0; border-radius:8px;">
+                <div class="resumen-titulo">Resumen del día</div>
+                <div class="resumen-grid-cajas">
+                    <div class="res-item ingreso">
+                        <div class="res-num-caja">${{ dia.total_abonos|intcomma }}</div>
+                        <div class="res-lbl">Cobrado</div>
+                    </div>
+                    <div class="res-item egreso">
+                        <div class="res-num-caja">${{ dia.egresos|intcomma }}</div>
+                        <div class="res-lbl">Egresado</div>
+                    </div>
+                    <div class="res-item neto">
+                        <div class="res-num-caja">${{ dia.neto|intcomma }}</div>
+                        <div class="res-lbl">Neto</div>
+                    </div>
+                </div>
+
+                <div style="margin-top:14px; border-top:1px solid rgba(255,255,255,.1); padding-top:14px;">
+                    <div class="resumen-titulo" style="margin-bottom:10px;">Saldos de caja</div>
+                    <div class="resumen-grid-cajas">
+                        <div class="res-item egreso">
+                            <div class="res-num-caja">${{ dia.total_capital_total|intcomma }}</div>
+                            <div class="res-lbl">Capital prestado</div>
+                        </div>
+                        <div class="res-item ingreso" style="background:rgba(99,102,241,.12);">
+                            <div class="res-num-caja" style="color:#818cf8;">${{ dia.total_capital_dia|intcomma }}</div>
+                            <div class="res-lbl">Capital inyectado</div>
+                        </div>
+                        <div class="res-item egreso">
+                            <div class="res-num-caja">${{ dia.total_gastos|intcomma }}</div>
+                            <div class="res-lbl">Gastos</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {# 1. ABONOS DE CLIENTES #}
             <div class="seccion {% if dia.abonos %}open{% endif %}" id="s-ab-{{ forloop.counter }}"
                  style="margin-bottom:0; border-radius:0; border-left:none; border-right:none;
@@ -210,7 +247,6 @@
                     {% for m in dia.prestamos %}
                     <div class="mov-row">
                         <div class="mov-info">
-                            {# nombre_cliente viene del MovimientoRuta.descripcion procesado en el view #}
                             <div class="mov-nombre">{{ m.nombre_cliente }}</div>
                             <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
                                 <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
