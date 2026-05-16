@@ -85,9 +85,9 @@ def dashboard_admin(request):
 
 @login_required
 @supervisor_required
+@login_required
+@supervisor_required
 def dashboard_supervisor(request):
-    """Supervisor dashboard – similar to trabajador but filtered by supervisor."""
-    # Determine routes based on user role
     perfil = getattr(request.user, 'perfil', None)
     if perfil and perfil.rol == 'SUPERVISOR':
         rutas = Ruta.objects.filter(supervisor=request.user)
@@ -95,10 +95,11 @@ def dashboard_supervisor(request):
         rutas = Ruta.objects.filter(trabajadores=request.user)
     else:
         rutas = Ruta.objects.none()
+
     targetas_qs = Targeta.objects.filter(ruta__in=rutas).exclude(estado='PAGADA')
 
-    q = request.GET.get("q")
-    estado = request.GET.get("estado")
+    q       = request.GET.get("q")
+    estado  = request.GET.get("estado")
     ruta_id = request.GET.get("ruta")
 
     if q:
@@ -110,10 +111,9 @@ def dashboard_supervisor(request):
 
     targetas_qs = targetas_qs.prefetch_related('cuotas', 'abonos')
 
-    # Rangos de hoy para detectar abono_hoy
     hoy = localdate()
     hoy_inicio_aware = make_aware(datetime.datetime.combine(hoy, datetime.time.min))
-    hoy_fin_aware = make_aware(datetime.datetime.combine(hoy, datetime.time.max))
+    hoy_fin_aware    = make_aware(datetime.datetime.combine(hoy, datetime.time.max))
 
     targetas = []
     for t in targetas_qs:
@@ -122,19 +122,19 @@ def dashboard_supervisor(request):
 
         todas_las_cuotas = t.cuotas.all()
         t.cuotas_pagadas = sum(1 for c in todas_las_cuotas if c.estado == 'PAGADA')
-        t.total_cuotas = len(todas_las_cuotas)
+        t.total_cuotas   = len(todas_las_cuotas)
 
-        # ¿Pagó hoy?
-        t.abono_hoy = t.abonos.filter(fecha__gte=hoy_inicio_aware, fecha__lte=hoy_fin_aware).exists()
+        t.abono_hoy = t.abonos.filter(
+            fecha__gte=hoy_inicio_aware,
+            fecha__lte=hoy_fin_aware
+        ).exists()
 
-        # Días sin abono
         ultimo_abono = t.abonos.order_by('-fecha').first()
         if ultimo_abono:
             t.dias_sin_abono = (hoy - ultimo_abono.fecha.date()).days
         else:
             t.dias_sin_abono = (hoy - t.fecha_creacion).days
 
-        # ¿Cobro atrasado según frecuencia?
         if t.frecuencia_cobro == 'DIARIO':
             t.cobro_atrasado = (not t.abono_hoy) and (t.dias_sin_abono > 1)
         elif t.frecuencia_cobro == 'SEMANAL':
@@ -148,17 +148,20 @@ def dashboard_supervisor(request):
 
         targetas.append(t)
 
+    # ── ruta seleccionada ──────────────────────────────────────────────
+    ruta_sel = Ruta.objects.filter(id=ruta_id).first() if ruta_id else None
+
     resumen = {
         "total_clientes": len(targetas),
-        "en_mora": sum(1 for t in targetas if t.estado == "MORA"),
-        "total_saldo": sum(t.saldo_restante for t in targetas),
+        "en_mora":        sum(1 for t in targetas if t.estado == "MORA"),
+        "total_saldo":    sum(t.saldo_restante for t in targetas),
     }
 
     return render(request, "app/supervisor.html", {
-        "rutas": rutas,
+        "rutas":    rutas,
         "targetas": targetas,
-        "resumen": resumen,
-        "ruta_sel": Ruta.objects.filter(id=ruta_id).first() if ruta_id else None,
+        "resumen":  resumen,
+        "ruta_sel": ruta_sel,   # <-- ahora es el objeto completo con .base y .dinero_en_ruta
     })
 
 # ================================================================================================================================================

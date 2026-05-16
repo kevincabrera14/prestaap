@@ -42,25 +42,10 @@
             letter-spacing: 0.04em;
         }
 
-        .badge-frecuencia.diario {
-            background: #dbeafe;
-            color: #1d4ed8;
-        }
-
-        .badge-frecuencia.semanal {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .badge-frecuencia.quincenal {
-            background: #fce7f3;
-            color: #9d174d;
-        }
-
-        .badge-frecuencia.mensual {
-            background: #f3e8ff;
-            color: #6b21a8;
-        }
+        .badge-frecuencia.diario    { background: #dbeafe; color: #1d4ed8; }
+        .badge-frecuencia.semanal   { background: #fef3c7; color: #92400e; }
+        .badge-frecuencia.quincenal { background: #fce7f3; color: #9d174d; }
+        .badge-frecuencia.mensual   { background: #f3e8ff; color: #6b21a8; }
 
         /* ── Badge "Pagó hoy" ───────────────────────────── */
         .badge-pago-hoy {
@@ -147,25 +132,35 @@
                 <a href="{% url 'reporte_rango' ruta_sel.id %}" class="panel-item">
                     <div class="panel-ico ico-teal">📅</div> Reporte por rango
                 </a>
-                <a href="{% url 'agregar_monto_base' ruta_sel.id %}" class="panel-item">
-                    <div class="panel-ico ico-green">➕</div>
-                    <span>ingreso justificado 💸</span>
+                <a href="{% url 'agregar_capital' ruta_sel.id %}" class="panel-item">
+                    <div class="panel-ico ico-green">💰</div>
+                    <span>Ingreso de capital</span>
                 </a>
             </div>
         </div>
 
+        {# ══ RESUMEN DE LA RUTA ══════════════════════════════════════════════ #}
         <div class="resumen-grid">
             <div class="res-card">
                 <div class="res-num">{{ resumen.total_clientes }}</div>
                 <div class="res-label">Clientes</div>
             </div>
+            <div class="res-card red">
+                <div class="res-num">{{ resumen.en_mora }}</div>
+                <div class="res-label">En mora</div>
+            </div>
+            {# BASE: se muestra directo desde ruta_sel para garantizar el dato actualizado #}
             <div class="res-card green">
-                <div class="res-num">$ {{ resumen.base|floatformat:0|intcomma }}</div>
+                <div class="res-num">$ {{ ruta_sel.base|floatformat:0|intcomma }}</div>
                 <div class="res-label">Base</div>
             </div>
             <div class="res-card blue">
-                <div class="res-num">${{ resumen.dinero_en_ruta|intcomma }}</div>
+                <div class="res-num">$ {{ ruta_sel.dinero_en_ruta|floatformat:0|intcomma }}</div>
                 <div class="res-label">En ruta</div>
+            </div>
+            <div class="res-card">
+                <div class="res-num">$ {{ resumen.total_saldo|floatformat:0|intcomma }}</div>
+                <div class="res-label">Saldo total</div>
             </div>
         </div>
 
@@ -180,9 +175,9 @@
 
             {# ── Clases dinámicas de la tarjeta ────────────────────────────── #}
             <div class="card-targeta
-            {% if t.abono_hoy %}pago-hoy
-            {% elif t.cobro_atrasado %}cobro-atrasado
-            {% endif %}">
+                {% if t.abono_hoy %}pago-hoy
+                {% elif t.cobro_atrasado %}cobro-atrasado
+                {% endif %}">
 
                 <div class="card-top-strip"></div>
                 <div class="card-inner">
@@ -194,20 +189,18 @@
 
                             {# ── Fila de badges ─────────────────────────────── #}
                             <div class="badges-row">
-                                {# Badge de frecuencia #}
                                 {% if t.frecuencia_cobro == 'DIARIO' %}
-                                <span class="badge-frecuencia diario">📅 Diario</span>
+                                    <span class="badge-frecuencia diario">📅 Diario</span>
                                 {% elif t.frecuencia_cobro == 'SEMANAL' %}
-                                <span class="badge-frecuencia semanal">📆 Semanal</span>
+                                    <span class="badge-frecuencia semanal">📆 Semanal</span>
                                 {% elif t.frecuencia_cobro == 'QUINCENAL' %}
-                                <span class="badge-frecuencia quincenal">🗓️ Quincenal</span>
+                                    <span class="badge-frecuencia quincenal">🗓️ Quincenal</span>
                                 {% elif t.frecuencia_cobro == 'MENSUAL' %}
-                                <span class="badge-frecuencia mensual">🗓️ Mensual</span>
+                                    <span class="badge-frecuencia mensual">🗓️ Mensual</span>
                                 {% endif %}
 
-                                {# Badge "Pagó hoy" #}
                                 {% if t.abono_hoy %}
-                                <span class="badge-pago-hoy">✅ Pagó hoy</span>
+                                    <span class="badge-pago-hoy">✅ Pagó hoy</span>
                                 {% endif %}
                             </div>
                         </div>
@@ -219,13 +212,13 @@
                     <div class="banner-atraso">
                         ⚠️
                         {% if t.frecuencia_cobro == 'DIARIO' %}
-                        {{ t.dias_sin_abono }} día{{ t.dias_sin_abono|pluralize }} sin abono
+                            {{ t.dias_sin_abono }} día{{ t.dias_sin_abono|pluralize }} sin abono
                         {% elif t.frecuencia_cobro == 'SEMANAL' %}
-                        {{ t.dias_sin_abono }} días sin abono (cobro semanal)
+                            {{ t.dias_sin_abono }} días sin abono (cobro semanal)
                         {% elif t.frecuencia_cobro == 'QUINCENAL' %}
-                        {{ t.dias_sin_abono }} días sin abono (cobro quincenal)
+                            {{ t.dias_sin_abono }} días sin abono (cobro quincenal)
                         {% elif t.frecuencia_cobro == 'MENSUAL' %}
-                        {{ t.dias_sin_abono }} días sin abono (cobro mensual)
+                            {{ t.dias_sin_abono }} días sin abono (cobro mensual)
                         {% endif %}
                     </div>
                     {% endif %}
@@ -239,7 +232,7 @@
                         </div>
                         <div style="text-align: right;">
                             <div class="info-label-sm">💰 Saldo</div>
-                            <div class="info-val saldo">${{ t.saldo_restante }}</div>
+                            <div class="info-val saldo">${{ t.saldo_restante|floatformat:0|intcomma }}</div>
                         </div>
                     </div>
 
@@ -253,6 +246,9 @@
                                 </a>
                                 <a href="{% url 'editar_targeta' t.id %}" class="menu-item">
                                     <span class="dot dot-orange"></span> 📝 Editar
+                                </a>
+                                <a href="{% url 'renovar_targeta' t.id %}" class="menu-item">
+                                    <span class="dot dot-blue"></span> 🔄 Renovar
                                 </a>
                                 <a href="{% url 'eliminar_targeta' t.id %}" class="menu-item danger"
                                     onclick="return confirm('¿Eliminar a {{ t.nombre_cliente }}?')">
@@ -307,5 +303,4 @@
     </script>
 
 </body>
-
 </html>
