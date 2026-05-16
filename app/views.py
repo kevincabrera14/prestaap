@@ -87,7 +87,14 @@ def dashboard_admin(request):
 @supervisor_required
 def dashboard_supervisor(request):
     """Supervisor dashboard – similar to trabajador but filtered by supervisor."""
-    rutas = Ruta.objects.filter(supervisor=request.user)
+    # Determine routes based on user role
+    perfil = getattr(request.user, 'perfil', None)
+    if perfil and perfil.rol == 'SUPERVISOR':
+        rutas = Ruta.objects.filter(supervisor=request.user)
+    elif perfil and perfil.rol == 'TRABAJADOR':
+        rutas = Ruta.objects.filter(trabajadores=request.user)
+    else:
+        rutas = Ruta.objects.none()
     targetas_qs = Targeta.objects.filter(ruta__in=rutas).exclude(estado='PAGADA')
 
     q = request.GET.get("q")
@@ -294,6 +301,7 @@ def historial_ruta(request, ruta_id):
             'fecha': fecha,
             'abonos': abonos_by_day[fecha]['abonos'],
             'total_abonos': abonos_by_day[fecha]['total'],
+            'monto_total': abonos_by_day[fecha]['total'],
         })
 
     context = {
@@ -348,7 +356,14 @@ def eliminar_ruta(request, ruta_id):
 
 @login_required
 def crear_targeta(request):
-    rutas = Ruta.objects.filter(supervisor=request.user)
+    # Determine routes based on user role
+    perfil = getattr(request.user, 'perfil', None)
+    if perfil and perfil.rol == 'SUPERVISOR':
+        rutas = Ruta.objects.filter(supervisor=request.user)
+    elif perfil and perfil.rol == 'TRABAJADOR':
+        rutas = Ruta.objects.filter(trabajadores=request.user)
+    else:
+        rutas = Ruta.objects.none()
 
     if request.method == "POST":
         ruta_id    = request.POST.get("ruta")
@@ -417,7 +432,14 @@ def crear_targeta(request):
 @supervisor_required
 def editar_targeta(request, targeta_id):
     targeta = get_object_or_404(Targeta, id=targeta_id, ruta__supervisor=request.user)
-    rutas = Ruta.objects.filter(supervisor=request.user)
+    # Determine routes based on user role
+    perfil = getattr(request.user, 'perfil', None)
+    if perfil and perfil.rol == 'SUPERVISOR':
+        rutas = Ruta.objects.filter(supervisor=request.user)
+    elif perfil and perfil.rol == 'TRABAJADOR':
+        rutas = Ruta.objects.filter(trabajadores=request.user)
+    else:
+        rutas = Ruta.objects.none()
 
     if request.method == "POST":
         try:
