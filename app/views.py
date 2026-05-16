@@ -152,9 +152,10 @@ def dashboard_supervisor(request):
     ruta_sel = Ruta.objects.filter(id=ruta_id).first() if ruta_id else None
 
     resumen = {
-        "total_clientes": len(targetas),
-        "en_mora":        sum(1 for t in targetas if t.estado == "MORA"),
-        "total_saldo":    sum(t.saldo_restante for t in targetas),
+    "total_clientes": len(targetas),
+    "en_mora":        sum(1 for t in targetas if t.estado == "MORA"),
+    "total_saldo":    sum(t.saldo_restante for t in targetas),
+    "dinero_en_ruta": sum(t.saldo_restante for t in targetas),
     }
 
     return render(request, "app/supervisor.html", {
