@@ -145,10 +145,7 @@
                 <div class="res-num">{{ resumen.total_clientes }}</div>
                 <div class="res-label">Clientes</div>
             </div>
-            <div class="res-card red">
-                <div class="res-num">{{ resumen.en_mora }}</div>
-                <div class="res-label">En mora</div>
-            </div>
+
             {# BASE: se muestra directo desde ruta_sel para garantizar el dato actualizado #}
             <div class="res-card green">
                 <div class="res-num">$ {{ ruta_sel.base|floatformat:0|intcomma }}</div>
@@ -158,10 +155,7 @@
                 <div class="res-num">$ {{ ruta_sel.dinero_en_ruta|floatformat:0|intcomma }}</div>
                 <div class="res-label">En ruta</div>
             </div>
-            <div class="res-card">
-                <div class="res-num">$ {{ resumen.total_saldo|floatformat:0|intcomma }}</div>
-                <div class="res-label">Saldo total</div>
-            </div>
+
         </div>
 
         <form method="GET">
