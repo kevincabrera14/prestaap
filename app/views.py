@@ -307,6 +307,7 @@ def historial_ruta(request, ruta_id):
             'cliente': a.targeta.nombre_cliente,
             'monto': a.monto,
             'hora': a.fecha,
+            'usuario': a.registrado_por.username if a.registrado_por else None,
         })
         entry['total_abonos'] += a.monto
         entry['count_abonos'] += 1
@@ -486,7 +487,8 @@ def crear_targeta(request):
             ruta=ruta,
             tipo='EGRESO',
             monto=monto,
-            descripcion=f'Préstamo otorgado a {targeta.nombre_cliente}'
+            descripcion=f'Préstamo otorgado a {targeta.nombre_cliente}',
+            registrado_por=request.user,          # ← NUEVO
         )
 
         messages.success(request, "Tarjeta creada correctamente")
@@ -562,7 +564,8 @@ def eliminar_targeta(request, targeta_id):
                     ruta=ruta,
                     tipo='EGRESO',
                     monto=saldo_perdido,
-                    descripcion=f"ELIMINACIÓN TARJETA (Pérdida) - Cliente: {nombre_cliente}"
+                    descripcion=f"ELIMINACIÓN TARJETA (Pérdida) - Cliente: {nombre_cliente}",
+                    registrado_por=request.user,      # ← NUEVO
                 )
             targeta.delete()
 
@@ -611,7 +614,8 @@ def renovar_targeta(request, targeta_id):
                     ruta=ruta,
                     tipo='EGRESO',
                     monto=monto,
-                    descripcion=f"RENOVACIÓN (Restauración): {targeta.nombre_cliente}"
+                    descripcion=f"RENOVACIÓN (Restauración): {targeta.nombre_cliente}",
+                    registrado_por=request.user,      # ← NUEVO
                 )
 
             messages.success(request, f"Crédito restaurado para {targeta.nombre_cliente}")
@@ -740,7 +744,8 @@ def crear_abono(request, targeta_id=None):
 
             MovimientoRuta.objects.create(
                 ruta=ruta, tipo='INGRESO', monto=monto_original,
-                descripcion=f"Abono - Cliente: {targeta.nombre_cliente}"
+                descripcion=f"Abono - Cliente: {targeta.nombre_cliente}",
+                registrado_por=request.user,          # ← NUEVO
             )
 
             targeta.refresh_from_db()
@@ -840,7 +845,8 @@ def eliminar_abono(request, abono_id):
             ruta=ruta,
             tipo='EGRESO',
             monto=abono.monto,
-            descripcion=f"ANULACIÓN ABONO - Cliente: {targeta.nombre_cliente} (Abono ID: {abono.id})"
+            descripcion=f"ANULACIÓN ABONO - Cliente: {targeta.nombre_cliente} (Abono ID: {abono.id})",
+            registrado_por=request.user,          # ← NUEVO
         )
 
         abono.delete()
@@ -926,7 +932,8 @@ def registrar_gasto(request, ruta_id):
                             ruta=ruta,
                             tipo='EGRESO',
                             monto=monto,
-                            descripcion=f"GASTO: {descripcion}"
+                            descripcion=f"GASTO: {descripcion}",
+                            registrado_por=request.user,  # ← NUEVO
                         )
 
                     messages.success(request, f"✅ Gasto de ${monto} descontado de la base.")
@@ -978,7 +985,8 @@ def agregar_capital(request, ruta_id):
                     ruta=ruta,
                     tipo="INGRESO",
                     monto=monto,
-                    descripcion=f"CAPITAL: {observacion}"
+                    descripcion=f"CAPITAL: {observacion}",
+                    registrado_por=request.user,          # ← NUEVO
                 )
 
             messages.success(request, f"✅ Se agregaron ${monto} a la base de la ruta.")
@@ -1074,12 +1082,13 @@ def historial_cajas(request, ruta_id):
             tipo='INGRESO',
             descripcion__startswith='CAPITAL:',
             fecha__date=dia
-        ).order_by('fecha')
+        ).select_related('registrado_por').order_by('fecha')   # ← NUEVO select_related
         capital_list = [
             {
                 'descripcion': mov.descripcion.replace('CAPITAL:', '').strip(),
                 'monto':       mov.monto,
                 'hora':        mov.fecha,
+                'usuario':     mov.registrado_por.username if mov.registrado_por else None,  # ← NUEVO
             }
             for mov in capital_qs
         ]
@@ -1089,12 +1098,14 @@ def historial_cajas(request, ruta_id):
         renovaciones = []
         gastos       = []
 
-        for mov in MovimientoRuta.objects.filter(ruta=ruta, tipo='EGRESO', fecha__date=dia).order_by('fecha'):
+        for mov in MovimientoRuta.objects.filter(
+            ruta=ruta, tipo='EGRESO', fecha__date=dia
+        ).select_related('registrado_por').order_by('fecha'):   # ← NUEVO select_related
             desc = mov.descripcion or ''
             base = {
                 'monto_base': mov.monto,
                 'hora':       mov.fecha,
-                'usuario':    None,
+                'usuario':    mov.registrado_por.username if mov.registrado_por else None,  # ← NUEVO
             }
             if desc.startswith('Préstamo otorgado'):
                 prestamos.append({**base, 'nombre_cliente': desc.replace('Préstamo otorgado a ', '').strip()})

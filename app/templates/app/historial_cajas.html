@@ -52,7 +52,6 @@
     <div class="resumen-mes">
         <div class="resumen-titulo">Resumen del mes</div>
 
-        {# Fila 1: Cobros de clientes (abonos) #}
         <div class="resumen-grid-cajas">
             <div class="res-item ingreso">
                 <div class="res-num-caja">${{ total_ingresos_mes|intcomma }}</div>
@@ -68,7 +67,6 @@
             </div>
         </div>
 
-        {# Fila 2: Egresos operativos #}
         <div style="margin-top:14px; border-top:1px solid rgba(255,255,255,.1); padding-top:14px;">
             <div class="resumen-titulo" style="margin-bottom:10px;">Capital prestado y gastos</div>
             <div class="resumen-grid-cajas">
@@ -94,12 +92,10 @@
     {% for dia in dias %}
     <div class="dia-card" id="d{{ forloop.counter }}">
 
-        {# Cabecera del día #}
         <div class="dia-header" onclick="toggleDia('d{{ forloop.counter }}')">
             <div>
                 <div class="dia-fecha">{{ dia.fecha|date:"l d \d\e F" }}</div>
                 <div class="dia-nums">
-                    {# Mostrar cobros + capital por separado en la cabecera #}
                     <span class="dia-num-item ing">↑ cobros ${{ dia.total_abonos|intcomma }}</span>
                     {% if dia.total_capital_dia > 0 %}
                     <span class="dia-num-item" style="color:#818cf8;">↑ capital ${{ dia.total_capital_dia|intcomma }}</span>
@@ -116,7 +112,6 @@
             </div>
         </div>
 
-        {# Body expandible #}
         <div class="dia-detalle">
 
             {# 1. ABONOS DE CLIENTES #}
@@ -157,7 +152,7 @@
                 </div>
             </div>
 
-            {# 2. INYECCIÓN DE CAPITAL (solo si hubo ese día) #}
+            {# 2. INYECCIÓN DE CAPITAL #}
             {% if dia.capital %}
             <div class="seccion open" id="s-cap-{{ forloop.counter }}"
                  style="margin-bottom:0; border-radius:0; border-left:none; border-right:none;
@@ -179,8 +174,11 @@
                     <div class="mov-row">
                         <div class="mov-info">
                             <div class="mov-nombre">{{ m.descripcion }}</div>
-                            <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+                            <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
                                 <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
+                                {% if m.usuario %}
+                                <span class="badge-user">👤 {{ m.usuario }}</span>
+                                {% endif %}
                             </div>
                         </div>
                         <span class="mov-monto" style="color:#7c3aed;">+${{ m.monto|intcomma }}</span>
@@ -212,12 +210,16 @@
                     {% for m in dia.prestamos %}
                     <div class="mov-row">
                         <div class="mov-info">
-                            <div class="mov-nombre">{{ m.cliente }}</div>
+                            {# nombre_cliente viene del MovimientoRuta.descripcion procesado en el view #}
+                            <div class="mov-nombre">{{ m.nombre_cliente }}</div>
                             <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
                                 <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
+                                {% if m.usuario %}
+                                <span class="badge-user">👤 {{ m.usuario }}</span>
+                                {% endif %}
                             </div>
                         </div>
-                        <span class="mov-monto blue">-${{ m.monto|intcomma }}</span>
+                        <span class="mov-monto blue">-${{ m.monto_base|intcomma }}</span>
                     </div>
                     {% empty %}
                     <div class="seccion-empty">Sin préstamos este día.</div>
@@ -247,12 +249,15 @@
                     {% for m in dia.renovaciones %}
                     <div class="mov-row">
                         <div class="mov-info">
-                            <div class="mov-nombre">{{ m.cliente }}</div>
+                            <div class="mov-nombre">{{ m.nombre_cliente }}</div>
                             <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
                                 <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
+                                {% if m.usuario %}
+                                <span class="badge-user">👤 {{ m.usuario }}</span>
+                                {% endif %}
                             </div>
                         </div>
-                        <span class="mov-monto amber">-${{ m.monto|intcomma }}</span>
+                        <span class="mov-monto amber">-${{ m.monto_base|intcomma }}</span>
                     </div>
                     {% empty %}
                     <div class="seccion-empty">Sin renovaciones este día.</div>
@@ -285,9 +290,12 @@
                             <div class="mov-nombre">{{ m.descripcion }}</div>
                             <div style="display:flex; align-items:center; gap:6px; margin-top:2px; flex-wrap:wrap;">
                                 <span class="mov-fecha">{{ m.hora|date:"H:i" }}</span>
+                                {% if m.usuario %}
+                                <span class="badge-user">👤 {{ m.usuario }}</span>
+                                {% endif %}
                             </div>
                         </div>
-                        <span class="mov-monto red">-${{ m.monto|intcomma }}</span>
+                        <span class="mov-monto red">-${{ m.monto_base|intcomma }}</span>
                     </div>
                     {% empty %}
                     <div class="seccion-empty">Sin gastos este día.</div>
