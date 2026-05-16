@@ -1,0 +1,57 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>PrestApp | Historial Trabajador — {{ ruta.nombre }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{# Reuse the same CSS as other pages #}{% static 'css/style.css' %}">
+    <style>
+        /* Reuse layout from historial_cajas but simplified */
+        .page { max-width: 780px; margin: auto; padding: 20px; }
+        .section-label { font-weight: 600; margin-bottom: 12px; font-size: 1.1rem; }
+        .dia-card { border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+        .dia-header { font-weight: 600; margin-bottom: 6px; }
+        .abono-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #eee; }
+        .back-link { margin-bottom: 12px; display: inline-block; }
+    </style>
+</head>
+<body>
+
+<nav class="top-nav">
+    <a href="{% url 'dashboard_trabajador' %}" class="back-link">← Panel</a>
+    <span class="nav-brand">PrestApp – {{ request.user.username }}</span>
+    <a href="{# optional logout #}{% url 'logout' %}" class="nav-salir">Salir</a>
+</nav>
+
+<div class="page">
+    <div class="section-label">Historial de Ruta – {{ ruta.nombre }}</div>
+
+    {% if dias %}
+        {% for dia in dias %}
+            <div class="dia-card">
+                <div class="dia-header">{{ dia.fecha|date:"l d \d\e F" }}</div>
+                <div><strong>Total del día:</strong> ${{ dia.total_abonos|intcomma }}</div>
+                <div class="abonos-list">
+                    {% for a in dia.abonos %}
+                        <div class="abono-item">
+                            <span>{{ a.cliente }}</span>
+                            <span>${{ a.monto|intcomma }}</span>
+                            <span style="color:#777; font-size:.8rem;">{{ a.hora|date:"H:i" }}</span>
+                        </div>
+                    {% empty %}
+                        <div class="abono-item">Sin abonos este día.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No hay movimientos registrados en los últimos 30 días.</p>
+    {% endif %}
+</div>
+
+</body>
+</html>

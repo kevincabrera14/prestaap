@@ -2,33 +2,30 @@
 # import
 # ===============================================================================================================================================================
 
-
 from django.utils.timezone import localtime, make_aware, get_current_timezone, localdate, now
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from .permissions import supervisor_required
-from .models import Ruta, Targeta, Abono, MovimientoRuta, CajaRuta, Cuota
+from .models import (
+    Ruta, Targeta, MovimientoRuta, CajaRuta, Cuota,
+    GastoTrabajador, HistorialRuta, Abono
+)
 from django.contrib import messages
 from django.db.models import Sum, Q, F, Count
 from django.db import transaction
 from decimal import Decimal
 import datetime
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.decorators import user_passes_test
 from django.urls import reverse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
-from datetime import date
-from datetime import timedelta
-from decimal import Decimal
-from django.db import transaction
-from django.http import JsonResponse
+from datetime import date, timedelta
 from django.utils import timezone
 
 # ===============================================================================================================================================================
 # AUTH
 # ===============================================================================================================================================================
-
 
 def login_view(request):
     if request.user.is_authenticated:
@@ -51,11 +48,9 @@ def cerrar_sesion(request):
     logout(request)
     return redirect('login')
 
-
 # ===================================================================================================================================================================
 # DASHBOARD CENTRAL
 # ========================================================================================================================================================================
-
 
 @login_required(login_url='login')
 def dashboard(request):
@@ -75,7 +70,6 @@ def dashboard(request):
     logout(request)
     return redirect('login')
 
-
 # ================================================================================================================================================
 # ADMIN
 # ================================================================================================================================================
@@ -89,91 +83,76 @@ def dashboard_admin(request):
 # SUPERVISOR
 # ================================================================================================================================================
 
-
 @login_required
 @supervisor_required
 def dashboard_supervisor(request):
+    """Supervisor dashboard – similar to trabajador but filtered by supervisor."""
     rutas = Ruta.objects.filter(supervisor=request.user)
+    targetas_qs = Targeta.objects.filter(ruta__in=rutas).exclude(estado='PAGADA')
 
-    ruta_sel = None
+    q = request.GET.get("q")
+    estado = request.GET.get("estado")
+    ruta_id = request.GET.get("ruta")
+
+    if q:
+        targetas_qs = targetas_qs.filter(nombre_cliente__icontains=q)
+    if estado:
+        targetas_qs = targetas_qs.filter(estado=estado)
+    if ruta_id:
+        targetas_qs = targetas_qs.filter(ruta_id=ruta_id)
+
+    targetas_qs = targetas_qs.prefetch_related('cuotas', 'abonos')
+
+    # Rangos de hoy para detectar abono_hoy
+    hoy = localdate()
+    hoy_inicio_aware = make_aware(datetime.datetime.combine(hoy, datetime.time.min))
+    hoy_fin_aware = make_aware(datetime.datetime.combine(hoy, datetime.time.max))
+
     targetas = []
+    for t in targetas_qs:
+        if t.saldo_restante <= 0:
+            continue
+
+        todas_las_cuotas = t.cuotas.all()
+        t.cuotas_pagadas = sum(1 for c in todas_las_cuotas if c.estado == 'PAGADA')
+        t.total_cuotas = len(todas_las_cuotas)
+
+        # ¿Pagó hoy?
+        t.abono_hoy = t.abonos.filter(fecha__gte=hoy_inicio_aware, fecha__lte=hoy_fin_aware).exists()
+
+        # Días sin abono
+        ultimo_abono = t.abonos.order_by('-fecha').first()
+        if ultimo_abono:
+            t.dias_sin_abono = (hoy - ultimo_abono.fecha.date()).days
+        else:
+            t.dias_sin_abono = (hoy - t.fecha_creacion).days
+
+        # ¿Cobro atrasado según frecuencia?
+        if t.frecuencia_cobro == 'DIARIO':
+            t.cobro_atrasado = (not t.abono_hoy) and (t.dias_sin_abono > 1)
+        elif t.frecuencia_cobro == 'SEMANAL':
+            t.cobro_atrasado = (not t.abono_hoy) and (t.dias_sin_abono > 7)
+        elif t.frecuencia_cobro == 'QUINCENAL':
+            t.cobro_atrasado = (not t.abono_hoy) and (t.dias_sin_abono > 15)
+        elif t.frecuencia_cobro == 'MENSUAL':
+            t.cobro_atrasado = (not t.abono_hoy) and (t.dias_sin_abono > 30)
+        else:
+            t.cobro_atrasado = False
+
+        targetas.append(t)
 
     resumen = {
-        "total_clientes": 0,
-        "en_mora": 0,
-        "base": 0,
-        "dinero_en_ruta": 0,
+        "total_clientes": len(targetas),
+        "en_mora": sum(1 for t in targetas if t.estado == "MORA"),
+        "total_saldo": sum(t.saldo_restante for t in targetas),
     }
 
-    ruta_id = request.GET.get("ruta")
-    q = request.GET.get("q")
-
-    if ruta_id:
-        ruta_sel = get_object_or_404(Ruta, id=ruta_id, supervisor=request.user)
-
-        query = Targeta.objects.filter(ruta=ruta_sel).exclude(estado='PAGADA')
-
-        if q:
-            query = query.filter(nombre_cliente__icontains=q)
-
-        targetas_raw = [t for t in query if t.saldo_restante > 0]
-
-        # ── Preparar rangos de "hoy" para detectar abono_hoy ─────────────
-        hoy_fecha = localdate()
-        hoy_inicio_aware = make_aware(
-            datetime.datetime.combine(hoy_fecha, datetime.time.min)
-        )
-        hoy_fin_aware = make_aware(
-            datetime.datetime.combine(hoy_fecha, datetime.time.max)
-        )
-
-        targetas = []
-        for t in targetas_raw:
-            t.cuotas_pagadas = t.cuotas.filter(estado='PAGADA').count()
-            t.total_cuotas   = t.cuotas.count()
-
-            # ── ¿Pagó hoy? ───────────────────────────────────────────────
-            t.abono_hoy = t.abonos.filter(
-                fecha__gte=hoy_inicio_aware,
-                fecha__lte=hoy_fin_aware,
-            ).exists()
-
-            # ── Días desde el último abono ────────────────────────────────
-            ultimo_abono = t.abonos.order_by('-fecha').first()
-            if ultimo_abono:
-                t.dias_sin_abono = (hoy_fecha - ultimo_abono.fecha.date()).days
-            else:
-                t.dias_sin_abono = (hoy_fecha - t.fecha_creacion).days
-
-            # ── ¿Cobro atrasado según frecuencia? ─────────────────────────
-            if t.frecuencia_cobro == 'DIARIO':
-                t.cobro_atrasado = (not t.abono_hoy) and (t.dias_sin_abono > 1)
-            elif t.frecuencia_cobro == 'SEMANAL':
-                t.cobro_atrasado = (not t.abono_hoy) and (t.dias_sin_abono > 7)
-            elif t.frecuencia_cobro == 'QUINCENAL':
-                t.cobro_atrasado = (not t.abono_hoy) and (t.dias_sin_abono > 15)
-            elif t.frecuencia_cobro == 'MENSUAL':
-                t.cobro_atrasado = (not t.abono_hoy) and (t.dias_sin_abono > 30)
-            else:
-                t.cobro_atrasado = False
-
-            targetas.append(t)
-
-        # ── Resumen financiero ────────────────────────────────────────────
-        resumen["total_clientes"] = len(targetas)
-        resumen["en_mora"]        = len([t for t in targetas if t.estado == "MORA"])
-        resumen["base"]           = ruta_sel.base
-        resumen["dinero_en_ruta"] = sum(t.saldo_restante for t in targetas)
-
-    context = {
-        "rutas":     rutas,
-        "ruta_sel":  ruta_sel,
-        "targetas":  targetas,
-        "resumen":   resumen,
-    }
-
-    return render(request, "app/supervisor.html", context)
-
+    return render(request, "app/supervisor.html", {
+        "rutas": rutas,
+        "targetas": targetas,
+        "resumen": resumen,
+        "ruta_sel": Ruta.objects.filter(id=ruta_id).first() if ruta_id else None,
+    })
 
 # ================================================================================================================================================
 # TRABAJADOR
@@ -198,9 +177,9 @@ def dashboard_trabajador(request):
     targetas_qs = targetas_qs.prefetch_related('cuotas', 'abonos')
 
     # Rangos de hoy para detectar abono_hoy
-    hoy_fecha        = localdate()
-    hoy_inicio_aware = make_aware(datetime.datetime.combine(hoy_fecha, datetime.time.min))
-    hoy_fin_aware    = make_aware(datetime.datetime.combine(hoy_fecha, datetime.time.max))
+    hoy = localdate()
+    hoy_inicio_aware = make_aware(datetime.datetime.combine(hoy, datetime.time.min))
+    hoy_fin_aware    = make_aware(datetime.datetime.combine(hoy, datetime.time.max))
 
     targetas = []
     for t in targetas_qs:
@@ -220,9 +199,9 @@ def dashboard_trabajador(request):
         # Dias desde el ultimo abono
         ultimo_abono = t.abonos.order_by('-fecha').first()
         if ultimo_abono:
-            t.dias_sin_abono = (hoy_fecha - ultimo_abono.fecha.date()).days
+            t.dias_sin_abono = (hoy - ultimo_abono.fecha.date()).days
         else:
-            t.dias_sin_abono = (hoy_fecha - t.fecha_creacion).days
+            t.dias_sin_abono = (hoy - t.fecha_creacion).days
 
         # ¿Cobro atrasado segun frecuencia?
         if t.frecuencia_cobro == 'DIARIO':
@@ -251,11 +230,81 @@ def dashboard_trabajador(request):
         "ruta_sel": Ruta.objects.filter(id=ruta_id).first() if ruta_id else None,
     })
 
+# --------------------------------------------------------------------
+# NUEVAS VISTAS SOLICITADAS
+# --------------------------------------------------------------------
+@login_required
+def agregar_gasto(request):
+    """Vista para que un trabajador registre un gasto propio."""
+    if request.method == "POST":
+        monto_str = request.POST.get('monto')
+        descripcion = request.POST.get('descripcion', '')
+        try:
+            monto = Decimal(monto_str)
+            if monto <= 0:
+                messages.error(request, "El monto debe ser mayor a cero.")
+                return redirect('agregar_gasto')
+            GastoTrabajador.objects.create(
+                trabajador=request.user,
+                monto=monto,
+                descripcion=descripcion,
+            )
+            messages.success(request, f"Gasto de ${monto} registrado.")
+            return redirect('dashboard_trabajador')
+        except Exception as e:
+            messages.error(request, f"Error al registrar el gasto: {e}")
+
+    return render(request, 'app/agregar_gasto.html', {})
+
+@login_required
+def historial_ruta(request, ruta_id):
+    """Muestra el historial de abonos del trabajador por día."""
+    ruta = get_object_or_404(Ruta, id=ruta_id, trabajadores=request.user)
+
+    hoy = localdate()
+    start_date = hoy - datetime.timedelta(days=30)
+    start_dt = make_aware(datetime.datetime.combine(start_date, datetime.time.min))
+    end_dt = make_aware(datetime.datetime.combine(hoy, datetime.time.max))
+
+    # Abonos realizados por el trabajador en la ruta en los últimos 30 días
+    abonos_qs = Abono.objects.filter(
+        targeta__ruta=ruta,
+        registrado_por=request.user,
+        fecha__range=(start_dt, end_dt)
+    ).select_related('targeta')
+
+    # Agrupar por día
+    abonos_by_day = {}
+    for a in abonos_qs.order_by('fecha'):
+        d = a.fecha.date()
+        if d not in abonos_by_day:
+            abonos_by_day[d] = {'abonos': [], 'total': Decimal('0.00')}
+        abonos_by_day[d]['abonos'].append({
+            'cliente': a.targeta.nombre_cliente,
+            'monto': a.monto,
+            'hora': a.fecha,
+            'usuario': a.registrado_por.username if a.registrado_por else None,
+        })
+        abonos_by_day[d]['total'] += a.monto
+
+    # Lista de días ordenada descendente
+    dias = []
+    for fecha in sorted(abonos_by_day.keys(), reverse=True):
+        dias.append({
+            'fecha': fecha,
+            'abonos': abonos_by_day[fecha]['abonos'],
+            'total_abonos': abonos_by_day[fecha]['total'],
+        })
+
+    context = {
+        'ruta': ruta,
+        'dias': dias,
+    }
+    return render(request, 'app/historial_trabajador.html', context)
 
 # ================================================================================================================================================
 # RUTA
 # ================================================================================================================================================
-
 
 @login_required
 @supervisor_required
@@ -293,14 +342,11 @@ def eliminar_ruta(request, ruta_id):
     messages.success(request, "Ruta eliminada")
     return redirect('dashboard_supervisor')
 
-
 # ================================================================================================================================================
 # TARGETAS
 # ================================================================================================================================================
 
-
 @login_required
-@supervisor_required
 def crear_targeta(request):
     rutas = Ruta.objects.filter(supervisor=request.user)
 
@@ -438,7 +484,6 @@ def eliminar_targeta(request, targeta_id):
 
     return redirect(f"/dashboard/supervisor/?ruta={ruta.id}")
 
-
 @login_required
 @supervisor_required
 def renovar_targeta(request, targeta_id):
@@ -490,7 +535,6 @@ def renovar_targeta(request, targeta_id):
     return render(request, "app/renovar_targeta.html", {"targeta": targeta})
 
 @login_required
-@supervisor_required
 def clientes_finalizados(request):
     rutas   = Ruta.objects.filter(supervisor=request.user)
     ruta_id = request.GET.get("ruta")
@@ -507,11 +551,9 @@ def clientes_finalizados(request):
         "ruta_sel": rutas.filter(id=ruta_id).first() if ruta_id else None
     })
 
-
 # ================================================================================================================================================
 # ABONOS
 # ================================================================================================================================================
-
 
 @login_required
 @supervisor_required
@@ -545,11 +587,7 @@ def crear_abono(request, targeta_id=None):
                 targeta.save(update_fields=['estado'])
                 messages.info(request, f"La tarjeta de {targeta.nombre_cliente} ya está saldada.")
             else:
-                messages.error(
-                    request,
-                    "No hay cuotas pendientes para registrar el abono. "
-                    "Verifique el estado de la tarjeta."
-                )
+                messages.error(request, "No hay cuotas pendientes para registrar el abono. Verifique el estado de la tarjeta.")
             return redirect(request.path)
 
         try:
@@ -724,11 +762,9 @@ def eliminar_abono(request, abono_id):
     messages.success(request, f"Abono eliminado. Se han devuelto ${abono.monto} a la deuda.")
     return redirect('historial_abonos', targeta_id=targeta.id)
 
-
 # ================================================================================================================================================
 # GASTOS
 # ================================================================================================================================================
-
 
 @login_required
 def retiro_justificado(request, ruta_id):
@@ -801,11 +837,10 @@ def registrar_gasto(request, ruta_id):
             messages.error(request, f"Error al procesar el gasto: {e}")
 
     return render(request, 'app/registrar_gasto.html', {
-        'ruta':            ruta,
+        'ruta': ruta,
         'gastos_recientes': gastos_mes_qs,
         'total_gastos_mes': total_gastos_mes
     })
-
 
 # ================================================================================================================================================
 # AGREGAR CAPITAL A LA BASE DE LA RUTA
@@ -854,10 +889,9 @@ def agregar_capital(request, ruta_id):
             messages.error(request, f"Error al procesar: {e}")
 
     return render(request, "app/agregar_capital.html", {
-        "ruta":             ruta,
+        "ruta": ruta,
         "capital_reciente": capital_reciente,
     })
-
 
 # ================================================================================================================================================
 # CAJAS
@@ -902,17 +936,10 @@ def historial_cajas(request, ruta_id):
     capital_por_dia_agg = {
         c['fecha__date']: c['total']
         for c in MovimientoRuta.objects
-            .filter(
-                ruta=ruta,
-                tipo='INGRESO',
-                descripcion__startswith='CAPITAL:',
-                fecha__date__gte=primer_dia,
-                fecha__date__lte=ultimo_dia
-            )
+            .filter(ruta=ruta, tipo='INGRESO', descripcion__startswith='CAPITAL:', fecha__date__gte=primer_dia, fecha__date__lte=ultimo_dia)
             .values('fecha__date')
             .annotate(total=Sum('monto'))
     }
-
     dias_con_actividad = sorted(
         set(
             list(abonos_por_dia_agg.keys()) +
@@ -924,12 +951,11 @@ def historial_cajas(request, ruta_id):
 
     dias = []
     for dia in dias_con_actividad:
-
         abonos_qs = (
             Abono.objects
-            .filter(targeta__ruta=ruta, fecha__date=dia)
-            .select_related('targeta', 'registrado_por')
-            .order_by('fecha')
+                .filter(targeta__ruta=ruta, fecha__date=dia)
+                .select_related('targeta', 'registrado_por')
+                .order_by('fecha')
         )
         abonos = [
             {
@@ -965,52 +991,52 @@ def historial_cajas(request, ruta_id):
         for mov in MovimientoRuta.objects.filter(ruta=ruta, tipo='EGRESO', fecha__date=dia).order_by('fecha'):
             desc = mov.descripcion or ''
             base = {
-                'monto_base': mov.monto,   # ← renombrado de 'monto'
+                'monto_base': mov.monto,
                 'hora':       mov.fecha,
                 'usuario':    None,
             }
             if desc.startswith('Préstamo otorgado'):
-                prestamos.append({**base, 'nombre_cliente': desc.replace('Préstamo otorgado a ', '').strip()})  # ← renombrado de 'cliente'
+                prestamos.append({**base, 'nombre_cliente': desc.replace('Préstamo otorgado a ', '').strip()})
             elif 'RENOVACIÓN' in desc:
-                renovaciones.append({**base, 'nombre_cliente': desc.replace('RENOVACIÓN (Restauración):', '').strip()})  # ← renombrado de 'cliente'
+                renovaciones.append({**base, 'nombre_cliente': desc.replace('RENOVACIÓN (Restauración):', '').strip()})
             else:
                 gastos.append({**base, 'descripcion': desc.replace('GASTO:', '').strip()})
 
-        total_prestamos    = sum(m['monto_base'] for m in prestamos)
+        total_prestamos = sum(m['monto_base'] for m in prestamos)
         total_renovaciones = sum(m['monto_base'] for m in renovaciones)
-        total_gastos       = sum(m['monto_base'] for m in gastos)
+        total_gastos = sum(m['monto_base'] for m in gastos)
         total_egresos_dia  = total_prestamos + total_renovaciones + total_gastos
 
         neto_dia = total_abonos + total_capital_dia - total_egresos_dia
 
         dias.append({
-            'fecha':              dia,
-            'ingresos':           total_abonos + total_capital_dia,
-            'egresos':            total_egresos_dia,
-            'neto':               neto_dia,
-            'total_movimientos':  len(abonos) + len(capital_list) + len(prestamos) + len(renovaciones) + len(gastos),
-            'abonos':             abonos,
-            'capital':            capital_list,
-            'prestamos':          prestamos,
-            'renovaciones':       renovaciones,
-            'gastos':             gastos,
-            'total_abonos':       total_abonos,
-            'total_capital_dia':  total_capital_dia,
-            'total_prestamos':    total_prestamos,
+            'fecha': dia,
+            'ingresos': total_abonos + total_capital_dia,
+            'egresos': total_egresos_dia,
+            'neto': neto_dia,
+            'total_movimientos': len(abonos) + len(capital_list) + len(prestamos) + len(renovaciones) + len(gastos),
+            'abonos': abonos,
+            'capital': capital_list,
+            'prestamos': prestamos,
+            'renovaciones': renovaciones,
+            'gastos': gastos,
+            'total_abonos': total_abonos,
+            'total_capital_dia': total_capital_dia,
+            'total_prestamos': total_prestamos,
             'total_renovaciones': total_renovaciones,
-            'total_gastos':       total_gastos,
+            'total_gastos': total_gastos,
         })
 
-    total_ingresos_mes     = sum(d['total_abonos'] for d in dias)
-    total_capital_mes      = sum(d['total_capital_dia'] for d in dias)
-    total_egresos_mes      = sum(d['egresos']  for d in dias)
-    neto_mes               = total_ingresos_mes + total_capital_mes - total_egresos_mes
+    total_ingresos_mes = sum(d['total_abonos'] for d in dias)
+    total_capital_mes = sum(d['total_capital_dia'] for d in dias)
+    total_egresos_mes = sum(d['egresos'] for d in dias)
+    neto_mes = total_ingresos_mes + total_capital_mes - total_egresos_mes
 
-    total_prestamos_mes    = sum(sum(m['monto_base'] for m in d['prestamos'])    for d in dias)
+    total_prestamos_mes = sum(sum(m['monto_base'] for m in d['prestamos']) for d in dias)
     total_renovaciones_mes = sum(sum(m['monto_base'] for m in d['renovaciones']) for d in dias)
-    total_gastos_mes       = sum(sum(m['monto_base'] for m in d['gastos'])       for d in dias)
-    total_capital_total    = total_prestamos_mes + total_renovaciones_mes
-    total_perdidas_mes     = total_egresos_mes - total_capital_total - total_gastos_mes
+    total_gastos_mes = sum(sum(m['monto_base'] for m in d['gastos']) for d in dias)
+    total_capital_total = total_prestamos_mes + total_renovaciones_mes
+    total_perdidas_mes = total_egresos_mes - total_capital_total - total_gastos_mes
 
     primer_abono = Abono.objects.filter(targeta__ruta=ruta).order_by('fecha').first()
     meses_disponibles = []
@@ -1027,20 +1053,20 @@ def historial_cajas(request, ruta_id):
         meses_disponibles.reverse()
 
     return render(request, 'app/historial_cajas.html', {
-        'ruta':                  ruta,
-        'dias':                  dias,
-        'mes_actual':            primer_dia,
-        'total_ingresos_mes':    total_ingresos_mes,
-        'total_capital_mes':     total_capital_mes,
-        'total_egresos_mes':     total_egresos_mes,
-        'total_capital_total':   total_capital_total,
-        'total_prestamos_mes':   total_prestamos_mes,
-        'total_renovaciones_mes':total_renovaciones_mes,
-        'total_gastos_mes':      total_gastos_mes,
-        'total_perdidas_mes':    total_perdidas_mes,
-        'neto_mes':              neto_mes,
-        'meses_disponibles':     meses_disponibles,
-        'mes_param':             mes_param_str,
+        'ruta': ruta,
+        'dias': dias,
+        'mes_actual': primer_dia,
+        'total_ingresos_mes': total_ingresos_mes,
+        'total_capital_mes': total_capital_mes,
+        'total_egresos_mes': total_egresos_mes,
+        'total_capital_total': total_capital_total,
+        'total_prestamos_mes': total_prestamos_mes,
+        'total_renovaciones_mes': total_renovaciones_mes,
+        'total_gastos_mes': total_gastos_mes,
+        'total_perdidas_mes': total_perdidas_mes,
+        'neto_mes': neto_mes,
+        'meses_disponibles': meses_disponibles,
+        'mes_param': mes_param_str,
     })
 
 def cerrar_cajas_anteriores(ruta):
@@ -1092,7 +1118,7 @@ def movimientos_ruta(request, ruta_id):
         fecha__gte=hoy,
         fecha__lt=hoy + timedelta(days=1)
     )
-    ingresos_hoy = abonos.aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
+    ingresos_hoy = abonos.aggregate(total=Sum("monto"))['total'] or Decimal('0.00')
 
     egresos = MovimientoRuta.objects.filter(
         ruta=ruta,
@@ -1100,7 +1126,7 @@ def movimientos_ruta(request, ruta_id):
         fecha__gte=hoy,
         fecha__lt=hoy + timedelta(days=1)
     )
-    egresos_hoy = egresos.aggregate(total=Sum("monto"))["total"] or Decimal("0.00")
+    egresos_hoy = egresos.aggregate(total=Sum("monto"))['total'] or Decimal('0.00')
 
     caja.ingresos = ingresos_hoy
     caja.egresos  = egresos_hoy
@@ -1116,14 +1142,13 @@ def movimientos_ruta(request, ruta_id):
     movimientos.sort(key=lambda x: x["fecha"], reverse=True)
 
     return render(request, "app/movimientos_ruta.html", {
-        "ruta":         ruta,
-        "caja":         caja,
-        "movimientos":  movimientos,
+        "ruta": ruta,
+        "caja": caja,
+        "movimientos": movimientos,
         "ingresos_hoy": ingresos_hoy,
-        "egresos_hoy":  egresos_hoy,
-        "saldo_hoy":    saldo_hoy,
+        "egresos_hoy": egresos_hoy,
+        "saldo_hoy": saldo_hoy,
     })
-
 
 # ================================================================================================================================================
 # REPORTE DIARIO
@@ -1268,22 +1293,20 @@ def historial_cierres(request, ruta_id):
         ).order_by('fecha')
 
     return render(request, 'app/historial_cierres.html', {
-        'ruta':      ruta,
+        'ruta': ruta,
         'historial': historial
     })
-
 
 # ================================================================================================================================================
 # MAPA
 # ================================================================================================================================================
-
 
 def mapa_clientes(request, ruta_id):
     ruta     = get_object_or_404(Ruta, id=ruta_id)
     clientes = Targeta.objects.filter(ruta=ruta).exclude(latitud=None).exclude(longitud=None)
 
     return render(request, 'app/mapa_clientes.html', {
-        'ruta':     ruta,
+        'ruta': ruta,
         'clientes': clientes
     })
 
@@ -1398,9 +1421,9 @@ def reporte_rango(request, ruta_id):
     for dia in dias_con_actividad:
         abonos_qs = (
             Abono.objects
-            .filter(targeta__ruta=ruta, fecha__date=dia)
-            .select_related('targeta', 'registrado_por')
-            .order_by('fecha')
+                .filter(targeta__ruta=ruta, fecha__date=dia)
+                .select_related('targeta', 'registrado_por')
+                .order_by('fecha')
         )
         abonos = [
             {
@@ -1456,36 +1479,36 @@ def reporte_rango(request, ruta_id):
         total_egresos_dia     = total_prestamos_dia + total_renovaciones_dia + total_gastos_dia
 
         dias.append({
-            'fecha':              dia,
-            'ingresos':           total_abonos_dia + total_capital_dia,
-            'egresos':            total_egresos_dia,
-            'neto':               total_abonos_dia + total_capital_dia - total_egresos_dia,
-            'total_movimientos':  len(abonos) + len(capital_list) + len(prestamos) + len(renovaciones) + len(gastos),
-            'abonos':             abonos,
-            'capital':            capital_list,
-            'prestamos':          prestamos,
-            'renovaciones':       renovaciones,
-            'gastos':             gastos,
-            'total_abonos':       total_abonos_dia,
-            'total_capital_dia':  total_capital_dia,
-            'total_prestamos':    total_prestamos_dia,
+            'fecha': dia,
+            'ingresos': total_abonos_dia + total_capital_dia,
+            'egresos': total_egresos_dia,
+            'neto': total_abonos_dia + total_capital_dia - total_egresos_dia,
+            'total_movimientos': len(abonos) + len(capital_list) + len(prestamos) + len(renovaciones) + len(gastos),
+            'abonos': abonos,
+            'capital': capital_list,
+            'prestamos': prestamos,
+            'renovaciones': renovaciones,
+            'gastos': gastos,
+            'total_abonos': total_abonos_dia,
+            'total_capital_dia': total_capital_dia,
+            'total_prestamos': total_prestamos_dia,
             'total_renovaciones': total_renovaciones_dia,
-            'total_gastos':       total_gastos_dia,
+            'total_gastos': total_gastos_dia,
         })
 
     return render(request, 'app/reporte_rango.html', {
-        'ruta':                 ruta,
-        'fecha_inicio':         fecha_inicio,
-        'fecha_fin':            fecha_fin,
-        'total_abonos':         total_abonos,
-        'total_capital_rango':  total_capital_rango,
-        'total_prestamos':      total_prestamos,
-        'total_renovaciones':   total_renovaciones,
-        'total_gastos':         total_gastos,
-        'total_otros':          total_otros,
-        'total_egresos':        total_egresos,
-        'neto':                 neto,
-        'dias':                 dias,
+        'ruta': ruta,
+        'fecha_inicio': fecha_inicio,
+        'fecha_fin': fecha_fin,
+        'total_abonos': total_abonos,
+        'total_capital_rango': total_capital_rango,
+        'total_prestamos': total_prestamos,
+        'total_renovaciones': total_renovaciones,
+        'total_gastos': total_gastos,
+        'total_otros': total_otros,
+        'total_egresos': total_egresos,
+        'neto': neto,
+        'dias': dias,
     })
 
 def guardar_gps_cliente(request, targeta_id):

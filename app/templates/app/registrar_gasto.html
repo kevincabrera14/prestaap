@@ -127,10 +127,12 @@
             <button class="btn-history" onclick="toggleModal(true)">📅 Ver Gastos del Mes</button>
         </div>
 
+        {% if request.user.perfil.rol == 'SUPERVISOR' %}
         <div class="saldo-strip">
             <span class="saldo-label">Base disponible</span>
             <span class="saldo-val positivo">${{ ruta.base|intcomma }}</span>
         </div>
+        {% endif %}
 
         <div class="form-body">
             <form method="POST">

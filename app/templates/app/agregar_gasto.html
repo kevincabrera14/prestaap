@@ -1,0 +1,41 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>PrestApp | Registrar Gasto</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
+    <link rel="icon" type="image/png" href="{% static 'img/favicon.ico' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+
+<nav class="top-nav">
+    <span class="nav-brand">PrestApp <span class="nav-user">| {{ request.user.username }}</span></span>
+    <a href="{% url 'logout' %}" class="nav-salir">Salir</a>
+</nav>
+
+<div class="page">
+    <div class="section-label">Registrar Gasto</div>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+            <label>Monto</label>
+            <input type="text" name="monto" class="input" placeholder="Ej. 150.00" required>
+        </div>
+
+        <div class="form-group">
+            <label>Descripción (opcional)</label>
+            <textarea name="descripcion" class="input" rows="3" placeholder="Detalle del gasto"></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary">Guardar Gasto</button>
+    </form>
+</div>
+
+</body>
+</html>

@@ -288,3 +288,38 @@ class MovimientoRuta(models.Model):
 
     def __str__(self):
         return f"{self.fecha.date()} - {self.tipo} - {self.monto}"
+
+# --------------------------------------------------------------------
+# NUEVOS MODELOS SOLICITADOS
+# --------------------------------------------------------------------
+class GastoTrabajador(models.Model):
+    """Registro de gastos realizados por un trabajador."""
+    trabajador = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='gastos_trabajador'
+    )
+    monto = models.DecimalField(max_digits=12, decimal_places=2)
+    descripcion = models.TextField(blank=True)
+    fecha = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Gasto {self.monto} - {self.trabajador.username}"
+
+class HistorialRuta(models.Model):
+    """Resumen diario de la ruta para un trabajador."""
+    trabajador = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='historial_rutas'
+    )
+    fecha = models.DateField()
+    total_cuotas = models.IntegerField(default=0)
+    total_prestamos = models.IntegerField(default=0)
+    monto_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    class Meta:
+        unique_together = ('trabajador', 'fecha')
+
+    def __str__(self):
+        return f"Historial {self.trabajador.username} - {self.fecha}"

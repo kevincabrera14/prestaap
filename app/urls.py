@@ -74,4 +74,6 @@ urlpatterns = [
     # Dentro de urlpatterns:
    path('ruta/<int:ruta_id>/agregar-base/', views.agregar_capital, name='agregar_monto_base'),
 
+    path('gasto/agregar/', views.agregar_gasto, name='agregar_gasto'),
+    path('trabajador/historial/<int:ruta_id>/', views.historial_ruta, name='historial_ruta'),
 ]

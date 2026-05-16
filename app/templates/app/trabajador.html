@@ -102,6 +102,24 @@
 
     {% if ruta_sel %}
 
+    <!-- ********* Acciones de Ruta (nuevo bloque) ********* -->
+    <div class="panel-menu-wrap">
+        <button class="panel-menu-trigger" onclick="togglePanel(this)">
+            ⚡ Acciones de Ruta <span class="arrow">▾</span>
+        </button>
+        <div class="panel-dropdown">
+            <a href="{% url 'registrar_gasto' ruta_sel.id %}" class="panel-item">
+                <div class="panel-ico ico-red">💸</div> Agregar Gasto
+            </a>
+            <a href="{% url 'crear_targeta' %}?ruta={{ ruta_sel.id }}" class="panel-item">
+                <div class="panel-ico ico-green">➕</div> Crear Tarjeta
+            </a>
+            <a href="{% url 'historial_ruta' ruta_sel.id %}" class="panel-item">
+                <div class="panel-ico ico-indigo">📊</div> Historial de Ruta
+            </a>
+        </div>
+    </div>
+
     <form method="GET">
         <input type="hidden" name="ruta" value="{{ ruta_sel.id }}">
         <div class="search-wrap">
@@ -210,6 +228,21 @@
     {% endif %}
 
 </div>
+
+<script>
+    /* Copiado del mismo script usado en supervisor.html */
+    function togglePanel(btn) {
+        const dd = btn.nextElementSibling;
+        dd.classList.toggle('open');
+        btn.querySelector('.arrow').textContent = dd.classList.contains('open') ? '▴' : '▾';
+    }
+
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.panel-menu-wrap')) {
+            document.querySelectorAll('.panel-dropdown.open').forEach(d => d.classList.remove('open'));
+        }
+    });
+</script>
 
 </body>
 </html>

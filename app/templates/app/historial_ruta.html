@@ -1,0 +1,54 @@
+{% load static %}
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>PrestApp | Historial de Ruta</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
+    <link rel="icon" type="image/png" href="{% static 'img/favicon.ico' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+
+<nav class="top-nav">
+    <span class="nav-brand">PrestApp <span class="nav-user">| {{ request.user.username }}</span></span>
+    <a href="{% url 'logout' %}" class="nav-salir">Salir</a>
+</nav>
+
+<div class="page">
+    <div class="section-label">Historial de Ruta – {{ ruta.nombre }}</div>
+
+    <div class="cards-grid">
+        <div class="card-targeta">
+            <div class="card-inner">
+                <div class="info-label-sm">Cuotas recaudadas hoy</div>
+                <div class="info-val">{{ total_cuotas }}</div>
+            </div>
+        </div>
+
+        <div class="card-targeta">
+            <div class="card-inner">
+                <div class="info-label-sm">Préstamos gestionados hoy</div>
+                <div class="info-val">{{ total_prestamos }}</div>
+            </div>
+        </div>
+
+        <div class="card-targeta">
+            <div class="card-inner">
+                <div class="info-label-sm">Total recaudado ($)</div>
+                <div class="info-val">${{ total_dinero|floatformat:2 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" style="margin-top: 20px;">
+        {% csrf_token %}
+        <button type="submit" class="btn-primary">Guardar / Cerrar Ruta del Día</button>
+    </form>
+</div>
+
+</body>
+</html>
