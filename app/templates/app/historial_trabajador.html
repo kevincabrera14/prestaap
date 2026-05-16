@@ -21,7 +21,7 @@
 <div class="page">
     <div class="section-label">Historial Ruta – {{ ruta.nombre }}</div>
 
-    {% if dias %}
+    {% comment %}
         {% for dia in dias %}
             <div class="dia-card" id="d{{ forloop.counter }}">
                 <div class="dia-header" onclick="toggleDia('d{{ forloop.counter }}')">
@@ -53,7 +53,87 @@
         {% endfor %}
     {% else %}
         <p>No hay movimientos registrados en los últimos 30 días.</p>
-    {% endif %}
+    {% endcomment %}
+
+	{% for dia in dias %}
+		<details open>
+			<summary>
+				<div class="dia-header" style="cursor:pointer;">
+					<div>
+						<div class="dia-fecha">{{ dia.fecha|date:"l d \d\e F" }}</div>
+						<div class="dia-nums">
+							<span class="dia-num-item ing">↑ {{ dia.count_abonos }} abonos</span>
+							<span class="dia-num-item" style="color:#818cf8;">↑ ${{ dia.total_abonos|intcomma }}</span>
+							<span class="dia-num-item" style="color:#f87171;">↑ ${{ dia.total_gastos|intcomma }}</span>
+							<span class="dia-num-item" style="color:#60a5fa;">↑ ${{ dia.total_prestamos|intcomma }}</span>
+						</div>
+					</div>
+					<span class="chevron">▼</span>
+				</div>
+			</summary>
+			<div class="dia-detalle">
+				<!-- RESUMEN DEL DÍA -->
+				<div class="summary-grid">
+					<div class="summary-card"><span class="summary-label">Abonos</span><span class="summary-value val-plus">+${{ dia.total_abonos|intcomma }}</span></div>
+					<div class="summary-card"><span class="summary-label">Gastos</span><span class="summary-value val-minus">-${{ dia.total_gastos|intcomma }}</span></div>
+					<div class="summary-card"><span class="summary-label">Préstamos</span><span class="summary-value val-minus">-${{ dia.total_prestamos|intcomma }}</span></div>
+				</div>
+
+				<!-- ABONOS -->
+				<details open>
+					<summary>
+						<div class="summary-left"><div class="icon-box bg-plus">📥</div><b>Abonos ({{ dia.count_abonos }})</b></div>
+					</summary>
+					<div class="detail-content">
+						{% for a in dia.abonos %}
+						<div class="data-row">
+							<div class="data-info"><b>{{ a.cliente }}</b><span>{{ a.hora|time:"H:i" }}</span></div>
+							<span class="data-monto val-plus">+${{ a.monto|intcomma }}</span>
+						</div>
+						{% empty %}
+						<p>No hay abonos.</p>
+						{% endfor %}
+					</div>
+				</details>
+
+				<!-- GASTOS -->
+				<details>
+					<summary>
+						<div class="summary-left"><div class="icon-box bg-minus">💸</div><b>Gastos ({{ dia.count_gastos }})</b></div>
+					</summary>
+					<div class="detail-content">
+						{% for g in dia.gastos %}
+						<div class="data-row">
+							<div class="data-info"><b>{{ g.descripcion }}</b></div>
+							<span class="data-monto val-minus">-${{ g.monto|intcomma }}</span>
+						</div>
+						{% empty %}
+						<p>No hay gastos.</p>
+						{% endfor %}
+					</div>
+				</details>
+
+				<!-- PRÉSTAMOS OTORGADOS -->
+				<details>
+					<summary>
+						<div class="summary-left"><div class="icon-box bg-info">📝</div><b>Préstamos ({{ dia.count_prestamos }})</b></div>
+					</summary>
+					<div class="detail-content">
+						{% for p in dia.prestamos %}
+						<div class="data-row">
+							<div class="data-info"><b>{{ p.nombre_cliente }}</b></div>
+							<span class="data-monto val-minus">-${{ p.monto_base|intcomma }}</span>
+						</div>
+						{% empty %}
+						<p>No hay préstamos.</p>
+						{% endfor %}
+					</div>
+				</details>
+			</div>
+		</details>
+	{% empty %}
+		<p>No hay movimientos registrados en los últimos 30 días.</p>
+	{% endfor %}
 </div>
 
 <script>

@@ -102,8 +102,8 @@
 
     {% if ruta_sel %}
 
-    <!-- ********* Acciones de Ruta (nuevo bloque) ********* -->
-    <div class="panel-menu-wrap">
+
+        <div class="panel-menu-wrap">
         <button class="panel-menu-trigger" onclick="togglePanel(this)">
             ⚡ Acciones de Ruta <span class="arrow">▾</span>
         </button>
@@ -120,7 +120,14 @@
         </div>
     </div>
 
-    <form method="GET">
+<div class="saldo-strip" style="margin-top:12px;">
+    <span class="saldo-label">Ruta</span>
+    <span class="saldo-val">{{ ruta_sel.nombre }}</span>
+    <span class="saldo-label" style="margin-left:12px;">Base</span>
+    <span class="saldo-val positivo">${{ ruta_sel.base|intcomma }}</span>
+</div>
+
+<form method="GET">
         <input type="hidden" name="ruta" value="{{ ruta_sel.id }}">
         <div class="search-wrap">
             <input type="text" name="q" class="search-bar"

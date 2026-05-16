@@ -265,44 +265,107 @@ def agregar_gasto(request):
 
 @login_required
 def historial_ruta(request, ruta_id):
-    """Muestra el historial de abonos del trabajador por día."""
+    """Muestra el historial de abonos, gastos y préstamos del trabajador por día."""
+    # Get the specific route, ensure the user is a worker on it
     ruta = get_object_or_404(Ruta, id=ruta_id, trabajadores=request.user)
+
+    # All routes assigned to the worker (used for filtering gastos and prestamos)
+    rutas_trabajador = Ruta.objects.filter(trabajadores=request.user)
 
     hoy = localdate()
     start_date = hoy - datetime.timedelta(days=30)
     start_dt = make_aware(datetime.datetime.combine(start_date, datetime.time.min))
     end_dt = make_aware(datetime.datetime.combine(hoy, datetime.time.max))
 
-    # Abonos realizados por el trabajador en la ruta en los últimos 30 días
+    # Prepare dict to hold data per day
+    dias_dict = {}
+
+    # ABONOS: filtered by worker and their routes
     abonos_qs = Abono.objects.filter(
-        targeta__ruta=ruta,
+        targeta__ruta__in=rutas_trabajador,
         registrado_por=request.user,
         fecha__range=(start_dt, end_dt)
     ).select_related('targeta')
-
-    # Agrupar por día
-    abonos_by_day = {}
     for a in abonos_qs.order_by('fecha'):
         d = a.fecha.date()
-        if d not in abonos_by_day:
-            abonos_by_day[d] = {'abonos': [], 'total': Decimal('0.00')}
-        abonos_by_day[d]['abonos'].append({
+        entry = dias_dict.setdefault(d, {
+            'fecha': d,
+            'abonos': [],
+            'gastos': [],
+            'prestamos': [],
+            'total_abonos': Decimal('0.00'),
+            'total_gastos': Decimal('0.00'),
+            'total_prestamos': Decimal('0.00'),
+            'count_abonos': 0,
+            'count_gastos': 0,
+            'count_prestamos': 0,
+        })
+        entry['abonos'].append({
             'cliente': a.targeta.nombre_cliente,
             'monto': a.monto,
             'hora': a.fecha,
-            'usuario': a.registrado_por.username if a.registrado_por else None,
         })
-        abonos_by_day[d]['total'] += a.monto
+        entry['total_abonos'] += a.monto
+        entry['count_abonos'] += 1
 
-    # Lista de días ordenada descendente
-    dias = []
-    for fecha in sorted(abonos_by_day.keys(), reverse=True):
-        dias.append({
-            'fecha': fecha,
-            'abonos': abonos_by_day[fecha]['abonos'],
-            'total_abonos': abonos_by_day[fecha]['total'],
-            'monto_total': abonos_by_day[fecha]['total'],
+    # GASTOS: MovimientoRuta tipo EGRESO en las rutas del trabajador
+    gastos_qs = MovimientoRuta.objects.filter(
+        ruta__in=rutas_trabajador,
+        tipo='EGRESO',
+        descripcion__startswith='GASTO:',
+        fecha__range=(start_dt, end_dt)
+    )
+    for g in gastos_qs.order_by('fecha'):
+        d = g.fecha.date()
+        entry = dias_dict.setdefault(d, {
+            'fecha': d,
+            'abonos': [],
+            'gastos': [],
+            'prestamos': [],
+            'total_abonos': Decimal('0.00'),
+            'total_gastos': Decimal('0.00'),
+            'total_prestamos': Decimal('0.00'),
+            'count_abonos': 0,
+            'count_gastos': 0,
+            'count_prestamos': 0,
         })
+        entry['gastos'].append({
+            'descripcion': g.descripcion.replace('GASTO:', '').strip(),
+            'monto': g.monto,
+            'hora': g.fecha,
+        })
+        entry['total_gastos'] += g.monto
+        entry['count_gastos'] += 1
+
+    # PRESTAMOS: Targetas creadas en las rutas del trabajador (fecha_creacion is a DateField)
+    prestamos_qs = Targeta.objects.filter(
+        ruta__in=rutas_trabajador,
+        fecha_creacion__range=(start_date, hoy)
+    )
+    for p in prestamos_qs:
+        d = p.fecha_creacion
+        entry = dias_dict.setdefault(d, {
+            'fecha': d,
+            'abonos': [],
+            'gastos': [],
+            'prestamos': [],
+            'total_abonos': Decimal('0.00'),
+            'total_gastos': Decimal('0.00'),
+            'total_prestamos': Decimal('0.00'),
+            'count_abonos': 0,
+            'count_gastos': 0,
+            'count_prestamos': 0,
+        })
+        entry['prestamos'].append({
+            'nombre_cliente': p.nombre_cliente,
+            'monto_base': p.monto_base,
+            'hora': p.fecha_creacion,
+        })
+        entry['total_prestamos'] += p.monto_base
+        entry['count_prestamos'] += 1
+
+    # Convert dict to sorted list (most recent first)
+    dias = sorted(dias_dict.values(), key=lambda x: x['fecha'], reverse=True)
 
     context = {
         'ruta': ruta,
@@ -824,6 +887,19 @@ def registrar_gasto(request, ruta_id):
         fecha__year=hoy.year
     ).order_by('-fecha')
 
+    # Adjust gastos visibility for workers
+    perfil = getattr(request.user, 'perfil', None)
+    if perfil and perfil.rol == 'TRABAJADOR':
+        gastos_mes_qs = MovimientoRuta.objects.filter(
+            ruta=ruta,
+            tipo='EGRESO',
+            descripcion__startswith='GASTO:',
+            fecha__month=hoy.month,
+            fecha__year=hoy.year,
+            ruta__trabajadores=request.user,
+        ).order_by('-fecha')
+
+    # Compute total gastos for the selected queryset
     total_gastos_mes = gastos_mes_qs.aggregate(Sum('monto'))['monto__sum'] or 0
 
     if request.method == 'POST':
