@@ -27,6 +27,9 @@ from django.utils import timezone
 # AUTH
 # ===============================================================================================================================================================
 
+def informacion(request):
+    return render(request, 'app/informacion.html')
+
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')

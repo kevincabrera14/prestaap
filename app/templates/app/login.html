@@ -1,6 +1,7 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>PrestApp | Iniciar sesión</title>
@@ -13,34 +14,53 @@
 
 <body class="login-page">
 
-<div class="login-card">
+    <div class="login-card">
 
-    <div class="login-header">
-        <div class="overlay">
-            <h4>PrestApp</h4>
-            <small>Sistema de Gestión de Préstamos</small>
+        <div class="login-header">
+            <div class="overlay">
+                <h4>PrestApp</h4>
+                <small>Sistema de Gestión de Préstamos</small>
+            </div>
         </div>
+
+        <div class="login-body">
+            <form method="POST">
+                {% csrf_token %}
+
+                <div class="field-wrap">
+                    <label class="field-label">Usuario</label>
+                    <input type="text" name="username" class="field-input" required>
+                </div>
+
+                <div class="field-wrap">
+                    <label class="field-label">Contraseña</label>
+                    <input type="password" name="password" class="field-input" required>
+                </div>
+
+
+
+
+                <button type="submit" class="btn-login">Ingresar</button>
+
+
+
+
+                <div style="text-align:center; margin-top:16px;">
+                    <a href="{% url 'informacion' %}" style="
+            display:inline-flex; align-items:center; gap:6px;
+            font-size:0.82rem; font-weight:600; color:#6b7280;
+            text-decoration:none; padding:8px 16px;
+            border:1px solid #e5e7eb; border-radius:8px;
+            background:#f9fafb; transition:background .2s;">
+                        ℹ️ Información
+                    </a>
+                </div>
+
+            </form>
+        </div>
+
     </div>
-
-    <div class="login-body">
-        <form method="POST">
-            {% csrf_token %}
-
-            <div class="field-wrap">
-                <label class="field-label">Usuario</label>
-                <input type="text" name="username" class="field-input" required>
-            </div>
-
-            <div class="field-wrap">
-                <label class="field-label">Contraseña</label>
-                <input type="password" name="password" class="field-input" required>
-            </div>
-
-            <button type="submit" class="btn-login">Ingresar</button>
-        </form>
-    </div>
-
-</div>
 
 </body>
+
 </html>

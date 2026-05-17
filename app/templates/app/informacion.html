@@ -1,0 +1,415 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>PrestApp | Información</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        body { background: #f1f5f9; font-family: 'Inter', sans-serif; margin: 0; }
+
+        .info-page { max-width: 700px; margin: 0 auto; padding: 32px 16px 64px; }
+
+        .info-card {
+            background: white;
+            border-radius: 14px;
+            border: 1px solid #e2e8f0;
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.06);
+        }
+        .info-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .info-ico {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; flex-shrink: 0;
+        }
+        .ico-blue   { background: #dbeafe; }
+        .ico-green  { background: #dcfce7; }
+        .ico-amber  { background: #fef3c7; }
+        .ico-indigo { background: #e0e7ff; }
+        .ico-red    { background: #fee2e2; }
+
+        .info-card-title { font-size: .95rem; font-weight: 700; color: #0f172a; margin: 0; }
+        .info-card-sub   { font-size: .78rem; color: #64748b; margin: 2px 0 0; }
+
+        .info-list { list-style: none; padding: 0; margin: 0; }
+        .info-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: .85rem;
+            color: #334155;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .info-list li:last-child { border-bottom: none; }
+        .info-list li::before { content: '→'; color: #94a3b8; flex-shrink: 0; }
+
+        .badge-rol {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: .72rem; font-weight: 700;
+            padding: 3px 10px; border-radius: 20px;
+        }
+        .badge-admin { background: #fef3c7; color: #92400e; }
+        .badge-sup   { background: #dbeafe; color: #1d4ed8; }
+        .badge-trab  { background: #dcfce7; color: #166534; }
+
+        .roles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 4px;
+        }
+        .rol-card {
+            border-radius: 10px;
+            padding: 14px;
+            font-size: .82rem;
+        }
+        .rol-card b { display: block; margin-bottom: 6px; font-size: .88rem; }
+        .rol-card ul { margin: 0; padding-left: 16px; color: #475569; line-height: 1.7; }
+        .rol-admin { background: #fffbeb; border: 1px solid #fde68a; }
+        .rol-sup   { background: #eff6ff; border: 1px solid #bfdbfe; }
+        .rol-trab  { background: #f0fdf4; border: 1px solid #bbf7d0; }
+
+        .back-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: .82rem; font-weight: 600; color: #6b7280;
+            text-decoration: none; padding: 8px 16px;
+            border: 1px solid #e5e7eb; border-radius: 8px;
+            background: white; margin-bottom: 20px;
+        }
+        .footer-note {
+            text-align: center; color: #94a3b8;
+            font-size: .75rem; margin-top: 32px;
+        }
+
+        /* ── HERO ── */
+        .info-hero {
+            position: relative;
+            background: #000;
+            padding: 56px 24px 48px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            overflow: hidden;
+            min-height: 220px;
+        }
+        .info-hero-bg {
+            position: absolute;
+            inset: 0;
+            background-image: url("{% static 'img/logo.png' %}");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 55%;
+            filter: blur(6px) brightness(0.18);
+            transform: scale(1.08);
+            z-index: 0;
+        }
+        .info-hero-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+        .info-hero img.logo-principal {
+            width: 90px;
+            height: 90px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 18px rgba(255,255,255,.25));
+        }
+        .info-hero h1 {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: white;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+        .info-hero p {
+            color: rgba(255,255,255,.5);
+            font-size: .88rem;
+            margin: 0;
+        }
+        .info-hero-divider {
+            width: 40px;
+            height: 3px;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            border-radius: 4px;
+        }
+
+        /* ── Aviones ── */
+        .avion {
+            position: absolute;
+            z-index: 3;
+            font-size: 1.4rem;
+            opacity: 0;
+            animation: volar linear infinite;
+            pointer-events: none;
+            filter: drop-shadow(0 2px 6px rgba(255,255,255,.3));
+        }
+        @keyframes volar {
+            0%   { opacity: 0;   transform: translate(0, 20px) rotate(-10deg) scale(0.8); }
+            10%  { opacity: 1; }
+            85%  { opacity: 1; }
+            100% { opacity: 0;   transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(1.1); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── HERO ── -->
+<div class="info-hero" id="heroSection">
+    <div class="info-hero-bg"></div>
+
+    <div class="info-hero-content">
+        <img src="{% static 'img/logo.png' %}" alt="PrestApp Logo" class="logo-principal">
+        <div class="info-hero-divider"></div>
+        <div>
+            <h1>PrestApp</h1>
+            <p>Sistema de gestión de préstamos y rutas de cobro</p>
+        </div>
+    </div>
+</div>
+
+<div class="info-page">
+
+    <a href="{% url 'login' %}" class="back-btn">← Volver al inicio de sesión</a>
+
+    {# ── CONTACTO ── #}
+    <div class="info-card" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac;">
+        <div class="info-card-header">
+            <div class="info-ico" style="background:#22c55e; font-size:1.3rem;">📞</div>
+            <div>
+                <p class="info-card-title" style="color:#166534;">Soporte técnico</p>
+                <p class="info-card-sub">Estamos disponibles para ayudarte</p>
+            </div>
+        </div>
+
+        <ul class="info-list" style="margin-bottom:20px;">
+            <li>Contacta a tu supervisor o administrador para obtener acceso al sistema.</li>
+            <li>Si olvidaste tu contraseña, solicita restablecerla al administrador.</li>
+            <li>Para reportar errores o sugerencias escríbenos directamente.</li>
+        </ul>
+
+        <a href="https://wa.me/573046627732?text=Hola,%20necesito%20ayuda%20con%20PrestApp"
+           target="_blank"
+           style="
+               display: flex;
+               align-items: center;
+               justify-content: center;
+               gap: 10px;
+               background: #25D366;
+               color: white;
+               font-weight: 700;
+               font-size: .95rem;
+               text-decoration: none;
+               padding: 14px 20px;
+               border-radius: 12px;
+               box-shadow: 0 4px 12px rgba(37,211,102,.35);
+               transition: transform .15s, box-shadow .15s;
+           "
+           onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 18px rgba(37,211,102,.45)'"
+           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(37,211,102,.35)'">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="white">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+            Escribir por WhatsApp
+        </a>
+
+        <p style="text-align:center; font-size:.72rem; color:#6b7280; margin-top:12px; margin-bottom:0;"></p>
+    </div>
+
+    {# ── QUÉ ES ── #}
+    <div class="info-card">
+        <div class="info-card-header">
+            <div class="info-ico ico-blue">📱</div>
+            <div>
+                <p class="info-card-title">¿Qué es PrestApp?</p>
+                <p class="info-card-sub">Plataforma de administración de créditos</p>
+            </div>
+        </div>
+        <ul class="info-list">
+            <li>Gestiona préstamos, cuotas y abonos de forma organizada por rutas.</li>
+            <li>Permite el seguimiento diario de cobros con historial detallado.</li>
+            <li>Registra gastos, préstamos otorgados y renovaciones en tiempo real.</li>
+            <li>Muestra reportes diarios y mensuales con saldos de caja.</li>
+            <li>Identifica automáticamente clientes con cobros atrasados.</li>
+        </ul>
+    </div>
+
+    {# ── ROLES ── #}
+    <div class="info-card">
+        <div class="info-card-header">
+            <div class="info-ico ico-indigo">👥</div>
+            <div>
+                <p class="info-card-title">Roles del sistema</p>
+                <p class="info-card-sub">Cada usuario tiene permisos según su rol</p>
+            </div>
+        </div>
+        <div class="roles-grid">
+            <div class="rol-card rol-sup">
+                <b><span class="badge-rol badge-sup">📋 Supervisor</span></b>
+                <ul>
+                    <li>Crea tarjetas y renovaciones</li>
+                    <li>Ver reportes diarios y mensuales</li>
+                    <li>ver mapa de ruta</li>
+                    <li>hacer movimientos (abonos,gastos,ingresos nuevos,)</li>
+                </ul>
+            </div>
+            <div class="rol-card rol-trab">
+                <b><span class="badge-rol badge-trab">🚴 Trabajador</span></b>
+                <ul>
+                    <li>Registra abonos</li>
+                    <li>Crea tarjetas</li>
+                    <li>Ver historiales y reportes</li>
+                    <li>Registra gastos</li>
+                    <li>ver mapa de ruta</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    {# ── FLUJO ── #}
+    <div class="info-card">
+        <div class="info-card-header">
+            <div class="info-ico ico-green">🔄</div>
+            <div>
+                <p class="info-card-title">¿Cómo funciona?</p>
+                <p class="info-card-sub">Flujo básico del día a día</p>
+            </div>
+        </div>
+        <ul class="info-list">
+            <li>Se crean tarjetas de préstamo para cada cliente con monto, tasa y plazo.</li>
+            <li>El sistema descuenta o suma automáticamente a la base de la ruta.</li>
+            <li>Al final del día el supervisor revisa el reporte diario con todos los movimientos.</li>
+            <li>El historial de cajas guarda el registro mensual completo.</li>
+        </ul>
+    </div>
+
+    {# ── FUNCIONES CLAVE ── #}
+    <div class="info-card">
+        <div class="info-card-header">
+            <div class="info-ico ico-amber">⚡</div>
+            <div>
+                <p class="info-card-title">Funciones clave</p>
+                <p class="info-card-sub">Lo que puedes hacer en PrestApp</p>
+            </div>
+        </div>
+        <ul class="info-list">
+            <li>Cobros diarios, semanales, quincenales o mensuales por cliente.</li>
+            <li>Badge visual que indica si un cliente pagó hoy o lleva días sin abonar.</li>
+            <li>Renovación de créditos sin perder el historial de pagos anteriores.</li>
+            <li>Mapa GPS con la ubicación de cada cliente en la ruta.</li>
+            <li>Reporte por rango de fechas para análisis de períodos personalizados.</li>
+            <li>Registro de quién hizo cada movimiento (cobro, gasto, préstamo).</li>
+        </ul>
+    </div>
+
+    <div class="footer-note">
+        PrestApp · Sistema de gestión de préstamos
+    </div>
+
+</div>
+<script>
+(function() {
+    const hero = document.getElementById('heroSection');
+    const emojis = ['✈️', 'ᯓ➤', '💸', '⋆⭒🪐         .⋆', '➣', '✈️','⊹ ࣪ ˖', '✧˖°.','⌯⌲', '✈️','ᯓ➤', '💸', '🪐', '➣', '⊹ ࣪ ˖', '✧˖°.','⌯⌲', 'ᯓ➤', '💸', '⋆⭒˚.⋆🪐 ⋆⭒˚.⋆', '➣','✈️', '⊹ ࣪ ˖', '✧˖°.','✈️'];
+
+    hero.style.position = 'relative';
+    hero.style.overflow = 'hidden';
+
+    // Colores para los símbolos que son negros/invisibles sobre fondo oscuro
+    const colores = [
+        '#ffffff', '#22c55e', '#86efac', '#a3e635',
+        '#facc15', '#38bdf8', '#f472b6', '#c084fc',
+        '#fb923c', '#34d399', '#e2e8f0', '#7dd3fc'
+    ];
+
+    const total = 18;
+
+    function crearAvion() {
+        const el = document.createElement('span');
+        const heroW = hero.offsetWidth  || 360;
+        const heroH = hero.offsetHeight || 260;
+
+        el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+
+        // Color aleatorio para que todos sean visibles sobre negro
+        el.style.color  = colores[Math.floor(Math.random() * colores.length)];
+        el.style.filter = 'drop-shadow(0 0 6px rgba(255,255,255,.4))';
+
+        el.style.position     = 'absolute';
+        el.style.zIndex       = '3';
+        el.style.fontSize     = (0.9 + Math.random() * 1.1) + 'rem';
+        el.style.pointerEvents = 'none';
+        el.style.opacity      = '0';
+        el.style.transition   = 'none';
+        el.style.whiteSpace   = 'nowrap';
+
+        // Posición inicial completamente aleatoria
+        const startX = Math.random() * (heroW - 40);
+        const startY = Math.random() * (heroH - 20);
+        el.style.left = startX + 'px';
+        el.style.top  = startY + 'px';
+
+        hero.appendChild(el);
+
+        // Animación manual con JS para romper el patrón
+        function animar() {
+            const heroW2 = hero.offsetWidth  || 360;
+            const heroH2 = hero.offsetHeight || 260;
+
+            // Nueva posición inicial cada ciclo
+            const nx = Math.random() * (heroW2 - 40);
+            const ny = Math.random() * (heroH2 - 20);
+            el.style.left      = nx + 'px';
+            el.style.top       = ny + 'px';
+            el.style.transform = 'translate(0,0) rotate(0deg) scale(0.7)';
+            el.style.opacity   = '0';
+            el.style.color     = colores[Math.floor(Math.random() * colores.length)];
+
+            const dx  = (Math.random() > 0.5 ? 1 : -1) * (60 + Math.random() * 200);
+            const dy  = (Math.random() > 0.5 ? 1 : -1) * (30 + Math.random() * 120);
+            const rot = (Math.random() - 0.5) * 120;
+            const dur = 2000 + Math.random() * 4000; // 2s – 6s totalmente aleatorio
+
+            // Aparece
+            requestAnimationFrame(() => {
+                el.style.transition = `opacity ${dur * 0.15}ms ease, transform ${dur}ms ease, opacity ${dur * 0.2}ms ease ${dur * 0.75}ms`;
+                el.style.opacity   = (0.6 + Math.random() * 0.4).toString();
+                el.style.transform = `translate(${dx}px, ${dy}px) rotate(${rot}deg) scale(${0.9 + Math.random() * 0.5})`;
+
+                // Desvanece al final
+                setTimeout(() => {
+                    el.style.opacity = '0';
+                }, dur * 0.78);
+
+                // Repite con delay aleatorio para romper sincronía
+                setTimeout(animar, dur + Math.random() * 1500);
+            });
+        }
+
+        // Cada avión empieza en un momento distinto
+        setTimeout(animar, Math.random() * 4000);
+    }
+
+    for (let i = 0; i < total; i++) {
+        crearAvion();
+    }
+})();
+</script>
+</body>
+</html>
