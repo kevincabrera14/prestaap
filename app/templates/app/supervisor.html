@@ -395,9 +395,6 @@
         {% endif %}
 
     </div>{# /page #}
-{# ═══════════════════════════════════════════════════════════════════ #}
-{# REEMPLAZA DESDE AQUÍ HASTA </body> en supervisor.html             #}
-{# ═══════════════════════════════════════════════════════════════════ #}
 
 {# ── CHAT IA — SoporteIA ──────────────────────────────────────────── #}
 
@@ -427,7 +424,7 @@
 </div>
 
 {# ═══════════════════════════════════════════════════════════════════ #}
-{# JAVASCRIPT                                                         #}
+{# JAVASCRIPT                                                          #}
 {# ═══════════════════════════════════════════════════════════════════ #}
 <script>
 
@@ -466,7 +463,7 @@ const chatClose     = document.getElementById('chat-close');
 const chatMessages  = document.getElementById('chat-messages');
 const chatInput     = document.getElementById('chat-input');
 const chatSend      = document.getElementById('chat-send');
-const chatSugs      = document.getElementById('chat-sugerencias');
+const chatSugs      = document.getElementById('chat-sugerencias'); // Puede ser null si no existe en el HTML
 
 let yaEscribio = false;
 
@@ -546,7 +543,13 @@ function enviarMensaje() {
     const mensaje = chatInput.value.trim();
     if (!mensaje) return;
 
-    if (!yaEscribio) { chatSugs.style.display = 'none'; yaEscribio = true; }
+    // CONTROL DE ERRORES: Solo intenta ocultar el contenedor de sugerencias si realmente existe en el HTML
+    if (!yaEscribio) { 
+        if (chatSugs) {
+            chatSugs.style.display = 'none'; 
+        }
+        yaEscribio = true; 
+    }
 
     agregarMensajeUsuario(mensaje);
     chatInput.value = '';

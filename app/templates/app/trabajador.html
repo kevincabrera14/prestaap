@@ -252,7 +252,7 @@
                     {% elif t.frecuencia_cobro == 'SEMANAL' %}
                         {{ t.dias_sin_abono }} días sin abono (cobro semanal)
                     {% elif t.frecuencia_cobro == 'QUINCENAL' %}
-                        {{ t.dias_sin_abono }} días sin abono (cobro quincenal)
+                        {{ t.dias_sin_abono }} dias sin abono (cobro quincenal)
                     {% elif t.frecuencia_cobro == 'MENSUAL' %}
                         {{ t.dias_sin_abono }} días sin abono (cobro mensual)
                     {% endif %}
@@ -333,22 +333,24 @@
 </div>
  
 {# ═══════════════════════════════════════════════════════════════════ #}
-{# JAVASCRIPT                                                         #}
+{# JAVASCRIPT                                                          #}
 {# ═══════════════════════════════════════════════════════════════════ #}
 <script>
  
-// ── 1. TOGGLE MENÚ ⋮ DE CADA TARJETA ────────────────────────────────
-function toggleMenu(btn) {
+// ── 1. TOGGLE PANEL "⚡ ACCIONES DE RUTA" ────────────────────────────
+function togglePanel(btn) {
     const dropdown = btn.nextElementSibling;
     const isOpen   = dropdown.classList.contains('open');
-    document.querySelectorAll('.menu-dropdown.open').forEach(d => d.classList.remove('open'));
-    if (!isOpen) dropdown.classList.add('open');
+    document.querySelectorAll('.panel-dropdown.open').forEach(d => d.classList.remove('open'));
+    document.querySelectorAll('.panel-menu-trigger.open').forEach(b => b.classList.remove('open'));
+    if (!isOpen) { dropdown.classList.add('open'); btn.classList.add('open'); }
 }
  
 // ── 2. CERRAR MENÚS AL TOCAR FUERA ───────────────────────────────────
 document.addEventListener('click', function (e) {
-    if (!e.target.closest('.menu-wrap')) {
-        document.querySelectorAll('.menu-dropdown.open').forEach(d => d.classList.remove('open'));
+    if (!e.target.closest('.panel-menu-wrap')) {
+        document.querySelectorAll('.panel-dropdown.open').forEach(d => d.classList.remove('open'));
+        document.querySelectorAll('.panel-menu-trigger.open').forEach(b => b.classList.remove('open'));
     }
 });
  
@@ -439,7 +441,13 @@ function enviarMensaje() {
     const mensaje = chatInput.value.trim();
     if (!mensaje) return;
  
-    if (!yaEscribio) { chatSugs.style.display = 'none'; yaEscribio = true; }
+    // CONTROL DE ERRORES: Validamos si 'chatSugs' existe antes de mutar su estilo
+    if (!yaEscribio) { 
+        if (chatSugs) {
+            chatSugs.style.display = 'none'; 
+        }
+        yaEscribio = true; 
+    }
  
     agregarMensajeUsuario(mensaje);
     chatInput.value = '';
