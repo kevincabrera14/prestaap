@@ -17,7 +17,6 @@
             background: #f0fdf4;
             border: 1.5px solid #86efac;
         }
-
         .card-targeta.pago-hoy .card-top-strip {
             background: linear-gradient(90deg, #22c55e, #16a34a);
         }
@@ -27,7 +26,6 @@
             background: #fff5f5;
             border: 1.5px solid #fca5a5;
         }
-
         .card-targeta.cobro-atrasado .card-top-strip {
             background: linear-gradient(90deg, #ef4444, #b91c1c);
         }
@@ -41,7 +39,6 @@
             text-transform: uppercase;
             letter-spacing: 0.04em;
         }
-
         .badge-frecuencia.diario    { background: #dbeafe; color: #1d4ed8; }
         .badge-frecuencia.semanal   { background: #fef3c7; color: #92400e; }
         .badge-frecuencia.quincenal { background: #fce7f3; color: #9d174d; }
@@ -74,7 +71,7 @@
             gap: 5px;
         }
 
-        /* ── Fila de badges (frecuencia + estado) ───────── */
+        /* ── Fila de badges ─────────────────────────────── */
         .badges-row {
             display: flex;
             align-items: center;
@@ -82,6 +79,139 @@
             margin-top: 4px;
             flex-wrap: wrap;
         }
+
+        /* ── Panel dropdown de acciones de ruta ─────────── */
+        .panel-menu-wrap {
+            position: relative;
+            margin: 12px 0;
+        }
+        .panel-menu-trigger {
+            width: 100%;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 11px 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.15s;
+        }
+        .panel-menu-trigger:hover { background: #f1f5f9; }
+        .panel-menu-trigger .arrow {
+            transition: transform 0.2s;
+            display: inline-block;
+        }
+        .panel-menu-trigger.open .arrow { transform: rotate(180deg); }
+        .panel-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0; right: 0;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            z-index: 200;
+            overflow: hidden;
+            animation: fadeSlideIn 0.15s ease;
+        }
+        .panel-dropdown.open { display: block; }
+        .panel-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            text-decoration: none;
+            color: #334155;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: background 0.12s;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .panel-item:last-child { border-bottom: none; }
+        .panel-item:hover { background: #f8fafc; }
+        .panel-ico {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .ico-green  { background: #dcfce7; }
+        .ico-red    { background: #fee2e2; }
+        .ico-indigo { background: #e0e7ff; }
+        .ico-gray   { background: #f1f5f9; }
+        .ico-blue   { background: #dbeafe; }
+        .ico-amber  { background: #fef3c7; }
+        .ico-teal   { background: #ccfbf1; }
+
+        /* ── Menú ⋮ de cada tarjeta ─────────────────────── */
+        .menu-wrap {
+            position: relative;
+        }
+        .btn-menu {
+            background: #f1f5f9;
+            border: none;
+            border-radius: 8px;
+            width: 36px; height: 36px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #64748b;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.15s;
+        }
+        .btn-menu:hover { background: #e2e8f0; }
+        .menu-dropdown {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 6px);
+            right: 0;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            z-index: 300;
+            min-width: 160px;
+            overflow: hidden;
+            animation: fadeSlideIn 0.15s ease;
+        }
+        .menu-dropdown.open { display: block; }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            text-decoration: none;
+            color: #334155;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: background 0.12s;
+            border-bottom: 1px solid #f8fafc;
+        }
+        .menu-item:last-child { border-bottom: none; }
+        .menu-item:hover { background: #f8fafc; }
+        .menu-item.danger { color: #dc2626; }
+        .menu-item.danger:hover { background: #fff5f5; }
+        .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .dot-gray   { background: #94a3b8; }
+        .dot-orange { background: #f97316; }
+        .dot-blue   { background: #3b82f6; }
+        .dot-red    { background: #ef4444; }
+
+        /* ── Animación de aparición ─────────────────────── */
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
     </style>
 </head>
 
@@ -105,7 +235,8 @@
 
         {% if ruta_sel %}
 
-        <div class="panel-menu-wrap">
+        {# ── MENÚ ACCIONES DE RUTA ─────────────────────────────────────────── #}
+        <div class="panel-menu-wrap" id="panel-acciones">
             <button class="panel-menu-trigger" onclick="togglePanel(this)">
                 ⚡ Acciones de ruta <span class="arrow">▾</span>
             </button>
@@ -133,20 +264,17 @@
                     <div class="panel-ico ico-teal">📅</div> Reporte por rango
                 </a>
                 <a href="{% url 'agregar_capital' ruta_sel.id %}" class="panel-item">
-                    <div class="panel-ico ico-green">💰</div>
-                    <span>Ingreso de capital</span>
+                    <div class="panel-ico ico-green">💰</div> Ingreso de capital
                 </a>
             </div>
         </div>
 
-        {# ══ RESUMEN DE LA RUTA ══════════════════════════════════════════════ #}
+        {# ── RESUMEN DE LA RUTA ────────────────────────────────────────────── #}
         <div class="resumen-grid">
             <div class="res-card">
                 <div class="res-num">{{ resumen.total_clientes }}</div>
                 <div class="res-label">Clientes</div>
             </div>
-
-            {# BASE: se muestra directo desde ruta_sel para garantizar el dato actualizado #}
             <div class="res-card green">
                 <div class="res-num">$ {{ ruta_sel.base|floatformat:0|intcomma }}</div>
                 <div class="res-label">Base</div>
@@ -155,19 +283,18 @@
                 <div class="res-num">$ {{ resumen.dinero_en_ruta|floatformat:0|intcomma }}</div>
                 <div class="res-label">En ruta</div>
             </div>
-
         </div>
 
+        {# ── BUSCADOR ──────────────────────────────────────────────────────── #}
         <form method="GET">
             <input type="hidden" name="ruta" value="{{ ruta_sel.id }}">
             <input type="text" name="q" class="search-bar" placeholder="🔍 Buscar cliente..."
                 value="{{ request.GET.q|default:'' }}">
         </form>
 
+        {# ── TARJETAS DE CLIENTES ──────────────────────────────────────────── #}
         <div class="cards-grid">
             {% for t in targetas %}
-
-            {# ── Clases dinámicas de la tarjeta ────────────────────────────── #}
             <div class="card-targeta
                 {% if t.abono_hoy %}pago-hoy
                 {% elif t.cobro_atrasado %}cobro-atrasado
@@ -180,8 +307,6 @@
                         <div>
                             <div class="client-name">{{ t.nombre_cliente }}</div>
                             <div class="client-id">ID: {{ t.numero_identificacion }}</div>
-
-                            {# ── Fila de badges ─────────────────────────────── #}
                             <div class="badges-row">
                                 {% if t.frecuencia_cobro == 'DIARIO' %}
                                     <span class="badge-frecuencia diario">📅 Diario</span>
@@ -192,7 +317,6 @@
                                 {% elif t.frecuencia_cobro == 'MENSUAL' %}
                                     <span class="badge-frecuencia mensual">🗓️ Mensual</span>
                                 {% endif %}
-
                                 {% if t.abono_hoy %}
                                     <span class="badge-pago-hoy">✅ Pagó hoy</span>
                                 {% endif %}
@@ -201,18 +325,17 @@
                         <span class="badge-cuotas">{{ t.cuotas_pagadas }}/{{ t.total_cuotas }} cuotas</span>
                     </div>
 
-                    {# ── Banner de atraso ───────────────────────────────────── #}
                     {% if t.cobro_atrasado %}
                     <div class="banner-atraso">
                         ⚠️
                         {% if t.frecuencia_cobro == 'DIARIO' %}
                             {{ t.dias_sin_abono }} día{{ t.dias_sin_abono|pluralize }} sin abono
                         {% elif t.frecuencia_cobro == 'SEMANAL' %}
-                            {{ t.dias_sin_abono }} días sin abono (cobro semanal)
+                            {{ t.dias_sin_abono }} días sin abono (semanal)
                         {% elif t.frecuencia_cobro == 'QUINCENAL' %}
-                            {{ t.dias_sin_abono }} días sin abono (cobro quincenal)
+                            {{ t.dias_sin_abono }} días sin abono (quincenal)
                         {% elif t.frecuencia_cobro == 'MENSUAL' %}
-                            {{ t.dias_sin_abono }} días sin abono (cobro mensual)
+                            {{ t.dias_sin_abono }} días sin abono (mensual)
                         {% endif %}
                     </div>
                     {% endif %}
@@ -233,7 +356,7 @@
                     <div class="card-actions">
                         <a href="{% url 'crear_abono' t.id %}" class="btn-abonar">💵 Abonar</a>
                         <div class="menu-wrap">
-                            <button class="btn-menu" onclick="toggleMenu(this)">⋮</button>
+                            <button class="btn-menu" onclick="toggleMenu(this)" aria-label="Más opciones">⋮</button>
                             <div class="menu-dropdown">
                                 <a href="{% url 'historial_abonos' t.id %}" class="menu-item">
                                     <span class="dot dot-gray"></span> 🕒 Historial
@@ -271,29 +394,297 @@
         </div>
         {% endif %}
 
+    </div>{# /page #}
+
+    {# ═══════════════════════════════════════════════════════════════════ #}
+    {# CHAT IA — PrestAyuda                                               #}
+    {# ═══════════════════════════════════════════════════════════════════ #}
+
+    {# Botón flotante IA con imagen y estrellas #}
+    <div id="chat-fab" title="Pregúntale a PrestAyuda">
+        <div id="chat-fab-inner">
+            <canvas id="fab-stars-canvas" width="62" height="62"></canvas>
+        </div>
     </div>
 
+    {# Ventana del chat #}
+    <div id="chat-container">
+        <div id="chat-header">
+            <div>
+                <h3>PrestAyuda IA</h3>
+                <p>Tu asistente de PrestApp</p>
+            </div>
+            <span id="chat-close" title="Cerrar">&times;</span>
+        </div>
+        <div id="chat-messages"></div>
+
+        {# Sugerencias rápidas — se ocultan al primer mensaje #}
+        <div class="chat-sugerencias" id="chat-sugerencias">
+            <button class="chat-sugerencia-btn" onclick="enviarSugerencia('¿Cómo registro un abono?')">💵 Registrar abono</button>
+            <button class="chat-sugerencia-btn" onclick="enviarSugerencia('¿Cómo creo una nueva targeta?')">➕ Nueva targeta</button>
+            <button class="chat-sugerencia-btn" onclick="enviarSugerencia('¿Qué significa la tarjeta en rojo?')">🔴 Tarjeta roja</button>
+            <button class="chat-sugerencia-btn" onclick="enviarSugerencia('¿Cómo funciona renovar un crédito?')">🔄 Renovar</button>
+            <button class="chat-sugerencia-btn" onclick="enviarSugerencia('¿Cómo meto plata a la caja de la ruta?')">💰 Caja</button>
+        </div>
+
+        <div id="chat-input-row">
+            <textarea id="chat-input" rows="1" placeholder="Pregúntale a PrestAyuda..."></textarea>
+            <button id="chat-send">Enviar</button>
+        </div>
+    </div>
+
+    {# ═══════════════════════════════════════════════════════════════════ #}
+    {# JAVASCRIPT                                                         #}
+    {# ═══════════════════════════════════════════════════════════════════ #}
     <script>
-        function togglePanel(btn) {
-            const dd = btn.nextElementSibling;
-            dd.classList.toggle('open');
-            btn.querySelector('.arrow').textContent = dd.classList.contains('open') ? '▴' : '▾';
+
+    // ───────────────────────────────────────────────────────────────────
+    // 1. TOGGLE PANEL "⚡ ACCIONES DE RUTA"
+    // ───────────────────────────────────────────────────────────────────
+    function togglePanel(btn) {
+        const dropdown = btn.nextElementSibling; // .panel-dropdown
+        const isOpen   = dropdown.classList.contains('open');
+
+        // Cerrar todos los paneles abiertos primero
+        document.querySelectorAll('.panel-dropdown.open').forEach(d => d.classList.remove('open'));
+        document.querySelectorAll('.panel-menu-trigger.open').forEach(b => b.classList.remove('open'));
+
+        if (!isOpen) {
+            dropdown.classList.add('open');
+            btn.classList.add('open');
+        }
+    }
+
+    // ───────────────────────────────────────────────────────────────────
+    // 2. TOGGLE MENÚ "⋮" DE CADA TARJETA
+    // ───────────────────────────────────────────────────────────────────
+    function toggleMenu(btn) {
+        const dropdown = btn.nextElementSibling; // .menu-dropdown
+        const isOpen   = dropdown.classList.contains('open');
+
+        // Cerrar todos los menús de tarjeta abiertos
+        document.querySelectorAll('.menu-dropdown.open').forEach(d => d.classList.remove('open'));
+
+        if (!isOpen) {
+            dropdown.classList.add('open');
+        }
+    }
+
+    // ───────────────────────────────────────────────────────────────────
+    // 3. CERRAR MENÚS AL TOCAR FUERA
+    // ───────────────────────────────────────────────────────────────────
+    document.addEventListener('click', function (e) {
+        // Cerrar menú ⋮ si el click es fuera de .menu-wrap
+        if (!e.target.closest('.menu-wrap')) {
+            document.querySelectorAll('.menu-dropdown.open').forEach(d => d.classList.remove('open'));
+        }
+        // Cerrar panel de acciones si el click es fuera de .panel-menu-wrap
+        if (!e.target.closest('.panel-menu-wrap')) {
+            document.querySelectorAll('.panel-dropdown.open').forEach(d => d.classList.remove('open'));
+            document.querySelectorAll('.panel-menu-trigger.open').forEach(b => b.classList.remove('open'));
+        }
+    });
+
+    // ───────────────────────────────────────────────────────────────────
+    // 4. CHAT IA — LÓGICA COMPLETA
+    // ───────────────────────────────────────────────────────────────────
+    const chatFab       = document.getElementById('chat-fab');
+    const chatContainer = document.getElementById('chat-container');
+    const chatClose     = document.getElementById('chat-close');
+    const chatMessages  = document.getElementById('chat-messages');
+    const chatInput     = document.getElementById('chat-input');
+    const chatSend      = document.getElementById('chat-send');
+    const chatSugs      = document.getElementById('chat-sugerencias');
+
+    let yaEscribio = false;  // Controla si ya se ocultaron las sugerencias
+
+    // Abrir / cerrar chat
+    chatFab.addEventListener('click', () => {
+        const visible = chatContainer.style.display === 'flex';
+        chatContainer.style.display = visible ? 'none' : 'flex';
+        if (!visible && chatMessages.children.length === 0) {
+            agregarMensajeIA('👋 ¡Hola! Soy **PrestAyuda**, tu asistente en PrestApp. ¿En qué te ayudo?');
+        }
+    });
+
+    chatClose.addEventListener('click', () => {
+        chatContainer.style.display = 'none';
+    });
+
+    // Auto-resize del textarea
+    chatInput.addEventListener('input', () => {
+        chatInput.style.height = 'auto';
+        chatInput.style.height = Math.min(chatInput.scrollHeight, 90) + 'px';
+    });
+
+    // Enviar con Enter (Shift+Enter = nueva línea)
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            enviarMensaje();
+        }
+    });
+
+    chatSend.addEventListener('click', enviarMensaje);
+
+    function enviarSugerencia(texto) {
+        chatInput.value = texto;
+        enviarMensaje();
+    }
+
+    function getCsrfToken() {
+        const cookie = document.cookie.split('; ').find(r => r.startsWith('csrftoken='));
+        return cookie ? decodeURIComponent(cookie.split('=')[1]) : '';
+    }
+
+    // Formatea markdown básico: **negrita**, *cursiva*, • listas, \n saltos
+    function formatearIA(texto) {
+        return texto
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            .replace(/^•\s/gm, '&bull; ')
+            .replace(/\n/g, '<br>');
+    }
+
+    function scrollAbajo() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function agregarMensajeUsuario(texto) {
+        const div = document.createElement('div');
+        div.className = 'msg-user';
+        div.textContent = texto;
+        chatMessages.appendChild(div);
+        scrollAbajo();
+    }
+
+    function agregarMensajeIA(texto) {
+        const div = document.createElement('div');
+        div.className = 'msg-ia';
+        div.innerHTML = formatearIA(texto);
+        chatMessages.appendChild(div);
+        scrollAbajo();
+        return div;
+    }
+
+    function agregarLoading() {
+        const div = document.createElement('div');
+        div.className = 'msg-loading';
+        div.textContent = 'PrestAyuda está escribiendo...';
+        chatMessages.appendChild(div);
+        scrollAbajo();
+        return div;
+    }
+
+    function agregarError(texto) {
+        const div = document.createElement('div');
+        div.className = 'msg-error';
+        div.textContent = texto;
+        chatMessages.appendChild(div);
+        scrollAbajo();
+    }
+
+    function enviarMensaje() {
+        const mensaje = chatInput.value.trim();
+        if (!mensaje) return;
+
+        // Ocultar sugerencias la primera vez que el usuario escribe
+        if (!yaEscribio) {
+            chatSugs.style.display = 'none';
+            yaEscribio = true;
         }
 
-        function toggleMenu(btn) {
-            const dd = btn.nextElementSibling;
-            document.querySelectorAll('.menu-dropdown.open').forEach(d => { if (d !== dd) d.classList.remove('open'); });
-            dd.classList.toggle('open');
-        }
+        agregarMensajeUsuario(mensaje);
+        chatInput.value = '';
+        chatInput.style.height = 'auto';
 
-        document.addEventListener('click', function (e) {
-            if (!e.target.closest('.menu-wrap')) {
-                document.querySelectorAll('.menu-dropdown.open').forEach(d => d.classList.remove('open'));
+        // Deshabilitar botón mientras se espera respuesta
+        chatSend.disabled = true;
+        chatSend.textContent = '...';
+
+        const loadingDiv = agregarLoading();
+
+        fetch("{% url 'asistente_chat' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({ mensaje: mensaje })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (chatMessages.contains(loadingDiv)) chatMessages.removeChild(loadingDiv);
+
+            if (data.respuesta) {
+                agregarMensajeIA(data.respuesta);
+            } else if (data.error) {
+                agregarError('⚠️ Error: ' + data.error);
             }
-            if (!e.target.closest('.panel-menu-wrap')) {
-                document.querySelectorAll('.panel-dropdown.open').forEach(d => d.classList.remove('open'));
-            }
+        })
+        .catch(() => {
+            if (chatMessages.contains(loadingDiv)) chatMessages.removeChild(loadingDiv);
+            agregarError('⚠️ Sin conexión con el servidor. Intenta de nuevo.');
+        })
+        .finally(() => {
+            chatSend.disabled = false;
+            chatSend.textContent = 'Enviar';
+            chatInput.focus();
         });
+    }
+
+    </script>
+
+    <script>
+    // ───────────────────────────────────────────────────────────────────
+    // 5. ESTRELLAS EN EL BOTÓN IA
+    // ───────────────────────────────────────────────────────────────────
+    (function () {
+        const canvas = document.getElementById('fab-stars-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width, H = canvas.height;
+        const R = W / 2;
+
+        // Generar estrellas con posiciones y fases aleatorias
+        const stars = Array.from({ length: 28 }, () => ({
+            x: Math.random() * W,
+            y: Math.random() * H,
+            r: Math.random() * 1.3 + 0.3,
+            phase: Math.random() * Math.PI * 2,
+            speed: Math.random() * 0.018 + 0.008,
+            maxAlpha: Math.random() * 0.75 + 0.25,
+        }));
+
+        function draw(t) {
+            ctx.clearRect(0, 0, W, H);
+            // Clip circular
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(R, R, R, 0, Math.PI * 2);
+            ctx.clip();
+
+            for (const s of stars) {
+                const alpha = s.maxAlpha * (0.5 + 0.5 * Math.sin(t * s.speed + s.phase));
+                // Halo suave
+                const grd = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 3);
+                grd.addColorStop(0, `rgba(220,210,255,${alpha})`);
+                grd.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r * 3, 0, Math.PI * 2);
+                ctx.fillStyle = grd;
+                ctx.fill();
+                // Núcleo
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+                ctx.fill();
+            }
+            ctx.restore();
+            requestAnimationFrame(draw);
+        }
+        requestAnimationFrame(draw);
+    })();
     </script>
 
 </body>

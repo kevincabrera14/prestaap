@@ -109,3 +109,9 @@ LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'inicio'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+import os
+
+# Configuración de Groq Cloud para PrestAyuda
+import os
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")

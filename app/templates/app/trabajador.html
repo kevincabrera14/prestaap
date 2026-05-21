@@ -78,6 +78,78 @@
             margin-top: 4px;
             flex-wrap: wrap;
         }
+
+        /* ── Panel dropdown de acciones de ruta ─────────── */
+        .panel-menu-wrap {
+            position: relative;
+            margin: 12px 0;
+        }
+        .panel-menu-trigger {
+            width: 100%;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 11px 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.15s;
+        }
+        .panel-menu-trigger:hover { background: #f1f5f9; }
+        .panel-menu-trigger .arrow {
+            transition: transform 0.2s;
+            display: inline-block;
+        }
+        .panel-menu-trigger.open .arrow { transform: rotate(180deg); }
+        .panel-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0; right: 0;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            z-index: 200;
+            overflow: hidden;
+            animation: fadeSlideIn 0.15s ease;
+        }
+        .panel-dropdown.open { display: block; }
+        .panel-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            text-decoration: none;
+            color: #334155;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: background 0.12s;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .panel-item:last-child { border-bottom: none; }
+        .panel-item:hover { background: #f8fafc; }
+        .panel-ico {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .ico-green  { background: #dcfce7; }
+        .ico-red    { background: #fee2e2; }
+        .ico-indigo { background: #e0e7ff; }
+
+        /* ── Animación ───────────────────────────────────── */
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
     </style>
 </head>
 <body>
@@ -102,8 +174,8 @@
 
     {% if ruta_sel %}
 
-
-        <div class="panel-menu-wrap">
+    {# ── MENÚ ACCIONES DE RUTA ──────────────────────────────────────── #}
+    <div class="panel-menu-wrap" id="panel-acciones">
         <button class="panel-menu-trigger" onclick="togglePanel(this)">
             ⚡ Acciones de Ruta <span class="arrow">▾</span>
         </button>
@@ -120,14 +192,16 @@
         </div>
     </div>
 
-<div class="saldo-strip" style="margin-top:12px;">
-    <span class="saldo-label">Ruta</span>
-    <span class="saldo-val">{{ ruta_sel.nombre }}</span>
-    <span class="saldo-label" style="margin-left:12px;">Base</span>
-    <span class="saldo-val positivo">${{ ruta_sel.base|intcomma }}</span>
-</div>
+    {# ── STRIP DE SALDO ─────────────────────────────────────────────── #}
+    <div class="saldo-strip" style="margin-top:12px;">
+        <span class="saldo-label">Ruta</span>
+        <span class="saldo-val">{{ ruta_sel.nombre }}</span>
+        <span class="saldo-label" style="margin-left:12px;">Base</span>
+        <span class="saldo-val positivo">${{ ruta_sel.base|intcomma }}</span>
+    </div>
 
-<form method="GET">
+    {# ── BUSCADOR ───────────────────────────────────────────────────── #}
+    <form method="GET">
         <input type="hidden" name="ruta" value="{{ ruta_sel.id }}">
         <div class="search-wrap">
             <input type="text" name="q" class="search-bar"
@@ -137,9 +211,9 @@
         </div>
     </form>
 
+    {# ── TARJETAS DE CLIENTES ───────────────────────────────────────── #}
     <div class="cards-grid">
         {% for t in targetas %}
-
         <div class="card-targeta
             {% if t.abono_hoy %}pago-hoy
             {% elif t.cobro_atrasado %}cobro-atrasado
@@ -152,8 +226,6 @@
                     <div>
                         <div class="client-name">{{ t.nombre_cliente }}</div>
                         <div class="client-id">ID: {{ t.numero_identificacion }}</div>
-
-                        {# ── Badges de frecuencia y estado ──────────────── #}
                         <div class="badges-row">
                             {% if t.frecuencia_cobro == 'DIARIO' %}
                                 <span class="badge-frecuencia diario">📅 Diario</span>
@@ -164,7 +236,6 @@
                             {% elif t.frecuencia_cobro == 'MENSUAL' %}
                                 <span class="badge-frecuencia mensual">🗓️ Mensual</span>
                             {% endif %}
-
                             {% if t.abono_hoy %}
                                 <span class="badge-pago-hoy">✅ Pagó hoy</span>
                             {% endif %}
@@ -173,7 +244,6 @@
                     <span class="badge-cuotas">{{ t.cuotas_pagadas }}/{{ t.total_cuotas }} cuotas</span>
                 </div>
 
-                {# ── Banner de atraso ───────────────────────────────────── #}
                 {% if t.cobro_atrasado %}
                 <div class="banner-atraso">
                     ⚠️
@@ -234,21 +304,268 @@
     </div>
     {% endif %}
 
+</div>{# /page #}
+
+{# ═══════════════════════════════════════════════════════════════════ #}
+{# CHAT IA — PrestAyuda                                               #}
+{# ═══════════════════════════════════════════════════════════════════ #}
+
+{# Botón flotante IA con imagen y estrellas #}
+<div id="chat-fab" title="Pregúntale a PrestAyuda">
+    <div id="chat-fab-inner">
+        <canvas id="fab-stars-canvas" width="62" height="62"></canvas>
+    </div>
 </div>
 
+{# Ventana del chat #}
+<div id="chat-container">
+    <div id="chat-header">
+        <div>
+            <h3>PrestAyuda IA</h3>
+            <p>Tu asistente de PrestApp</p>
+        </div>
+        <span id="chat-close" title="Cerrar">&times;</span>
+    </div>
+    <div id="chat-messages"></div>
+
+    {# Sugerencias rápidas — se ocultan al primer mensaje #}
+    <div class="chat-sugerencias" id="chat-sugerencias">
+        <button class="chat-sugerencia-btn" onclick="enviarSugerencia('¿Cómo registro un abono?')">💵 Registrar abono</button>
+        <button class="chat-sugerencia-btn" onclick="enviarSugerencia('¿Qué significa la tarjeta en rojo?')">🔴 Tarjeta roja</button>
+        <button class="chat-sugerencia-btn" onclick="enviarSugerencia('¿Cómo registro un gasto?')">💸 Registrar gasto</button>
+        <button class="chat-sugerencia-btn" onclick="enviarSugerencia('¿Cómo veo el historial de un cliente?')">🕒 Historial</button>
+        <button class="chat-sugerencia-btn" onclick="enviarSugerencia('No veo clientes en la pantalla, ¿qué hago?')">❓ Sin clientes</button>
+    </div>
+
+    <div id="chat-input-row">
+        <textarea id="chat-input" rows="1" placeholder="Pregúntale a PrestAyuda..."></textarea>
+        <button id="chat-send">Enviar</button>
+    </div>
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════ #}
+{# JAVASCRIPT                                                         #}
+{# ═══════════════════════════════════════════════════════════════════ #}
 <script>
-    /* Copiado del mismo script usado en supervisor.html */
-    function togglePanel(btn) {
-        const dd = btn.nextElementSibling;
-        dd.classList.toggle('open');
-        btn.querySelector('.arrow').textContent = dd.classList.contains('open') ? '▴' : '▾';
+
+// ───────────────────────────────────────────────────────────────────
+// 1. TOGGLE PANEL "⚡ ACCIONES DE RUTA"
+// ───────────────────────────────────────────────────────────────────
+function togglePanel(btn) {
+    const dropdown = btn.nextElementSibling;
+    const isOpen   = dropdown.classList.contains('open');
+
+    document.querySelectorAll('.panel-dropdown.open').forEach(d => d.classList.remove('open'));
+    document.querySelectorAll('.panel-menu-trigger.open').forEach(b => b.classList.remove('open'));
+
+    if (!isOpen) {
+        dropdown.classList.add('open');
+        btn.classList.add('open');
+    }
+}
+
+// ───────────────────────────────────────────────────────────────────
+// 2. CERRAR PANEL AL TOCAR FUERA
+// ───────────────────────────────────────────────────────────────────
+document.addEventListener('click', function (e) {
+    if (!e.target.closest('.panel-menu-wrap')) {
+        document.querySelectorAll('.panel-dropdown.open').forEach(d => d.classList.remove('open'));
+        document.querySelectorAll('.panel-menu-trigger.open').forEach(b => b.classList.remove('open'));
+    }
+});
+
+// ───────────────────────────────────────────────────────────────────
+// 3. CHAT IA — LÓGICA COMPLETA
+// ───────────────────────────────────────────────────────────────────
+const chatFab       = document.getElementById('chat-fab');
+const chatContainer = document.getElementById('chat-container');
+const chatClose     = document.getElementById('chat-close');
+const chatMessages  = document.getElementById('chat-messages');
+const chatInput     = document.getElementById('chat-input');
+const chatSend      = document.getElementById('chat-send');
+const chatSugs      = document.getElementById('chat-sugerencias');
+
+let yaEscribio = false;
+
+// Abrir / cerrar chat
+chatFab.addEventListener('click', () => {
+    const visible = chatContainer.style.display === 'flex';
+    chatContainer.style.display = visible ? 'none' : 'flex';
+    if (!visible && chatMessages.children.length === 0) {
+        agregarMensajeIA('👋 ¡Hola! Soy **PrestAyuda**, tu asistente en PrestApp. ¿En qué te ayudo hoy?');
+    }
+});
+
+chatClose.addEventListener('click', () => {
+    chatContainer.style.display = 'none';
+});
+
+// Auto-resize del textarea
+chatInput.addEventListener('input', () => {
+    chatInput.style.height = 'auto';
+    chatInput.style.height = Math.min(chatInput.scrollHeight, 90) + 'px';
+});
+
+// Enter envía, Shift+Enter = salto de línea
+chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        enviarMensaje();
+    }
+});
+
+chatSend.addEventListener('click', enviarMensaje);
+
+function enviarSugerencia(texto) {
+    chatInput.value = texto;
+    enviarMensaje();
+}
+
+function getCsrfToken() {
+    const cookie = document.cookie.split('; ').find(r => r.startsWith('csrftoken='));
+    return cookie ? decodeURIComponent(cookie.split('=')[1]) : '';
+}
+
+function formatearIA(texto) {
+    return texto
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/^•\s/gm, '&bull; ')
+        .replace(/\n/g, '<br>');
+}
+
+function scrollAbajo() {
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function agregarMensajeUsuario(texto) {
+    const div = document.createElement('div');
+    div.className = 'msg-user';
+    div.textContent = texto;
+    chatMessages.appendChild(div);
+    scrollAbajo();
+}
+
+function agregarMensajeIA(texto) {
+    const div = document.createElement('div');
+    div.className = 'msg-ia';
+    div.innerHTML = formatearIA(texto);
+    chatMessages.appendChild(div);
+    scrollAbajo();
+    return div;
+}
+
+function agregarLoading() {
+    const div = document.createElement('div');
+    div.className = 'msg-loading';
+    div.textContent = 'PrestAyuda está escribiendo...';
+    chatMessages.appendChild(div);
+    scrollAbajo();
+    return div;
+}
+
+function agregarError(texto) {
+    const div = document.createElement('div');
+    div.className = 'msg-error';
+    div.textContent = texto;
+    chatMessages.appendChild(div);
+    scrollAbajo();
+}
+
+function enviarMensaje() {
+    const mensaje = chatInput.value.trim();
+    if (!mensaje) return;
+
+    if (!yaEscribio) {
+        chatSugs.style.display = 'none';
+        yaEscribio = true;
     }
 
-    document.addEventListener('click', function (e) {
-        if (!e.target.closest('.panel-menu-wrap')) {
-            document.querySelectorAll('.panel-dropdown.open').forEach(d => d.classList.remove('open'));
+    agregarMensajeUsuario(mensaje);
+    chatInput.value = '';
+    chatInput.style.height = 'auto';
+
+    chatSend.disabled = true;
+    chatSend.textContent = '...';
+
+    const loadingDiv = agregarLoading();
+
+    fetch("{% url 'asistente_chat' %}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({ mensaje: mensaje })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (chatMessages.contains(loadingDiv)) chatMessages.removeChild(loadingDiv);
+        if (data.respuesta) {
+            agregarMensajeIA(data.respuesta);
+        } else if (data.error) {
+            agregarError('⚠️ Error: ' + data.error);
         }
+    })
+    .catch(() => {
+        if (chatMessages.contains(loadingDiv)) chatMessages.removeChild(loadingDiv);
+        agregarError('⚠️ Sin conexión con el servidor. Intenta de nuevo.');
+    })
+    .finally(() => {
+        chatSend.disabled = false;
+        chatSend.textContent = 'Enviar';
+        chatInput.focus();
     });
+}
+
+</script>
+
+<script>
+// ───────────────────────────────────────────────────────────────────
+// 4. ESTRELLAS EN EL BOTÓN IA
+// ───────────────────────────────────────────────────────────────────
+(function () {
+    const canvas = document.getElementById('fab-stars-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const R = W / 2;
+
+    const stars = Array.from({ length: 28 }, () => ({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: Math.random() * 1.3 + 0.3,
+        phase: Math.random() * Math.PI * 2,
+        speed: Math.random() * 0.018 + 0.008,
+        maxAlpha: Math.random() * 0.75 + 0.25,
+    }));
+
+    function draw(t) {
+        ctx.clearRect(0, 0, W, H);
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(R, R, R, 0, Math.PI * 2);
+        ctx.clip();
+
+        for (const s of stars) {
+            const alpha = s.maxAlpha * (0.5 + 0.5 * Math.sin(t * s.speed + s.phase));
+            const grd = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 3);
+            grd.addColorStop(0, `rgba(220,210,255,${alpha})`);
+            grd.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r * 3, 0, Math.PI * 2);
+            ctx.fillStyle = grd;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+            ctx.fill();
+        }
+        ctx.restore();
+        requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+})();
 </script>
 
 </body>
