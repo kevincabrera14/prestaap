@@ -167,107 +167,106 @@
             100% { opacity: 0;   transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(1.1); }
         }
         /* ── Sección App ── */
-.app-section {
-    position: relative;
-    background: #000;
-    border-radius: 16px;
-    overflow: hidden;
-    margin-bottom: 16px;
-    padding: 32px 24px;
-    min-height: 200px;
-}
-.app-section-bg {
-    position: absolute;
-    inset: 0;
-    background-image: url("{% static 'img/logo.png' %}");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 60%;
-    filter: blur(8px) brightness(0.15);
-    transform: scale(1.1);
-    z-index: 0;
-}
-.app-section-content {
-    position: relative;
-    z-index: 2;
-}
-.app-title {
-    font-size: 1rem;
-    font-weight: 700;
-    color: white;
-    margin: 0 0 6px;
-}
-.app-sub {
-    font-size: .82rem;
-    color: rgba(255,255,255,.55);
-    margin: 0 0 20px;
-    line-height: 1.6;
-}
-.app-steps {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 22px;
-}
-.app-steps li {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(255,255,255,.08);
-    font-size: .8rem;
-    color: rgba(255,255,255,.75);
-    line-height: 1.5;
-}
-.app-steps li:last-child { border-bottom: none; }
-.app-step-num {
-    min-width: 22px; height: 22px;
-    background: #22c55e;
-    color: white;
-    font-size: .7rem;
-    font-weight: 700;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    margin-top: 1px;
-}
-.app-download-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    background: linear-gradient(135deg, #22c55e, #16a34a);
-    color: white;
-    font-weight: 700;
-    font-size: .95rem;
-    text-decoration: none;
-    padding: 14px 20px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(34,197,94,.4);
-    transition: transform .15s, box-shadow .15s;
-    margin-bottom: 10px;
-}
-.app-download-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(34,197,94,.55);
-}
-.app-note {
-    text-align: center;
-    font-size: .7rem;
-    color: rgba(255,255,255,.35);
-    margin: 0;
-}
-.avion-app {
-    position: absolute;
-    z-index: 1;
-    opacity: 0;
-    pointer-events: none;
-    white-space: nowrap;
-}
+        .app-section {
+            position: relative;
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            padding: 32px 24px;
+            min-height: 200px;
+        }
+        .app-section-bg {
+            position: absolute;
+            inset: 0;
+            background-image: url("{% static 'img/logo.png' %}");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 60%;
+            filter: blur(8px) brightness(0.15);
+            transform: scale(1.1);
+            z-index: 0;
+        }
+        .app-section-content {
+            position: relative;
+            z-index: 2;
+        }
+        .app-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: white;
+            margin: 0 0 6px;
+        }
+        .app-sub {
+            font-size: .82rem;
+            color: rgba(255,255,255,.55);
+            margin: 0 0 20px;
+            line-height: 1.6;
+        }
+        .app-steps {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 22px;
+        }
+        .app-steps li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,.08);
+            font-size: .8rem;
+            color: rgba(255,255,255,.75);
+            line-height: 1.5;
+        }
+        .app-steps li:last-child { border-bottom: none; }
+        .app-step-num {
+            min-width: 22px; height: 22px;
+            background: #22c55e;
+            color: white;
+            font-size: .7rem;
+            font-weight: 700;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .app-download-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            font-weight: 700;
+            font-size: .95rem;
+            text-decoration: none;
+            padding: 14px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(34,197,94,.4);
+            transition: transform .15s, box-shadow .15s;
+            margin-bottom: 10px;
+        }
+        .app-download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(34,197,94,.55);
+        }
+        .app-note {
+            text-align: center;
+            font-size: .7rem;
+            color: rgba(255,255,255,.35);
+            margin: 0;
+        }
+        .avion-app {
+            position: absolute;
+            z-index: 1;
+            opacity: 0;
+            pointer-events: none;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
 
-<!-- ── HERO ── -->
 <div class="info-hero" id="heroSection">
     <div class="info-hero-bg"></div>
 
@@ -415,139 +414,163 @@
         </ul>
     </div>
 
+    {# ── SOPORTEIA ── #}
+    <div class="info-card soporteia-section" id="soporteIASection" style="padding: 0; overflow: hidden; border: 1.5px solid #4338ca; background: #000; position: relative;">
+
+        {# Fondo difuminado con IA.png #}
+        <div style="
+            position: absolute;
+            inset: 0;
+            background-image: url('{% static 'img/IA.png' %}');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 60%;
+            filter: blur(8px) brightness(0.18);
+            transform: scale(1.1);
+            z-index: 0;
+        "></div>
+
+        {# Overlay de color para profundidad #}
+        <div style="
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 60% 40%, rgba(99,102,241,0.25) 0%, rgba(10,10,30,0.6) 70%);
+            z-index: 1;
+        "></div>
+
+        {# Contenido #}
+        <div style="position: relative; z-index: 2; padding: 24px;">
+
+            <div class="info-card-header">
+                <div class="info-ico" style="background: rgba(139,92,246,.3); overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                    <img src="{% static 'img/IA.png' %}" alt="IA" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                <div>
+                    <p class="info-card-title" style="color: #fff;">SoporteIA — Asistente inteligente</p>
+                    <p class="info-card-sub" style="color: rgba(255,255,255,.55);">Respuestas instantáneas dentro de PrestApp</p>
+                </div>
+            </div>
+
+            <ul class="info-list" style="margin-bottom: 18px;">
+                <li style="color: rgba(255,255,255,.8); border-color: rgba(255,255,255,.08);">
+                    PrestApp incluye un asistente de inteligencia artificial disponible en todo momento desde el botón flotante en la esquina inferior derecha.
+                </li>
+                <li style="color: rgba(255,255,255,.8); border-color: rgba(255,255,255,.08);">
+                    Resuelve dudas sobre el sistema: cómo registrar abonos, crear tarjetas, renovar créditos, ver reportes y mucho más.
+                </li>
+                <li style="color: rgba(255,255,255,.8); border-color: rgba(255,255,255,.08);">
+                    No necesitas llamar a soporte para preguntas del día a día — SoporteIA responde de forma inmediata.
+                </li>
+                <li style="color: rgba(255,255,255,.8); border-color: rgba(255,255,255,.08);">
+                    Disponible para supervisores y trabajadores, con sugerencias rápidas adaptadas a cada rol.
+                </li>
+            </ul>
+
+            <div style="
+                background: rgba(255,255,255,.07);
+                border: 1px solid rgba(139,92,246,.4);
+                border-radius: 10px;
+                padding: 12px 14px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            ">
+                <span style="font-size: 1.3rem;">✨</span>
+                <p style="margin: 0; font-size: .8rem; color: rgba(255,255,255,.65); line-height: 1.5;">
+                    Busca el botón brillante en la esquina inferior derecha cuando estés dentro de la app y escribe tu pregunta.
+                </p>
+            </div>
+
+        </div>
+    </div>
+
     {# ── INSTALA LA APP ── #}
-<div class="app-section" id="appSection">
-    <div class="app-section-bg"></div>
+    <div class="app-section" id="appSection">
+        <div class="app-section-bg"></div>
 
-    <div class="app-section-content">
-        <p class="app-title">📱 ¡Instala la App Oficial de PrestApp!</p>
-        <p class="app-sub">
-            Gestiona tus rutas de forma más rápida directamente desde tu Android.
-        </p>
+        <div class="app-section-content">
+            <p class="app-title">📱 ¡Instala la App Oficial de PrestApp!</p>
+            <p class="app-sub">
+                Gestiona tus rutas de forma más rápida directamente desde tu Android.
+            </p>
 
-        <ul class="app-steps">
-            <li>
-                <span class="app-step-num">1</span>
-                Toca el botón de descarga y descarga el archivo <strong style="color:white;">app-release.apk</strong>.
-            </li>
-            <li>
-                <span class="app-step-num">2</span>
-                Si tu celular dice que el archivo es "dañino", selecciona <strong style="color:white;">"Descargar de todos modos"</strong>.
-            </li>
-            <li>
-                <span class="app-step-num">3</span>
-                Abre el archivo descargado. Si te pide permisos, activa <strong style="color:white;">"Instalar aplicaciones desconocidas"</strong>.
-            </li>
-            <li>
-                <span class="app-step-num">4</span>
-                Si aparece Google Play Protect, pulsa <strong style="color:white;">"Más detalles"</strong> y luego <strong style="color:white;">"Instalar de todas formas"</strong>.
-            </li>
-        </ul>
+            <ul class="app-steps">
+                <li>
+                    <span class="app-step-num">1</span>
+                    Toca el botón de descarga y descarga el archivo <strong style="color:white;">app-release.apk</strong>.
+                </li>
+                <li>
+                    <span class="app-step-num">2</span>
+                    Si tu celular dice que el archivo es "dañino", selecciona <strong style="color:white;">"Descargar de todos modos"</strong>.
+                </li>
+                <li>
+                    <span class="app-step-num">3</span>
+                    Abre el archivo descargado. Si te pide permisos, activa <strong style="color:white;">"Instalar aplicaciones desconocidas"</strong>.
+                </li>
+                <li>
+                    <span class="app-step-num">4</span>
+                    Si aparece Google Play Protect, pulsa <strong style="color:white;">"Más detalles"</strong> y luego <strong style="color:white;">"Instalar de todas formas"</strong>.
+                </li>
+            </ul>
 
-        <a href="https://drive.google.com/file/d/1sR3lj0cJeGFeF4I5ZcpjMjxtZsZvmsU4/view?usp=sharing"
-           target="_blank"
-           class="app-download-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white">
-                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
-            </svg>
-            Descargar PrestApp (.apk)
-        </a>
+            <a href="https://drive.google.com/file/d/1sR3lj0cJeGFeF4I5ZcpjMjxtZsZvmsU4/view?usp=sharing"
+               target="_blank"
+               class="app-download-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white">
+                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                </svg>
+                Descargar PrestApp (.apk)
+            </a>
 
-        <p class="app-note">🚀 ¡Listo! Ya puedes usar PrestApp desde tu pantalla de inicio.</p>
-    </div>
-</div>
-    <div class="footer-note">
-        PrestApp · Sistema de gestión de préstamos
+            <p class="app-note">🚀 ¡Listo! Ya puedes usar PrestApp desde tu pantalla de inicio.</p>
+        </div>
     </div>
 
 </div>
+
 <script>
-/* ── Animación hero (ya existente) ── */
-(function() {
-    const hero = document.getElementById('heroSection');
-    const emojis = ['.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','💸','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.',];
-    const colores = ['#ffffff','#22c55e','#86efac','#a3e635','#facc15','#38bdf8','#f472b6','#c084fc','#fb923c','#34d399','#e2e8f0','#7dd3fc'];
-    hero.style.position = 'relative';
-    hero.style.overflow = 'hidden';
-    function crearAvion(contenedor) {
-        const el = document.createElement('span');
-        el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-        el.style.color  = colores[Math.floor(Math.random() * colores.length)];
-        el.style.filter = 'drop-shadow(0 0 6px rgba(255,255,255,.4))';
-        el.style.position = 'absolute';
-        el.style.zIndex   = '3';
-        el.style.fontSize = (0.9 + Math.random() * 1.1) + 'rem';
-        el.style.pointerEvents = 'none';
-        el.style.opacity  = '0';
-        el.style.whiteSpace = 'nowrap';
-        contenedor.appendChild(el);
-        function animar() {
-            const W = contenedor.offsetWidth  || 360;
-            const H = contenedor.offsetHeight || 260;
-            el.style.left      = Math.random() * (W - 40) + 'px';
-            el.style.top       = Math.random() * (H - 20) + 'px';
-            el.style.transform = 'translate(0,0) rotate(0deg) scale(0.7)';
-            el.style.opacity   = '0';
-            el.style.color     = colores[Math.floor(Math.random() * colores.length)];
-            const dx  = (Math.random() > 0.5 ? 1 : -1) * (60 + Math.random() * 200);
-            const dy  = (Math.random() > 0.5 ? 1 : -1) * (30 + Math.random() * 120);
-            const rot = (Math.random() - 0.5) * 120;
-            const dur = 2000 + Math.random() * 4000;
-            requestAnimationFrame(() => {
-                el.style.transition = `opacity ${dur*.15}ms ease, transform ${dur}ms ease`;
-                el.style.opacity    = (0.6 + Math.random() * 0.4).toString();
-                el.style.transform  = `translate(${dx}px,${dy}px) rotate(${rot}deg) scale(${0.9+Math.random()*.5})`;
-                setTimeout(() => { el.style.opacity = '0'; }, dur * 0.78);
-                setTimeout(animar, dur + Math.random() * 1500);
-            });
+    /* ── Animación sección SoporteIA ── */
+    (function() {
+        const sec = document.getElementById('soporteIASection');
+        if (!sec) return;
+        const emojis = ['.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.',];
+        const colores = ['#ffffff','#a78bfa','#c4b5fd','#818cf8','#6366f1','#ddd6fe','#7c3aed','#e2e8f0','#38bdf8','#34d399'];
+        function crearParticula() {
+            const el = document.createElement('span');
+            el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            el.style.color  = colores[Math.floor(Math.random() * colores.length)];
+            el.style.filter = 'drop-shadow(0 0 5px rgba(139,92,246,.5))';
+            el.style.position = 'absolute';
+            el.style.zIndex   = '1';
+            el.style.fontSize = (0.6 + Math.random() * 0.9) + 'rem';
+            el.style.pointerEvents = 'none';
+            el.style.opacity  = '0';
+            el.style.whiteSpace = 'nowrap';
+            sec.appendChild(el);
+            function animar() {
+                const W = sec.offsetWidth  || 360;
+                const H = sec.offsetHeight || 200;
+                el.style.left      = Math.random() * (W - 40) + 'px';
+                el.style.top       = Math.random() * (H - 20) + 'px';
+                el.style.transform = 'translate(0,0) rotate(0deg) scale(0.7)';
+                el.style.opacity   = '0';
+                el.style.color     = colores[Math.floor(Math.random() * colores.length)];
+                const dx  = (Math.random() > 0.5 ? 1 : -1) * (50 + Math.random() * 160);
+                const dy  = (Math.random() > 0.5 ? 1 : -1) * (25 + Math.random() * 100);
+                const rot = (Math.random() - 0.5) * 100;
+                const dur = 2000 + Math.random() * 4000;
+                requestAnimationFrame(() => {
+                    el.style.transition = `opacity ${dur*.15}ms ease, transform ${dur}ms ease`;
+                    el.style.opacity    = (0.4 + Math.random() * 0.5).toString();
+                    el.style.transform  = `translate(${dx}px,${dy}px) rotate(${rot}deg) scale(${0.9+Math.random()*.5})`;
+                    setTimeout(() => { el.style.opacity = '0'; }, dur * 0.78);
+                    setTimeout(animar, dur + Math.random() * 1500);
+                });
+            }
+            setTimeout(animar, Math.random() * 3500);
         }
-        setTimeout(animar, Math.random() * 4000);
-    }
-    for (let i = 0; i < 18; i++) crearAvion(hero);
-})();
-
-/* ── Animación sección App (mismo sistema) ── */
-(function() {
-    const app = document.getElementById('appSection');
-    if (!app) return;
-    const emojis = ['.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','💸','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.',];
-    const colores = ['#ffffff','#22c55e','#86efac','#a3e635','#facc15','#38bdf8','#f472b6','#c084fc','#fb923c','#34d399','#e2e8f0','#7dd3fc'];
-    function crearAvion() {
-        const el = document.createElement('span');
-        el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-        el.style.color  = colores[Math.floor(Math.random() * colores.length)];
-        el.style.filter = 'drop-shadow(0 0 5px rgba(255,255,255,.35))';
-        el.style.position = 'absolute';
-        el.style.zIndex   = '1';
-        el.style.fontSize = (0.8 + Math.random() * 1.0) + 'rem';
-        el.style.pointerEvents = 'none';
-        el.style.opacity  = '0';
-        el.style.whiteSpace = 'nowrap';
-        app.appendChild(el);
-        function animar() {
-            const W = app.offsetWidth  || 360;
-            const H = app.offsetHeight || 200;
-            el.style.left      = Math.random() * (W - 40) + 'px';
-            el.style.top       = Math.random() * (H - 20) + 'px';
-            el.style.transform = 'translate(0,0) rotate(0deg) scale(0.7)';
-            el.style.opacity   = '0';
-            el.style.color     = colores[Math.floor(Math.random() * colores.length)];
-            const dx  = (Math.random() > 0.5 ? 1 : -1) * (50 + Math.random() * 160);
-            const dy  = (Math.random() > 0.5 ? 1 : -1) * (25 + Math.random() * 100);
-            const rot = (Math.random() - 0.5) * 100;
-            const dur = 2000 + Math.random() * 4000;
-            requestAnimationFrame(() => {
-                el.style.transition = `opacity ${dur*.15}ms ease, transform ${dur}ms ease`;
-                el.style.opacity    = (0.5 + Math.random() * 0.45).toString();
-                el.style.transform  = `translate(${dx}px,${dy}px) rotate(${rot}deg) scale(${0.9+Math.random()*.5})`;
-                setTimeout(() => { el.style.opacity = '0'; }, dur * 0.78);
-                setTimeout(animar, dur + Math.random() * 1500);
-            });
-        }
-        setTimeout(animar, Math.random() * 3500);
-    }
-    for (let i = 0; i < 14; i++) crearAvion();
-})();
+        for (let i = 0; i < 14; i++) crearParticula();
+    })();
 </script>
 </body>
 </html>
