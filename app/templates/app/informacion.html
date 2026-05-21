@@ -527,7 +527,6 @@
     </div>
 
 </div>
-
 <script>
     /* ── Animación sección SoporteIA ── */
     (function() {
@@ -571,6 +570,109 @@
         }
         for (let i = 0; i < 14; i++) crearParticula();
     })();
+
+    /* ── Animación HERO (partículas en la capa del fondo) ── */
+    (function () {
+        const hero = document.getElementById('heroSection');
+        if (!hero) return;
+
+        const capa = document.createElement('div');
+        capa.style.position      = 'absolute';
+        capa.style.inset         = '0';
+        capa.style.zIndex        = '1';
+        capa.style.overflow      = 'hidden';
+        capa.style.pointerEvents = 'none';
+        hero.appendChild(capa);
+
+        const emojis = ['.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.',];
+        const colores = ['#ffffff','#a78bfa','#c4b5fd','#818cf8','#6366f1','#ddd6fe','#7c3aed','#e2e8f0','#38bdf8','#34d399'];
+
+        function crearParticula() {
+            const el = document.createElement('span');
+            el.textContent         = emojis[Math.floor(Math.random() * emojis.length)];
+            el.style.color         = colores[Math.floor(Math.random() * colores.length)];
+            el.style.filter        = 'drop-shadow(0 0 5px rgba(139,92,246,.5))';
+            el.style.position      = 'absolute';
+            el.style.fontSize      = (0.6 + Math.random() * 0.9) + 'rem';
+            el.style.pointerEvents = 'none';
+            el.style.opacity       = '0';
+            el.style.whiteSpace    = 'nowrap';
+            capa.appendChild(el);
+            function animar() {
+                const W = capa.offsetWidth  || 400;
+                const H = capa.offsetHeight || 220;
+                el.style.left      = Math.random() * (W - 40) + 'px';
+                el.style.top       = Math.random() * (H - 20) + 'px';
+                el.style.transform = 'translate(0,0) rotate(0deg) scale(0.7)';
+                el.style.opacity   = '0';
+                el.style.color     = colores[Math.floor(Math.random() * colores.length)];
+                const dx  = (Math.random() > 0.5 ? 1 : -1) * (50 + Math.random() * 160);
+                const dy  = (Math.random() > 0.5 ? 1 : -1) * (25 + Math.random() * 100);
+                const rot = (Math.random() - 0.5) * 100;
+                const dur = 2000 + Math.random() * 4000;
+                requestAnimationFrame(() => {
+                    el.style.transition = `opacity ${dur*.15}ms ease, transform ${dur}ms ease`;
+                    el.style.opacity    = (0.4 + Math.random() * 0.5).toString();
+                    el.style.transform  = `translate(${dx}px,${dy}px) rotate(${rot}deg) scale(${0.9+Math.random()*.5})`;
+                    setTimeout(() => { el.style.opacity = '0'; }, dur * 0.78);
+                    setTimeout(animar, dur + Math.random() * 1500);
+                });
+            }
+            setTimeout(animar, Math.random() * 3500);
+        }
+        for (let i = 0; i < 14; i++) crearParticula();
+    })();
+
+    /* ── Animación APP SECTION (partículas flotantes) ── */
+    (function () {
+        const sec = document.getElementById('appSection');
+        if (!sec) return;
+
+        const simbolos = ['.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.','.',];
+        const colores  = ['#22c55e','#4ade80','#86efac','#ffffff','#bbf7d0','#16a34a','#f0fdf4','#34d399'];
+
+        function crearParticula() {
+            const el = document.createElement('span');
+            el.classList.add('avion-app');
+            el.textContent    = simbolos[Math.floor(Math.random() * simbolos.length)];
+            el.style.color    = colores[Math.floor(Math.random() * colores.length)];
+            el.style.filter   = 'drop-shadow(0 0 6px rgba(34,197,94,.5))';
+            el.style.fontSize = (.7 + Math.random() * 1) + 'rem';
+            sec.appendChild(el);
+
+            function animar() {
+                const W = sec.offsetWidth  || 360;
+                const H = sec.offsetHeight || 200;
+
+                el.style.transition = 'none';
+                el.style.left       = Math.random() * (W - 40) + 'px';
+                el.style.top        = Math.random() * (H - 20) + 'px';
+                el.style.transform  = 'translate(0,0) rotate(0deg) scale(0.7)';
+                el.style.opacity    = '0';
+                el.style.color      = colores[Math.floor(Math.random() * colores.length)];
+
+                const dx  = (Math.random() > .5 ? 1 : -1) * (60  + Math.random() * 180);
+                const dy  = (Math.random() > .5 ? 1 : -1) * (30  + Math.random() * 110);
+                const rot = (Math.random() - .5) * 120;
+                const dur = 2500 + Math.random() * 4000;
+
+                requestAnimationFrame(() => {
+                    el.style.transition = `opacity ${dur * .15}ms ease, transform ${dur}ms ease`;
+                    el.style.opacity    = (.35 + Math.random() * .55).toString();
+                    el.style.transform  = `translate(${dx}px,${dy}px) rotate(${rot}deg) scale(${.85 + Math.random() * .6})`;
+                    setTimeout(() => { el.style.opacity = '0'; }, dur * .75);
+                    setTimeout(animar, dur + Math.random() * 2000);
+                });
+            }
+
+            setTimeout(animar, Math.random() * 3000);
+        }
+
+        for (let i = 0; i < 12; i++) crearParticula();
+    })();
 </script>
+
+
+
 </body>
 </html>
