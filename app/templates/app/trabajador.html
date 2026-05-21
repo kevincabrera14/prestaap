@@ -306,77 +306,62 @@
 
 </div>{# /page #}
 
-{# ═══════════════════════════════════════════════════════════════════ #}
-{# CHAT IA — PrestAyuda                                               #}
-{# ═══════════════════════════════════════════════════════════════════ #}
-
-{# Botón flotante IA con imagen y estrellas #}
-<div id="chat-fab" title="Pregúntale a PrestAyuda">
+{# ── CHAT IA — SoporteIA ──────────────────────────────────────────── #}
+ 
+{# Botón flotante #}
+<div id="chat-fab" title="Pregúntale a SoporteIA">
     <div id="chat-fab-inner">
         <canvas id="fab-stars-canvas" width="62" height="62"></canvas>
     </div>
 </div>
-
+ 
 {# Ventana del chat #}
 <div id="chat-container">
     <div id="chat-header">
         <div>
-            <h3>PrestAyuda IA</h3>
-            <p>Tu asistente de PrestApp</p>
+            <h3>SoporteIA</h3>
+            <p>Tu asistente inteligente</p>
         </div>
         <span id="chat-close" title="Cerrar">&times;</span>
     </div>
     <div id="chat-messages"></div>
-
-    {# Sugerencias rápidas — se ocultan al primer mensaje #}
+ 
+    {# Sugerencias rápidas para TRABAJADOR/COBRADOR #}
     <div class="chat-sugerencias" id="chat-sugerencias">
         <button class="chat-sugerencia-btn" onclick="enviarSugerencia('¿Cómo registro un abono?')">💵 Registrar abono</button>
         <button class="chat-sugerencia-btn" onclick="enviarSugerencia('¿Qué significa la tarjeta en rojo?')">🔴 Tarjeta roja</button>
-        <button class="chat-sugerencia-btn" onclick="enviarSugerencia('¿Cómo registro un gasto?')">💸 Registrar gasto</button>
         <button class="chat-sugerencia-btn" onclick="enviarSugerencia('¿Cómo veo el historial de un cliente?')">🕒 Historial</button>
-        <button class="chat-sugerencia-btn" onclick="enviarSugerencia('No veo clientes en la pantalla, ¿qué hago?')">❓ Sin clientes</button>
+        <button class="chat-sugerencia-btn" onclick="enviarSugerencia('¿Cómo registro un gasto de ruta?')">💸 Gasto</button>
+        <button class="chat-sugerencia-btn" onclick="enviarSugerencia('No veo clientes en la pantalla, ¿qué hago?')">❓ Ayuda</button>
     </div>
-
+ 
     <div id="chat-input-row">
-        <textarea id="chat-input" rows="1" placeholder="Pregúntale a PrestAyuda..."></textarea>
+        <textarea id="chat-input" rows="1" placeholder="Escribe tu pregunta..."></textarea>
         <button id="chat-send">Enviar</button>
     </div>
 </div>
-
+ 
 {# ═══════════════════════════════════════════════════════════════════ #}
 {# JAVASCRIPT                                                         #}
 {# ═══════════════════════════════════════════════════════════════════ #}
 <script>
-
-// ───────────────────────────────────────────────────────────────────
-// 1. TOGGLE PANEL "⚡ ACCIONES DE RUTA"
-// ───────────────────────────────────────────────────────────────────
-function togglePanel(btn) {
+ 
+// ── 1. TOGGLE MENÚ ⋮ DE CADA TARJETA ────────────────────────────────
+function toggleMenu(btn) {
     const dropdown = btn.nextElementSibling;
     const isOpen   = dropdown.classList.contains('open');
-
-    document.querySelectorAll('.panel-dropdown.open').forEach(d => d.classList.remove('open'));
-    document.querySelectorAll('.panel-menu-trigger.open').forEach(b => b.classList.remove('open'));
-
-    if (!isOpen) {
-        dropdown.classList.add('open');
-        btn.classList.add('open');
-    }
+    document.querySelectorAll('.menu-dropdown.open').forEach(d => d.classList.remove('open'));
+    if (!isOpen) dropdown.classList.add('open');
 }
-
-// ───────────────────────────────────────────────────────────────────
-// 2. CERRAR PANEL AL TOCAR FUERA
-// ───────────────────────────────────────────────────────────────────
+ 
+// ── 2. CERRAR MENÚS AL TOCAR FUERA ───────────────────────────────────
 document.addEventListener('click', function (e) {
-    if (!e.target.closest('.panel-menu-wrap')) {
-        document.querySelectorAll('.panel-dropdown.open').forEach(d => d.classList.remove('open'));
-        document.querySelectorAll('.panel-menu-trigger.open').forEach(b => b.classList.remove('open'));
+    if (!e.target.closest('.menu-wrap')) {
+        document.querySelectorAll('.menu-dropdown.open').forEach(d => d.classList.remove('open'));
     }
 });
-
-// ───────────────────────────────────────────────────────────────────
-// 3. CHAT IA — LÓGICA COMPLETA
-// ───────────────────────────────────────────────────────────────────
+ 
+// ── 3. CHAT IA ────────────────────────────────────────────────────────
 const chatFab       = document.getElementById('chat-fab');
 const chatContainer = document.getElementById('chat-container');
 const chatClose     = document.getElementById('chat-close');
@@ -384,48 +369,37 @@ const chatMessages  = document.getElementById('chat-messages');
 const chatInput     = document.getElementById('chat-input');
 const chatSend      = document.getElementById('chat-send');
 const chatSugs      = document.getElementById('chat-sugerencias');
-
+ 
 let yaEscribio = false;
-
-// Abrir / cerrar chat
+ 
 chatFab.addEventListener('click', () => {
     const visible = chatContainer.style.display === 'flex';
     chatContainer.style.display = visible ? 'none' : 'flex';
     if (!visible && chatMessages.children.length === 0) {
-        agregarMensajeIA('👋 ¡Hola! Soy **PrestAyuda**, tu asistente en PrestApp. ¿En qué te ayudo hoy?');
+        agregarMensajeIA('👋 ¡Hola! Soy **SoporteIA**, tu asistente inteligente. ¿En qué te ayudo hoy?');
     }
 });
-
-chatClose.addEventListener('click', () => {
-    chatContainer.style.display = 'none';
-});
-
-// Auto-resize del textarea
+ 
+chatClose.addEventListener('click', () => { chatContainer.style.display = 'none'; });
+ 
 chatInput.addEventListener('input', () => {
     chatInput.style.height = 'auto';
     chatInput.style.height = Math.min(chatInput.scrollHeight, 90) + 'px';
 });
-
-// Enter envía, Shift+Enter = salto de línea
+ 
 chatInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        enviarMensaje();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensaje(); }
 });
-
+ 
 chatSend.addEventListener('click', enviarMensaje);
-
-function enviarSugerencia(texto) {
-    chatInput.value = texto;
-    enviarMensaje();
-}
-
+ 
+function enviarSugerencia(texto) { chatInput.value = texto; enviarMensaje(); }
+ 
 function getCsrfToken() {
     const cookie = document.cookie.split('; ').find(r => r.startsWith('csrftoken='));
     return cookie ? decodeURIComponent(cookie.split('=')[1]) : '';
 }
-
+ 
 function formatearIA(texto) {
     return texto
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -433,11 +407,9 @@ function formatearIA(texto) {
         .replace(/^•\s/gm, '&bull; ')
         .replace(/\n/g, '<br>');
 }
-
-function scrollAbajo() {
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
+ 
+function scrollAbajo() { chatMessages.scrollTop = chatMessages.scrollHeight; }
+ 
 function agregarMensajeUsuario(texto) {
     const div = document.createElement('div');
     div.className = 'msg-user';
@@ -445,7 +417,7 @@ function agregarMensajeUsuario(texto) {
     chatMessages.appendChild(div);
     scrollAbajo();
 }
-
+ 
 function agregarMensajeIA(texto) {
     const div = document.createElement('div');
     div.className = 'msg-ia';
@@ -454,16 +426,16 @@ function agregarMensajeIA(texto) {
     scrollAbajo();
     return div;
 }
-
+ 
 function agregarLoading() {
     const div = document.createElement('div');
     div.className = 'msg-loading';
-    div.textContent = 'PrestAyuda está escribiendo...';
+    div.textContent = 'SoporteIA está escribiendo...';
     chatMessages.appendChild(div);
     scrollAbajo();
     return div;
 }
-
+ 
 function agregarError(texto) {
     const div = document.createElement('div');
     div.className = 'msg-error';
@@ -471,41 +443,31 @@ function agregarError(texto) {
     chatMessages.appendChild(div);
     scrollAbajo();
 }
-
+ 
 function enviarMensaje() {
     const mensaje = chatInput.value.trim();
     if (!mensaje) return;
-
-    if (!yaEscribio) {
-        chatSugs.style.display = 'none';
-        yaEscribio = true;
-    }
-
+ 
+    if (!yaEscribio) { chatSugs.style.display = 'none'; yaEscribio = true; }
+ 
     agregarMensajeUsuario(mensaje);
     chatInput.value = '';
     chatInput.style.height = 'auto';
-
     chatSend.disabled = true;
     chatSend.textContent = '...';
-
+ 
     const loadingDiv = agregarLoading();
-
+ 
     fetch("{% url 'asistente_chat' %}", {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCsrfToken()
-        },
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
         body: JSON.stringify({ mensaje: mensaje })
     })
     .then(r => r.json())
     .then(data => {
         if (chatMessages.contains(loadingDiv)) chatMessages.removeChild(loadingDiv);
-        if (data.respuesta) {
-            agregarMensajeIA(data.respuesta);
-        } else if (data.error) {
-            agregarError('⚠️ Error: ' + data.error);
-        }
+        if (data.respuesta) agregarMensajeIA(data.respuesta);
+        else if (data.error) agregarError('⚠️ Error: ' + data.error);
     })
     .catch(() => {
         if (chatMessages.contains(loadingDiv)) chatMessages.removeChild(loadingDiv);
@@ -517,20 +479,16 @@ function enviarMensaje() {
         chatInput.focus();
     });
 }
-
 </script>
-
+ 
 <script>
-// ───────────────────────────────────────────────────────────────────
-// 4. ESTRELLAS EN EL BOTÓN IA
-// ───────────────────────────────────────────────────────────────────
+// ── 4. ESTRELLAS EN EL BOTÓN FAB ─────────────────────────────────────
 (function () {
     const canvas = document.getElementById('fab-stars-canvas');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    const W = canvas.width, H = canvas.height;
-    const R = W / 2;
-
+    const W = canvas.width, H = canvas.height, R = W / 2;
+ 
     const stars = Array.from({ length: 28 }, () => ({
         x: Math.random() * W,
         y: Math.random() * H,
@@ -539,27 +497,22 @@ function enviarMensaje() {
         speed: Math.random() * 0.018 + 0.008,
         maxAlpha: Math.random() * 0.75 + 0.25,
     }));
-
+ 
     function draw(t) {
         ctx.clearRect(0, 0, W, H);
         ctx.save();
         ctx.beginPath();
         ctx.arc(R, R, R, 0, Math.PI * 2);
         ctx.clip();
-
         for (const s of stars) {
             const alpha = s.maxAlpha * (0.5 + 0.5 * Math.sin(t * s.speed + s.phase));
             const grd = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 3);
             grd.addColorStop(0, `rgba(220,210,255,${alpha})`);
             grd.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.beginPath();
-            ctx.arc(s.x, s.y, s.r * 3, 0, Math.PI * 2);
-            ctx.fillStyle = grd;
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-            ctx.fill();
+            ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 3, 0, Math.PI * 2);
+            ctx.fillStyle = grd; ctx.fill();
+            ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,255,${alpha})`; ctx.fill();
         }
         ctx.restore();
         requestAnimationFrame(draw);
@@ -567,6 +520,6 @@ function enviarMensaje() {
     requestAnimationFrame(draw);
 })();
 </script>
-
+ 
 </body>
 </html>

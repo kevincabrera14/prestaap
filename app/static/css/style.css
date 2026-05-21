@@ -2410,3 +2410,102 @@ details {
 }
 #chat-send:hover   { opacity: 0.9; }
 #chat-send:disabled { opacity: 0.45; cursor: not-allowed; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ============================================================
+   12. CHAT SOPORTEIA — FIXES MOBILE FIRST
+   Agregar al final de style.css
+   ============================================================ */
+
+/* ── Fix botón FAB cuadrado en móvil ────────────────────── */
+#chat-fab {
+    -webkit-border-radius: 50%;        /* Safari/WebKit fix */
+    border-radius: 50%;
+    -webkit-transform: translateZ(0);  /* Fuerza GPU layer — fix overflow+radius en Android */
+    transform: translateZ(0);
+    /* Asegura que el clip circular funcione en todos los móviles */
+    -webkit-mask-image: -webkit-radial-gradient(white, black);
+}
+
+#chat-fab-inner {
+    -webkit-border-radius: 50%;
+    border-radius: 50%;
+}
+
+/* ── Mobile: chat ocupa todo el ancho ───────────────────── */
+@media (max-width: 480px) {
+
+    /* FAB: un poco más pequeño y pegado al borde */
+    #chat-fab {
+        width: 56px;
+        height: 56px;
+        bottom: 16px;
+        right: 16px;
+        box-shadow: 0 4px 16px rgba(99,102,241,0.5), 0 0 0 2px rgba(99,102,241,0.3);
+    }
+
+    #fab-stars-canvas {
+        width: 56px;
+        height: 56px;
+    }
+
+    /* Ventana del chat: casi pantalla completa */
+    #chat-container {
+        width: calc(100vw - 20px);
+        right: 10px;
+        left: 10px;
+        bottom: 82px;
+        height: 72vh;
+        max-height: 520px;
+        border-radius: 16px;
+    }
+
+    /* Sugerencias: scroll horizontal en móvil para no apilar */
+    .chat-sugerencias {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding-bottom: 12px;
+    }
+    .chat-sugerencias::-webkit-scrollbar { display: none; }
+
+    .chat-sugerencia-btn {
+        flex-shrink: 0;
+        font-size: 0.72rem;
+        padding: 5px 12px;
+    }
+
+    /* Input row: textarea más grande en táctil */
+    #chat-input {
+        font-size: 0.9rem;   /* evita zoom automático en iOS (mín 16px equivalente) */
+        padding: 10px 12px;
+    }
+
+    #chat-send {
+        padding: 0 18px;
+        font-size: 0.88rem;
+    }
+
+    /* Mensajes: un poco más grandes para legibilidad táctil */
+    .msg-user,
+    .msg-ia {
+        font-size: 0.88rem;
+        line-height: 1.5;
+    }
+}
