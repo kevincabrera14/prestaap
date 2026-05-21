@@ -79,4 +79,8 @@ urlpatterns = [
     
     path('ruta/<int:ruta_id>/capital/', views.agregar_capital, name='agregar_capital'),
     path('informacion/', views.informacion, name='informacion'),
+
+
+ # integracion con iA
+    path('asistente/chat/', views.asistente_chat, name='asistente_chat'),
 ]
