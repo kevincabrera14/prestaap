@@ -1,19 +1,46 @@
-# Django
+# ==========================================
+# VARIABLES DE ENTORNO Y SECRETOS (¡Crucial!)
+# ==========================================
+.env
+.env.*
+.claude/
+
+# ==========================================
+# ARCHIVOS DE BASE DE DATOS LOCAL
+# ==========================================
 db.sqlite3
 db.sqlite3-journal
-media/
-__pycache__/
-*.pyc
 
-# Entornos virtuales
+# ==========================================
+# PYTHON / DJANGO CACHE
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ==========================================
+# ENTORNOS VIRTUALES
+# ==========================================
 venv/
 env/
-.env
+ENV/
 
-# VS Code / IDEs
+# ==========================================
+# ARCHIVOS MEDIA Y ESTÁTICOS
+# ==========================================
+media/
+# Ignora el contenido de staticfiles pero conserva la carpeta con .gitkeep
+staticfiles/*
+!staticfiles/.gitkeep
+
+# ==========================================
+# LOGS
+# ==========================================
+*.log
+
+# ==========================================
+# IDEs Y SISTEMAS OPERATIVOS
+# ==========================================
 .vscode/
 .idea/
 .DS_Store
-
-# Railway / Logs
-*.log
