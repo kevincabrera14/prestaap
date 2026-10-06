@@ -75,12 +75,6 @@
                 <div class="summary-label">Gastos</div>
                 <div class="summary-value val-out">- ${{ total_gastos|intcomma }}</div>
             </div>
-            <div class="summary-item {% if neto >= 0 %}highlight-pos{% else %}highlight-neg{% endif %}" style="border-left:3px solid {% if neto >= 0 %}#22c55e{% else %}#ef4444{% endif %};">
-                <div class="summary-label">Neto Período</div>
-                <div class="summary-value {% if neto >= 0 %}val-in{% else %}val-out{% endif %}">
-                    {% if neto >= 0 %}+{% else %}-{% endif %} ${{ neto|intcomma }}
-                </div>
-            </div>
         </div>
 
         {# ── TABLA DE DESGLOSE POR DÍA ── #}
