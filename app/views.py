@@ -1495,164 +1495,109 @@ def reporte_rango(request, ruta_id):
     inicio_dia = make_aware(datetime.datetime.combine(fecha_inicio, datetime.time.min))
     fin_dia    = make_aware(datetime.datetime.combine(fecha_fin,    datetime.time.max))
 
-    # ── Ingresos: abonos ───────────────────────────────────────────────────────
-    total_abonos = Abono.objects.filter(
-        targeta__ruta=ruta,
-        fecha__range=(inicio_dia, fin_dia)
-    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+    def dia_local(dt):
+        # Fecha local del movimiento (segura con o sin zona horaria)
+        return localtime(dt).date() if timezone.is_aware(dt) else dt.date()
 
-    # ── Capital ingresado en el rango ──────────────────────────────────────────
-    total_capital_rango = MovimientoRuta.objects.filter(
-        ruta=ruta,
-        tipo='INGRESO',
-        descripcion__startswith='CAPITAL:',
-        fecha__range=(inicio_dia, fin_dia)
-    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+    # ── Una sola consulta por tabla para todo el rango ─────────────────────────
+    abonos_rango = list(
+        Abono.objects
+            .filter(targeta__ruta=ruta, fecha__range=(inicio_dia, fin_dia))
+            .select_related('targeta', 'registrado_por')
+            .order_by('fecha')
+    )
+    movimientos_rango = list(
+        MovimientoRuta.objects
+            .filter(ruta=ruta, fecha__range=(inicio_dia, fin_dia))
+            .order_by('fecha')
+    )
 
-    # ── Egresos desglosados ─────────────────────────────────────────────────────
-    total_prestamos = MovimientoRuta.objects.filter(
-        ruta=ruta,
-        tipo='EGRESO',
-        descripcion__startswith='Préstamo otorgado',
-        fecha__range=(inicio_dia, fin_dia)
-    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+    dias_dict = {}
 
-    total_renovaciones = MovimientoRuta.objects.filter(
-        ruta=ruta,
-        tipo='EGRESO',
-        descripcion__startswith='RENOVACIÓN',
-        fecha__range=(inicio_dia, fin_dia)
-    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+    def get_dia(d):
+        return dias_dict.setdefault(d, {
+            'abonos': [], 'capital': [], 'prestamos': [], 'renovaciones': [], 'gastos': [],
+        })
 
-    total_gastos = MovimientoRuta.objects.filter(
-        ruta=ruta,
-        tipo='EGRESO',
-        descripcion__startswith='GASTO:',
-        fecha__range=(inicio_dia, fin_dia)
-    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+    total_abonos        = Decimal('0.00')
+    total_capital_rango = Decimal('0.00')
+    total_prestamos     = Decimal('0.00')
+    total_renovaciones  = Decimal('0.00')
+    total_gastos        = Decimal('0.00')
+    total_otros         = Decimal('0.00')
 
-    total_otros = MovimientoRuta.objects.filter(
-        ruta=ruta,
-        tipo='EGRESO',
-        fecha__range=(inicio_dia, fin_dia)
-    ).exclude(
-        descripcion__startswith='Préstamo otorgado'
-    ).exclude(
-        descripcion__startswith='RENOVACIÓN'
-    ).exclude(
-        descripcion__startswith='GASTO:'
-    ).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+    for a in abonos_rango:
+        get_dia(dia_local(a.fecha))['abonos'].append({
+            'cliente': a.targeta.nombre_cliente,
+            'monto':   a.monto,
+            'hora':    a.fecha,
+            'usuario': a.registrado_por.username if a.registrado_por else None,
+        })
+        total_abonos += a.monto
+
+    for mov in movimientos_rango:
+        desc = mov.descripcion or ''
+        d    = dia_local(mov.fecha)
+
+        if mov.tipo == 'INGRESO':
+            if desc.startswith('CAPITAL:'):
+                get_dia(d)['capital'].append({
+                    'descripcion': desc.replace('CAPITAL:', '').strip(),
+                    'monto':       mov.monto,
+                    'hora':        mov.fecha,
+                })
+                total_capital_rango += mov.monto
+            continue
+
+        if mov.tipo != 'EGRESO':
+            continue
+
+        base = {'monto': mov.monto, 'hora': mov.fecha, 'usuario': None}
+
+        if desc.startswith('Préstamo otorgado'):
+            get_dia(d)['prestamos'].append({**base, 'cliente': desc.replace('Préstamo otorgado a ', '').strip()})
+            total_prestamos += mov.monto
+        elif desc.startswith('RENOVACIÓN'):
+            get_dia(d)['renovaciones'].append({**base, 'cliente': desc.replace('RENOVACIÓN (Restauración):', '').strip()})
+            total_renovaciones += mov.monto
+        elif desc.startswith('GASTO:'):
+            get_dia(d)['gastos'].append({**base, 'descripcion': desc.replace('GASTO:', '').strip()})
+            total_gastos += mov.monto
+        else:
+            get_dia(d)['gastos'].append({**base, 'descripcion': desc})
+            total_otros += mov.monto
 
     total_egresos = total_prestamos + total_renovaciones + total_gastos + total_otros
     neto = total_abonos + total_capital_rango - total_egresos
 
-    # ── Desglose por día ────────────────────────────────────────────────────────
-    abonos_por_dia_agg = {
-        a['fecha__date']: a['total']
-        for a in Abono.objects
-            .filter(targeta__ruta=ruta, fecha__range=(inicio_dia, fin_dia))
-            .values('fecha__date')
-            .annotate(total=Sum('monto'))
-    }
-    egresos_por_dia_agg = {
-        e['fecha__date']: e['total']
-        for e in MovimientoRuta.objects
-            .filter(ruta=ruta, tipo='EGRESO', fecha__range=(inicio_dia, fin_dia))
-            .values('fecha__date')
-            .annotate(total=Sum('monto'))
-    }
-    capital_por_dia_agg = {
-        c['fecha__date']: c['total']
-        for c in MovimientoRuta.objects
-            .filter(ruta=ruta, tipo='INGRESO', descripcion__startswith='CAPITAL:', fecha__range=(inicio_dia, fin_dia))
-            .values('fecha__date')
-            .annotate(total=Sum('monto'))
-    }
-    dias_con_actividad = sorted(
-        set(
-            list(abonos_por_dia_agg.keys()) +
-            list(egresos_por_dia_agg.keys()) +
-            list(capital_por_dia_agg.keys())
-        ),
-        reverse=True
-    )
-
+    # ── Desglose por día (más reciente primero) ────────────────────────────────
     dias = []
-    for dia in dias_con_actividad:
-        abonos_qs = (
-            Abono.objects
-                .filter(targeta__ruta=ruta, fecha__date=dia)
-                .select_related('targeta', 'registrado_por')
-                .order_by('fecha')
-        )
-        abonos = [
-            {
-                'cliente': a.targeta.nombre_cliente,
-                'monto':   a.monto,
-                'hora':    a.fecha,
-                'usuario': a.registrado_por.username if a.registrado_por else None,
-            }
-            for a in abonos_qs
-        ]
-        total_abonos_dia = sum(a['monto'] for a in abonos)
+    for dia in sorted(dias_dict.keys(), reverse=True):
+        info = dias_dict[dia]
 
-        # Capital del día
-        capital_qs = MovimientoRuta.objects.filter(
-            ruta=ruta,
-            tipo='INGRESO',
-            descripcion__startswith='CAPITAL:',
-            fecha__date=dia
-        ).order_by('fecha')
-        capital_list = [
-            {
-                'descripcion': mov.descripcion.replace('CAPITAL:', '').strip(),
-                'monto':       mov.monto,
-                'hora':        mov.fecha,
-            }
-            for mov in capital_qs
-        ]
-        total_capital_dia = sum(m['monto'] for m in capital_list)
+        total_abonos_dia       = sum((m['monto'] for m in info['abonos']),       Decimal('0.00'))
+        total_capital_dia      = sum((m['monto'] for m in info['capital']),      Decimal('0.00'))
+        total_prestamos_dia    = sum((m['monto'] for m in info['prestamos']),    Decimal('0.00'))
+        total_renovaciones_dia = sum((m['monto'] for m in info['renovaciones']), Decimal('0.00'))
+        total_gastos_dia       = sum((m['monto'] for m in info['gastos']),       Decimal('0.00'))
+        total_egresos_dia      = total_prestamos_dia + total_renovaciones_dia + total_gastos_dia
 
-        prestamos    = []
-        renovaciones = []
-        gastos       = []
-
-        for mov in MovimientoRuta.objects.filter(ruta=ruta, tipo='EGRESO', fecha__date=dia).order_by('fecha'):
-            desc = mov.descripcion or ''
-            base = {
-                'monto':   mov.monto,
-                'hora':    mov.fecha,
-                'usuario': None,
-            }
-            if desc.startswith('Préstamo otorgado'):
-                prestamos.append({**base, 'cliente': desc.replace('Préstamo otorgado a ', '').strip()})
-            elif 'RENOVACIÓN' in desc:
-                renovaciones.append({**base, 'cliente': desc.replace('RENOVACIÓN (Restauración):', '').strip()})
-            elif desc.startswith('GASTO:'):
-                gastos.append({**base, 'descripcion': desc.replace('GASTO:', '').strip()})
-            else:
-                gastos.append({**base, 'descripcion': desc})
-
-        total_prestamos_dia   = sum(m['monto'] for m in prestamos)
-        total_renovaciones_dia = sum(m['monto'] for m in renovaciones)
-        total_gastos_dia      = sum(m['monto'] for m in gastos)
-        total_egresos_dia     = total_prestamos_dia + total_renovaciones_dia + total_gastos_dia
-
-    dias.append({
+        dias.append({
             'fecha': dia,
             'ingresos': total_abonos_dia + total_capital_dia,
             'egresos': total_egresos_dia,
             'neto': total_abonos_dia + total_capital_dia - total_egresos_dia,
-            'total_ingresos_dia': total_abonos_dia + total_capital_dia,   # NUEVO
-            'total_egresos_dia': total_egresos_dia,                       # NUEVO
-            'inyecciones': capital_list,                                  # NUEVO
-            'total_inyecciones': total_capital_dia,                       # NUEVO
-            'total_movimientos': len(abonos) + len(capital_list) + len(prestamos) + len(renovaciones) + len(gastos),
-            'abonos': abonos,
-            'capital': capital_list,
-            'prestamos': prestamos,
-            'renovaciones': renovaciones,
-            'gastos': gastos,
+            'total_ingresos_dia': total_abonos_dia + total_capital_dia,
+            'total_egresos_dia': total_egresos_dia,
+            'inyecciones': info['capital'],
+            'total_inyecciones': total_capital_dia,
+            'total_movimientos': (len(info['abonos']) + len(info['capital']) + len(info['prestamos'])
+                                  + len(info['renovaciones']) + len(info['gastos'])),
+            'abonos': info['abonos'],
+            'capital': info['capital'],
+            'prestamos': info['prestamos'],
+            'renovaciones': info['renovaciones'],
+            'gastos': info['gastos'],
             'total_abonos': total_abonos_dia,
             'total_capital_dia': total_capital_dia,
             'total_prestamos': total_prestamos_dia,
@@ -1664,7 +1609,7 @@ def reporte_rango(request, ruta_id):
         'ruta': ruta,
         'fecha_inicio': fecha_inicio,
         'fecha_fin': fecha_fin,
-        'total_ingresos': total_abonos + total_capital_rango,   # NUEVO
+        'total_ingresos': total_abonos + total_capital_rango,
         'total_abonos': total_abonos,
         'total_capital_rango': total_capital_rango,
         'total_prestamos': total_prestamos,
