@@ -1638,11 +1638,15 @@ def reporte_rango(request, ruta_id):
         total_gastos_dia      = sum(m['monto'] for m in gastos)
         total_egresos_dia     = total_prestamos_dia + total_renovaciones_dia + total_gastos_dia
 
-        dias.append({
+    dias.append({
             'fecha': dia,
             'ingresos': total_abonos_dia + total_capital_dia,
             'egresos': total_egresos_dia,
             'neto': total_abonos_dia + total_capital_dia - total_egresos_dia,
+            'total_ingresos_dia': total_abonos_dia + total_capital_dia,   # NUEVO
+            'total_egresos_dia': total_egresos_dia,                       # NUEVO
+            'inyecciones': capital_list,                                  # NUEVO
+            'total_inyecciones': total_capital_dia,                       # NUEVO
             'total_movimientos': len(abonos) + len(capital_list) + len(prestamos) + len(renovaciones) + len(gastos),
             'abonos': abonos,
             'capital': capital_list,
@@ -1660,6 +1664,7 @@ def reporte_rango(request, ruta_id):
         'ruta': ruta,
         'fecha_inicio': fecha_inicio,
         'fecha_fin': fecha_fin,
+        'total_ingresos': total_abonos + total_capital_rango,   # NUEVO
         'total_abonos': total_abonos,
         'total_capital_rango': total_capital_rango,
         'total_prestamos': total_prestamos,
